@@ -19,7 +19,7 @@ object Main extends StrictLogging {
     logger.info("Running bot.")
 
     // To run spawn the bot
-    val bot = new RandomBot("249399445:AAHX9cG3MCsF9kJ9Y-c-LmAF3_RCALrIG2s")
+    val bot = new RandomBot("TOKEN")
     val eol = bot.run()
     println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
     scala.io.StdIn.readLine()
