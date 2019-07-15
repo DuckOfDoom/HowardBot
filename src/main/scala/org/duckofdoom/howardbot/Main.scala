@@ -1,10 +1,13 @@
 package org.duckofdoom.howardbot
 
-import com.bot4s.telegram.future.TelegramBot
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.syntax._
+import io.circe.generic.semiauto._
+import slogging._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import slogging._
 
 object Main extends StrictLogging {
   def main(args: Array[String]): Unit = {
@@ -12,7 +15,8 @@ object Main extends StrictLogging {
     LoggerConfig.level = LogLevel.TRACE
 
     henloWorld()
-
+    
+//    runBot()
   }
 
   private def runBot(): Unit = {
@@ -29,24 +33,26 @@ object Main extends StrictLogging {
   }
 
   private def henloWorld(): Unit = {
-
-    val l = List(1, "ad", true)
-
-    println(l)
-    println(l.productArity)
     
-    val d1 = new derp1(1, "1")
-    val d2 = new derp2(2, "2")
-    val d22 = new derp2(3, "2")
+    val config = new BotConfig("herpj", "derperino")
     
-    println(d2.equals(d22))
-  }
+    println(config)
+    println()
 
-  class derp1(x: Int, s: String) {
+    implicit val fooDecoder: Decoder[BotConfig] = deriveDecoder
+    implicit val fooEncoder: Encoder[BotConfig] = new Encoder[BotConfig] {
+      override def apply(a: BotConfig): Json = Json.obj(
+        ("herp", Json.fromString("derp")),
+        ("1", Json.fromInt(2))
+      )
+    }
+    
+    val j = config.asJson
+    println(j)
+    println()
 
-  }
-  
-  case class derp2(x: Int, s: String) {
-
+    val decoded = j.as[BotConfig]
+    
+    println(decoded)
   }
 }

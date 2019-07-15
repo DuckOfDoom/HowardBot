@@ -25,13 +25,14 @@ class RandomBot(val token: String) extends TelegramBot
   logger.info("asd")
   
   // Or just the scalaj-http backend
-   override val client: RequestHandler[Future] = new ScalajHttpClient(token)
+  override val client: RequestHandler[Future] = new ScalajHttpClient(token);
   
   val rng = new scala.util.Random(System.currentTimeMillis())
   onCommand("coin" or "flip") { implicit msg =>
     reply(if (rng.nextBoolean()) "Head!" else "Tail!").void
   }
   onCommand('real | 'double | 'float) { implicit msg =>
+    
     reply(rng.nextDouble().toString).void
   }
   onCommand("/die" | "roll") { implicit msg =>
