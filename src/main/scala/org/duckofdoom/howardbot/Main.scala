@@ -7,6 +7,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 object Main extends StrictLogging {
+  
   def main(args: Array[String]): Unit = {
     LoggerConfig.factory = PrintLoggerFactory()
     LoggerConfig.level = LogLevel.TRACE

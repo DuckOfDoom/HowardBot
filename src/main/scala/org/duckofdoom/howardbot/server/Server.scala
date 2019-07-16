@@ -1,18 +1,36 @@
 package org.duckofdoom.howardbot.server
 
-import cats.effect.IO
-import com.twitter.finagle.Http
-import com.twitter.util.Await
-import io.finch.{Endpoint, Ok, Text}
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Directives._
+import akka.stream.ActorMaterializer
 
-object Server extends Endpoint.Module[IO] {
+import scala.concurrent.ExecutionContextExecutor
+import scala.io.StdIn
+
+object Server {
   
-  def run()  {
-    val api: Endpoint[IO, String] = get("hello") {
-      Ok("Hello, World!")
-    }
+  def run(): Unit = {
 
-    Await.ready(Http.server.serve(":8080", api.toServiceAs[Text.Plain]))
+    implicit val system: ActorSystem = ActorSystem("my-system")
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+    
+    implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+    val route =
+      path("hello") {
+        get {
+          complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<h1>Say hello to akka-http</h1>"))
+        }
+      }
+
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+
+    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
+    StdIn.readLine() // let it run until user presses return
+    bindingFuture
+      .flatMap(_.unbind()) // trigger unbinding from the port
+      .onComplete(_ => system.terminate()) // and shutdown when done
   }
-
 }

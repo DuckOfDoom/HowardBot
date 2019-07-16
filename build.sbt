@@ -19,10 +19,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser"
 ).map(_ % circeVersion)
 
-val finchVersion = "0.29.0"
 libraryDependencies ++= Seq(
-  "com.github.finagle" %% "finchx-core",
-  "com.github.finagle" %% "finchx-circe",
-).map(_ % finchVersion)
-
-
+  "com.typesafe.akka" %% "akka-http"   % "10.1.8",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.19"
+)
