@@ -1,9 +1,8 @@
 package org.duckofdoom.howardbot
 
-import io.circe._
-import io.circe.generic.auto._
 import io.circe.syntax._
-import io.circe.generic.semiauto._
+import io.circe.parser.decode
+import io.circe.generic.auto._
 import slogging._
 
 import scala.concurrent.Await
@@ -34,25 +33,18 @@ object Main extends StrictLogging {
 
   private def henloWorld(): Unit = {
     
-    val config = new BotConfig("herpj", "derperino")
+    val config = BotConfig("herpj", "derperino", InnerConfig(1, 3))
     
     println(config)
-    println()
-
-    implicit val fooDecoder: Decoder[BotConfig] = deriveDecoder
-    implicit val fooEncoder: Encoder[BotConfig] = new Encoder[BotConfig] {
-      override def apply(a: BotConfig): Json = Json.obj(
-        ("herp", Json.fromString("derp")),
-        ("1", Json.fromInt(2))
-      )
-    }
+    val j = config.asJson.toString()
     
-    val j = config.asJson
+    println("Initial config:")
     println(j)
-    println()
-
-    val decoded = j.as[BotConfig]
     
-    println(decoded)
+    BotConfig.save(config)
+    println("Saved config...")
+    val conf = BotConfig.load()
+    
+    println(s"Loaded Config:\n$conf")
   }
 }
