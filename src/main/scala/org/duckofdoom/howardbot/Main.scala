@@ -1,8 +1,6 @@
 package org.duckofdoom.howardbot
 
-import io.circe.syntax._
-import io.circe.parser.decode
-import io.circe.generic.auto._
+import org.duckofdoom.howardbot.server.Server
 import slogging._
 
 import scala.concurrent.Await
@@ -15,10 +13,11 @@ object Main extends StrictLogging {
 
     henloWorld()
     
-//    runBot()
+    Server.run()
   }
 
   private def runBot(): Unit = {
+    
     logger.info("Running bot.")
 
     // To run spawn the bot
@@ -30,21 +29,22 @@ object Main extends StrictLogging {
     // Wait for the bot end-of-life
     Await.result(eol, Duration.Inf)
   }
+  
 
   private def henloWorld(): Unit = {
     
-    val config = BotConfig("herpj", "derperino", InnerConfig(1, 3))
-    
-    println(config)
-    val j = config.asJson.toString()
-    
-    println("Initial config:")
-    println(j)
-    
-    BotConfig.save(config)
-    println("Saved config...")
-    val conf = BotConfig.load()
-    
-    println(s"Loaded Config:\n$conf")
+//    val config = BotConfig.createDefault()
+//    
+//    println(config)
+//    val j = config.asJson.toString()
+//    
+//    println("Initial config:")
+//    println(j)
+//    
+//    BotConfig.save(config)
+//    println("Saved config...")
+//    val conf = BotConfig.load()
+//    
+//    println(s"Loaded Config:\n$conf")
   }
 }

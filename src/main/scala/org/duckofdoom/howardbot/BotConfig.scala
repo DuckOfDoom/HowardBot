@@ -3,13 +3,19 @@ package org.duckofdoom.howardbot
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser.decode
-
-import scala.io.Source
-import cats.syntax.option._
+import org.duckofdoom.howardbot.utils.FileHandler
 import slogging.StrictLogging
+
+case class BotConfig(A: String, B: String, inner: InnerConfig) {
+}
+
+case class InnerConfig(x: Int, y: Int) {
+}
 
 object BotConfig extends FileHandler with StrictLogging {
   val configPath = "config.json"
+  
+  def createDefault() : BotConfig = BotConfig("one", "two", InnerConfig(1,2))
 
   def load(implicit path: String = configPath): Option[BotConfig] = readFile(path).flatMap(f = s => {
     decode[BotConfig](s) match {
@@ -23,34 +29,3 @@ object BotConfig extends FileHandler with StrictLogging {
   }
 }
 
-case class BotConfig(A: String, B: String, inner: InnerConfig) {
-
-}
-
-case class InnerConfig(x: Int, y: Int) {
-}
-
-class FileHandler() extends StrictLogging {
-
-  def readFile(implicit path: String): Option[String] = {
-    try {
-      val s = Source.fromFile(path)
-      val str = s.mkString
-      s.close()
-      str.some
-    }
-    catch {
-      case e: Exception => {
-        logger.error(s"Failed to read file '$path'! Exception:\n${e.toString}")
-        None
-      }
-    }
-  }
-
-  def writeFile(contents: String, path: String): Unit = {
-    import java.io._
-    val pw = new PrintWriter(new File(path))
-    pw.write(contents)
-    pw.close()
-  }
-}
