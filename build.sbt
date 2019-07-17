@@ -10,6 +10,8 @@ libraryDependencies ++= Seq(
   
   "com.bot4s" % "telegram-core_2.12" % "4.3.0-RC1",
   "com.bot4s" % "telegram-akka_2.12" % "4.3.0-RC1",
+  
+  "com.lihaoyi" %% "scalatags" % "0.7.0",
 )
 
 val circeVersion = "0.11.1"

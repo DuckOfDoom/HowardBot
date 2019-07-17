@@ -1,36 +1,27 @@
 package org.duckofdoom.howardbot
 
+import org.duckofdoom.howardbot.bot.Bot
 import org.duckofdoom.howardbot.server.Server
 import slogging._
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main extends StrictLogging {
   
   def main(args: Array[String]): Unit = {
     LoggerConfig.factory = PrintLoggerFactory()
     LoggerConfig.level = LogLevel.TRACE
-
-    henloWorld()
     
-    Server.run()
-  }
-
-  private def runBot(): Unit = {
+    val server = Server.run()
+    val bot = Bot.run()
     
-    logger.info("Running bot.")
-
-    // To run spawn the bot
-    val bot = new RandomBot("TOKEN")
-    val eol = bot.run()
-    println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
-    scala.io.StdIn.readLine()
-    bot.shutdown() // initiate shutdown
-    // Wait for the bot end-of-life
-    Await.result(eol, Duration.Inf)
+    for {
+      a <- server
+      b <- bot
+    } yield (a, b)
+    
+    logger.error("we're done here")
   }
-  
 
   private def henloWorld(): Unit = {
     

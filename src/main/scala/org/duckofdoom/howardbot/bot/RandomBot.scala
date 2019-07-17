@@ -1,16 +1,15 @@
-package org.duckofdoom.howardbot
+package org.duckofdoom.howardbot.bot
 
 import cats.instances.future._
 import cats.syntax.functor._
 import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.api.declarative.Commands
-import com.bot4s.telegram.clients.{FutureSttpClient, ScalajHttpClient}
+import com.bot4s.telegram.clients.ScalajHttpClient
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.Future
 import scala.util.Try
-import scala.concurrent.{Await, Future}
 
 /** Generates random values.
   */
@@ -21,8 +20,6 @@ class RandomBot(val token: String) extends TelegramBot
   LoggerConfig.factory = PrintLoggerFactory;
   // set log level, e.g. to TRACE
   LoggerConfig.level = LogLevel.TRACE
-  
-  logger.info("asd")
   
   // Or just the scalaj-http backend
   override val client: RequestHandler[Future] = new ScalajHttpClient(token);

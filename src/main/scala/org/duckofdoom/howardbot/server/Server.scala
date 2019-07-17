@@ -1,36 +1,41 @@
 package org.duckofdoom.howardbot.server
 
+import java.time.{Duration, LocalTime}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import org.duckofdoom.howardbot.bot.Bot
+import slogging.StrictLogging
 
-import scala.concurrent.ExecutionContextExecutor
-import scala.io.StdIn
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
-object Server {
-  
-  def run(): Unit = {
+object Server extends StrictLogging {
 
+  def run(): Future[Unit] = {
     implicit val system: ActorSystem = ActorSystem("my-system")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
     val route =
-      path("hello") {
+      path("") {
         get {
-          complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<h1>Say hello to akka-http</h1>"))
+          implicit val runningTime: Duration = Duration.between(LocalTime.now(), Bot.startupTime)
+          implicit val restartCount: Int = Bot.restartCount
+          complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, Pages.homePage))
         }
       }
 
     val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 
-    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-    StdIn.readLine() // let it run until user presses return
-    bindingFuture
-      .flatMap(_.unbind()) // trigger unbinding from the port
-      .onComplete(_ => system.terminate()) // and shutdown when done
+    logger.info(s"Server online at http://localhost:8080/")
+
+    //    bindingFuture
+    //      .flatMap(_.unbind()) // trigger unbinding from the port
+    //      .onComplete(_ => system.terminate()) 
+
+    Future.unit
   }
 }
