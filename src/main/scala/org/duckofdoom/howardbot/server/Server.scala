@@ -22,7 +22,7 @@ object Server extends StrictLogging {
     val route =
       path("") {
         get {
-          implicit val runningTime: Duration = Duration.between(LocalTime.now(), Bot.startupTime)
+          implicit val runningTime: Duration = Duration.between(Bot.startupTime, LocalTime.now())
           implicit val restartCount: Int = Bot.restartCount
           complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, Pages.homePage))
         }

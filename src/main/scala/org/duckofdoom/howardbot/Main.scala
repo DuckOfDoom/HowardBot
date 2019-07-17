@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object Main extends StrictLogging {
   
   def main(args: Array[String]): Unit = {
-    LoggerConfig.factory = PrintLoggerFactory()
+    LoggerConfig.factory = PrintLoggerFactory
     LoggerConfig.level = LogLevel.TRACE
     
     val server = Server.run()
