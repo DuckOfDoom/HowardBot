@@ -1,16 +1,20 @@
 package org.duckofdoom.howardbot.bot
 
 import java.io.{PrintWriter, StringWriter}
+import java.time.LocalTime
 
+import org.duckofdoom.howardbot.Config
 import slogging.StrictLogging
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import java.time._
+
+import cats.syntax.option._
 
 object Bot extends StrictLogging {
-  var startupTime : LocalTime = LocalTime.now()
-  var restartCount : Int = 0
+  var startupTime: LocalTime = LocalTime.now()
+  var restartCount: Int = 0
+  var lastRestartReason: Option[String] = None
 
   def run(): Future[Unit] = {
     try {
@@ -20,8 +24,10 @@ object Bot extends StrictLogging {
       case e: Exception =>
         val sw = new StringWriter
         e.printStackTrace(new PrintWriter(sw))
-        logger.error(s"Caught exception while running bot:\n$sw\n Restarting...")
-        restartCount += 1;
+        val message = s"Caught exception while running bot:\n$sw\n Restarting..."
+        logger.error(message)
+        lastRestartReason = message.some
+        restartCount += 1
         run()
     }
   }
@@ -29,14 +35,17 @@ object Bot extends StrictLogging {
   def startBot(): Future[Unit] = {
     logger.info("Running bot.")
 
-    val bot = new RandomBot("TOKEN")
-    val eol = bot.run()
-    
-    startupTime = LocalTime.now()
-    
-    Await.result(eol, Duration.Inf)
-
-    bot.shutdown() // initiate shutdown
-    eol
+    Config.load match {
+      case None =>
+        logger.error("Bot failed to start because config file is invalid!")
+        lastRestartReason = "Invalid configuration!".some
+        Future.unit
+      case Some(conf) =>
+        val bot = new HowardBot(conf)
+        startupTime = LocalTime.now()
+        Await.result(bot.run(), Duration.Inf)
+        bot.shutdown() // initiate shutdown
+        Future.failed(new Exception("Bot was shut down"))
+    }
   }
 }

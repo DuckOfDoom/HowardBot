@@ -24,6 +24,7 @@ object Server extends StrictLogging {
         get {
           implicit val runningTime: Duration = Duration.between(Bot.startupTime, LocalTime.now())
           implicit val restartCount: Int = Bot.restartCount
+          implicit val restartReason: Option[String] = Bot.lastRestartReason
           complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, Pages.homePage))
         }
       }

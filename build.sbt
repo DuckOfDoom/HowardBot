@@ -14,6 +14,9 @@ libraryDependencies ++= Seq(
   "biz.enef" %% "slogging" % "0.6.1",
   
   "com.lihaoyi" %% "scalatags" % "0.7.0",
+  
+  "com.softwaremill.sttp" %% "core" % "1.6.3",
+  "com.softwaremill.sttp" %% "async-http-client-backend-cats" % "1.6.3"
 )
 
 val circeVersion = "0.11.1"

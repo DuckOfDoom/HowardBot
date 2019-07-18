@@ -1,6 +1,5 @@
 {
-  "A" : "one",
-  "B" : "two",
+  "token" : "YOUR_BOT_TOKEN",
   "inner" : {
     "x" : 1,
     "y" : 2
