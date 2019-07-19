@@ -1,22 +1,20 @@
 package org.duckofdoom.howardbot.server
 
-import java.time.{Duration, LocalTime}
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.Bot
+import org.duckofdoom.howardbot.bot.BotStatus
 import slogging.StrictLogging
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-object Server extends StrictLogging {
-
+class Server(implicit botStatus: BotStatus) extends StrictLogging {
+  
   def run(implicit config:Option[Config]): Future[Unit] = {
-
+    
     if (config.isEmpty) {
       return Future.failed(new Exception("No server configuration provided!"))
     }
@@ -28,10 +26,16 @@ object Server extends StrictLogging {
     val route =
       path("") {
         get {
-          implicit val runningTime: Duration = Duration.between(Bot.startupTime, LocalTime.now())
-          implicit val restartCount: Int = Bot.restartCount
-          implicit val restartReason: Option[String] = Bot.lastRestartReason
-          complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, Pages.homePage))
+          complete(
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              Pages.homePage(
+                botStatus.runningTime,
+                botStatus.restartCount,
+                botStatus.restartReason
+              )
+            )
+          )
         }
       }
 

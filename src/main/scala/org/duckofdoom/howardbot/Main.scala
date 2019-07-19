@@ -13,12 +13,15 @@ object Main extends StrictLogging {
     LoggerConfig.level = LogLevel.TRACE
     
     // TODO: Maybe split config into two files so we don't have to load it two times?
-    val server = Server.run(Config.load)
-    val bot = Bot.run(() => Config.load)
+    implicit val configLoader: () => Option[Config] = () => Config.load
+    implicit val config: Option[Config] = configLoader()
+    
+    implicit val bot: Bot = new Bot()
+    val server = new Server()
 
     for {
-      a <- server
-      b <- bot
+      a <- server.run
+      b <- bot.run
     } yield (a, b)
 
     logger.error("we're done here")

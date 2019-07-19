@@ -20,8 +20,11 @@ class HowardBot(val botConfig: Config)
 
   override val client: RequestHandler[Future] = new ScalajHttpClient(botConfig.token)
 
-  onCommand("herp") { implicit msg => {
+  onCommand("herp") { implicit msg => 
     reply("derp", parseMode = Some(ParseMode.HTML)).void
   }
+
+  onCommand("menu") { implicit msg => 
+    reply("asdf", parseMode = Some(ParseMode.HTML)).void
   }
 }
