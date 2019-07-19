@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.Bot
 import slogging.StrictLogging
 
@@ -14,7 +15,12 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object Server extends StrictLogging {
 
-  def run(): Future[Unit] = {
+  def run(implicit config:Option[Config]): Future[Unit] = {
+
+    if (config.isEmpty) {
+      return Future.failed(new Exception("No server configuration provided!"))
+    }
+    
     implicit val system: ActorSystem = ActorSystem("my-system")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -29,9 +35,11 @@ object Server extends StrictLogging {
         }
       }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    val address = config.get.serverAddress
+    val port = config.get.serverPort
+    Http().bindAndHandle(route, address, port)
 
-    logger.info(s"Server online at http://localhost:8080/")
+    logger.info(s"Started server at http://$address:$port")
 
     //    bindingFuture
     //      .flatMap(_.unbind()) // trigger unbinding from the port

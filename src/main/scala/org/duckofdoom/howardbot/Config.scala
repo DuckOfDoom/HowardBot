@@ -24,6 +24,8 @@ object Config extends FileHandler with StrictLogging {
 case class Config
 (
   token: String,
+  serverAddress: String,
+  serverPort: Int,
   inner: InnerConfig
 ) 
 

@@ -12,8 +12,9 @@ object Main extends StrictLogging {
     LoggerConfig.factory = PrintLoggerFactory
     LoggerConfig.level = LogLevel.TRACE
     
-    val server = Server.run()
-    val bot = Bot.run()
+    // TODO: Maybe split config into two files so we don't have to load it two times?
+    val server = Server.run(Config.load)
+    val bot = Bot.run(() => Config.load)
 
     for {
       a <- server

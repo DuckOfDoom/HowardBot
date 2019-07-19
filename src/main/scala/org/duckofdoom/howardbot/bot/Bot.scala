@@ -16,9 +16,9 @@ object Bot extends StrictLogging {
   var restartCount: Int = 0
   var lastRestartReason: Option[String] = None
 
-  def run(): Future[Unit] = {
+  def run(implicit reloadConfig:() => Option[Config]): Future[Unit] = {
     try {
-      startBot()
+      startBot(reloadConfig)
     }
     catch {
       case e: Exception =>
@@ -28,14 +28,14 @@ object Bot extends StrictLogging {
         logger.error(message)
         lastRestartReason = message.some
         restartCount += 1
-        run()
+        run(reloadConfig)
     }
   }
 
-  def startBot(): Future[Unit] = {
+  private def startBot(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     logger.info("Running bot.")
 
-    Config.load match {
+    reloadConfig() match {
       case None =>
         logger.error("Bot failed to start because config file is invalid!")
         lastRestartReason = "Invalid configuration!".some
