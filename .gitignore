@@ -1,6 +1,8 @@
 *.class
 *.log
 target/*
-project/*
+project/target/*
 .idea
 config.json
+out/
+project/project/*
