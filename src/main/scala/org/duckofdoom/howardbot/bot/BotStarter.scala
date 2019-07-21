@@ -15,8 +15,9 @@ trait BotStatus {
   def restartReason: Option[String] 
 }
 
-class Bot extends BotStatus
+class BotStarter extends BotStatus
   with StrictLogging {
+  
   override def runningTime: Duration = Duration.between(startupTime, LocalTime.now())
   override def restartReason: Option[String] = lastRestartReason
   override def restartCount: Int = restarts
@@ -24,6 +25,9 @@ class Bot extends BotStatus
   private var startupTime: LocalTime = LocalTime.now()
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
+  
+//  implicit val dataProvider: ItemDataProvider = Place
+//  implicit val dataProvider: ItemDataProvider = ItemDataProvider
 
   def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     try {

@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot
 
-import org.duckofdoom.howardbot.bot.Bot
+import org.duckofdoom.howardbot.bot.BotStarter
 import org.duckofdoom.howardbot.server.Server
 import slogging._
 
@@ -16,7 +16,7 @@ object Main extends StrictLogging {
     implicit val configLoader: () => Option[Config] = () => Config.load
     implicit val config: Option[Config] = configLoader()
     
-    implicit val bot: Bot = new Bot()
+    implicit val bot: BotStarter = new BotStarter()
     val server = new Server()
 
     for {
