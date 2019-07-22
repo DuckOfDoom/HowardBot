@@ -20,7 +20,8 @@ class PlaceholderItemDataProvider extends ItemDataProvider {
       val id = random.nextInt()
       val item = PlaceholderItem(
         id,
-        faker.Lorem.words(1).head,
+        faker.Lorem.words(1) + "/" + faker.Lorem.words(1),
+        faker.Lorem.words(1).head + " Brewery",
         i * 100,
         faker.Company.name,
         faker.Lorem.paragraph()

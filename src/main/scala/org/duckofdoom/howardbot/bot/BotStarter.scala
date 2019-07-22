@@ -4,6 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 import java.time.{Duration, LocalTime}
 
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.data.{ItemDataProvider, PlaceholderItemDataProvider}
 import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
@@ -18,6 +19,7 @@ trait BotStatus {
 class BotStarter extends BotStatus
   with StrictLogging {
   
+  // TODO: From LocalTime to LocalDateTime
   override def runningTime: Duration = Duration.between(startupTime, LocalTime.now())
   override def restartReason: Option[String] = lastRestartReason
   override def restartCount: Int = restarts
@@ -26,11 +28,12 @@ class BotStarter extends BotStatus
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
   
-//  implicit val dataProvider: ItemDataProvider = Place
-//  implicit val dataProvider: ItemDataProvider = ItemDataProvider
+  implicit val dataProvider: ItemDataProvider = new PlaceholderItemDataProvider
+  implicit val responseService: ResponseService = new ResponseServiceImpl
 
   def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     try {
+    Duration.ofDays()
       startBot(reloadConfig)
     }
     catch {

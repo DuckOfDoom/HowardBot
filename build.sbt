@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",
   "io.circe" %% "circe-parser"
-).map(_ % circeVersion)
+).map(_ % circeVersion) 
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http"   % "10.1.8",
