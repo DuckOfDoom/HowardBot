@@ -16,7 +16,7 @@ trait BotStatus {
   def restartReason: Option[String] 
 }
 
-class BotStarter extends BotStatus
+class BotStarter(implicit responseService: ResponseService) extends BotStatus
   with StrictLogging {
   
   // TODO: From LocalTime to LocalDateTime
@@ -27,9 +27,6 @@ class BotStarter extends BotStatus
   private var startupTime: LocalTime = LocalTime.now()
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
-  
-  implicit val dataProvider: ItemDataProvider = new PlaceholderItemDataProvider
-  implicit val responseService: ResponseService = new ResponseServiceImpl
 
   def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     try {

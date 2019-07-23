@@ -17,12 +17,12 @@ class RandomBot(val token: String) extends TelegramBot
   with Polling
   with Commands[Future] {
   
-  LoggerConfig.factory = PrintLoggerFactory;
+  LoggerConfig.factory = PrintLoggerFactory
   // set log level, e.g. to TRACE
   LoggerConfig.level = LogLevel.TRACE
   
   // Or just the scalaj-http backend
-  override val client: RequestHandler[Future] = new ScalajHttpClient(token);
+  override val client: RequestHandler[Future] = new ScalajHttpClient(token)
   
   val rng = new scala.util.Random(System.currentTimeMillis())
   onCommand("coin" or "flip") { implicit msg =>

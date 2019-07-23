@@ -1,12 +1,11 @@
 package org.duckofdoom.howardbot.bot
 
-import com.bot4s.telegram.api.RequestHandler
-import com.bot4s.telegram.api.declarative.Commands
-import com.bot4s.telegram.clients.ScalajHttpClient
-import com.bot4s.telegram.future.{Polling, TelegramBot}
-import com.bot4s.telegram.methods.ParseMode
 import cats.instances.future._
 import cats.syntax.functor._
+import com.bot4s.telegram.api.RequestHandler
+import com.bot4s.telegram.api.declarative.Commands
+import com.bot4s.telegram.future.{Polling, TelegramBot}
+import com.bot4s.telegram.methods.ParseMode
 import org.duckofdoom.howardbot.Config
 import slogging.StrictLogging
 
@@ -18,11 +17,12 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
     with StrictLogging
     with Polling
     with Commands[Future] {
-
-  override val client: RequestHandler[Future] = new ScalajHttpClient(botConfig.token)
+  
+  override val client: RequestHandler[Future] = new CustomScalajHttpClient(botConfig.token)
 
   // TODO: Move command literals to separate file
   onCommand("menu") { implicit msg =>
+//    monad.
     reply(responseService.mkMenuResponse(), parseMode = Some(ParseMode.HTML)).void
   }
 

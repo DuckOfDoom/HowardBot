@@ -11,7 +11,7 @@ import slogging.StrictLogging
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class Server(implicit botStatus: BotStatus) extends StrictLogging {
+class Server(implicit botStatus: BotStatus, responseService: ServerResponseService) extends StrictLogging {
   
   def run(implicit config:Option[Config]): Future[Unit] = {
     
@@ -29,11 +29,18 @@ class Server(implicit botStatus: BotStatus) extends StrictLogging {
           complete(
             HttpEntity(
               ContentTypes.`text/html(UTF-8)`,
-              Pages.homePage(
-                botStatus.runningTime,
-                botStatus.restartCount,
-                botStatus.restartReason
-              )
+                responseService.home()
+            )
+          )
+        }
+      } 
+      path("/menu") {
+        get {
+          complete(
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              responseService.menu()
+              
             )
           )
         }
