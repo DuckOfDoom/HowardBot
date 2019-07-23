@@ -9,7 +9,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.BotStatus
 import slogging.StrictLogging
 
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class Server(implicit botStatus: BotStatus, responseService: ServerResponseService)
     extends StrictLogging {
@@ -23,28 +23,28 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     implicit val system: ActorSystem                        = ActorSystem("my-system")
     implicit val materializer: ActorMaterializer            = ActorMaterializer()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-    
+
     def respond(html: String) = {
       complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, html))
     }
 
     val route =
       get {
-        concat {
-          pathSingleSlash{
+        concat(
+          pathSingleSlash {
             respond(responseService.home())
-          }
-          path("") {
-            respond(responseService.home())
-          }
+          },
           path("menu") {
             respond(responseService.menu())
+          },
+          pathPrefix("show") {
+            path(IntNumber) { itemId =>
+              {
+                respond(responseService.show(itemId))
+              }
+            }
           }
-          
-//          path("show") {
-//            complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, responseService.menu()))
-//          }
-        }
+        )
       }
 
     val address = config.get.serverAddress
@@ -52,12 +52,12 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     Http().bindAndHandle(route, address, port)
 
     logger.info(s"Started server at http://$address:$port")
-    
+
 //        bindingFuture
 //          .flatMap(_.unbind()) // trigger unbinding from the port
 //          .onComplete(_ => system.terminate())
 
     Future.unit
   }
-  
+
 }
