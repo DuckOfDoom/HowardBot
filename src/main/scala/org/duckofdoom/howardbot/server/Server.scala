@@ -9,7 +9,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.BotStatus
 import slogging.StrictLogging
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 class Server(implicit botStatus: BotStatus, responseService: ServerResponseService)
     extends StrictLogging {
@@ -31,6 +31,9 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     val route =
       get {
         concat {
+          pathSingleSlash{
+            respond(responseService.home())
+          }
           path("") {
             respond(responseService.home())
           }
@@ -49,10 +52,10 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     Http().bindAndHandle(route, address, port)
 
     logger.info(s"Started server at http://$address:$port")
-
-    //    bindingFuture
-    //      .flatMap(_.unbind()) // trigger unbinding from the port
-    //      .onComplete(_ => system.terminate())
+    
+//        bindingFuture
+//          .flatMap(_.unbind()) // trigger unbinding from the port
+//          .onComplete(_ => system.terminate())
 
     Future.unit
   }

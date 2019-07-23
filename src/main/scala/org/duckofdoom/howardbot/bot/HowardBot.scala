@@ -22,7 +22,7 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
 
   // TODO: Move command literals to separate file
   onCommand("menu") { implicit msg =>
-//    monad.
+  
     reply(responseService.mkMenuResponse(), parseMode = Some(ParseMode.HTML)).void
   }
 
