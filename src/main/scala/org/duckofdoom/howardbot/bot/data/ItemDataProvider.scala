@@ -21,7 +21,7 @@ class PlaceholderItemDataProvider extends ItemDataProvider {
       val item = PlaceholderItem(
         id,
         faker.Lorem.words(1) + "/" + faker.Lorem.words(1),
-        faker.Lorem.words(1).head + " Brewery",
+        faker.Lorem.words(1) + " Brewery",
         i * 100,
         faker.Company.name,
         faker.Lorem.paragraph()

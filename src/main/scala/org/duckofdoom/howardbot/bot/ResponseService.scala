@@ -1,10 +1,7 @@
 package org.duckofdoom.howardbot.bot
 
 import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
-import scalatags.Text
 import scalatags.Text.all._
-
-import scala.collection.mutable.ListBuffer
 
 trait ResponseService {
   def mkMenuResponse(): String
@@ -16,12 +13,18 @@ trait ResponseService {
 class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends ResponseService {
   
   override def mkMenuResponse(): String = {
-//    var tags = Array
-////    tags += h("Меню:")
-////    tags += br()
-////      tags += itemDataProvider.allItems.map(i => mkItemInfo(i, short = true)).toArray
-//    
-//    div(tags).render
+    
+    div(
+      h1("Меню:"),
+      br(),
+      frag(
+        itemDataProvider
+          .allItems
+          .map(i => mkItemInfo(i, short = true))
+          .toArray:_*
+      ),
+      br()
+    ).render
   }
   
   override def mkItemResponse(itemId: Int): String = {
@@ -39,14 +42,16 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends R
     s"Несуществующий предмет: '$value'"
   }
   
-  private def mkItemInfo(item:Item, short:Boolean): ConcreteHtmlTag[String] ={
-    div(
-      a(href(s"/show ${item.id}"), b(item.name)),
-      item.style,
-      item.brewery,
-      i(item.price + "\u20BD"),
-      br(),
-      if (short) "" else item.flavorText
+  private def mkItemInfo(item:Item, short:Boolean) = {
+    frag(
+      div(
+        a(href := s"/show ${item.id}")(b(item.name)),
+        item.style,
+        item.brewery,
+        i(item.price + "\u20BD"),
+        br(),
+        if (short) "" else item.flavorText
+      )
     )
   }
 } 

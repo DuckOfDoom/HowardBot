@@ -33,7 +33,6 @@ class BotStarter extends BotStatus
 
   def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     try {
-    Duration.ofDays()
       startBot(reloadConfig)
     }
     catch {
