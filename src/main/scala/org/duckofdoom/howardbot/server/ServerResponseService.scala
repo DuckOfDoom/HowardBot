@@ -44,7 +44,7 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: R
   }
   
   override def menu() : String = { 
-    responseService.mkMenuResponse()
+    responseService.mkMenuResponse("/")
   }
   
   override def show(itemId: Int) : String = { 
