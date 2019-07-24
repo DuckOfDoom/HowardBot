@@ -1,14 +1,13 @@
 package org.duckofdoom.howardbot.bot
 
 import java.io.{PrintWriter, StringWriter}
-import java.time.{Duration, LocalTime}
+import java.time.{Duration, LocalDateTime}
 
+import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.{ItemDataProvider, PlaceholderItemDataProvider}
 import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
-import cats.syntax.option._
 
 trait BotStatus {
   def runningTime: Duration 
@@ -19,12 +18,11 @@ trait BotStatus {
 class BotStarter(implicit responseService: ResponseService) extends BotStatus
   with StrictLogging {
   
-  // TODO: From LocalTime to LocalDateTime
-  override def runningTime: Duration = Duration.between(startupTime, LocalTime.now())
+  override def runningTime: Duration = Duration.between(startupTime, LocalDateTime.now())
   override def restartReason: Option[String] = lastRestartReason
   override def restartCount: Int = restarts
 
-  private var startupTime: LocalTime = LocalTime.now()
+  private var startupTime: LocalDateTime = LocalDateTime.now()
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
 
@@ -54,7 +52,7 @@ class BotStarter(implicit responseService: ResponseService) extends BotStatus
         Future.unit
       case Some(conf) =>
         val bot = new HowardBot(conf)
-        startupTime = LocalTime.now()
+        startupTime = LocalDateTime.now()
         Await.result(bot.run(), scala.concurrent.duration.Duration.Inf)
         bot.shutdown() // initiate shutdown
         Future.failed(new Exception("Bot was shut down"))
