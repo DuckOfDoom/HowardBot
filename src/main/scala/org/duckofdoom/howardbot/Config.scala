@@ -26,8 +26,8 @@ case class Config
   token: String,
   serverAddress: String,
   serverPort: Int,
-  inner: InnerConfig
+  postgres: PostgresConfig
 ) 
 
-case class InnerConfig(x: Int, y: Int)
+case class PostgresConfig(driver:String, connectUrl:String, user:String, password:String)
 
