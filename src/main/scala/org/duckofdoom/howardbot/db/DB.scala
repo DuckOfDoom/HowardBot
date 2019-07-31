@@ -7,6 +7,7 @@ import cats._
 import cats.data._
 import cats.effect.{ContextShift, IO}
 import cats.implicits._
+import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
 import org.duckofdoom.howardbot._
 import org.duckofdoom.howardbot.db.dto._
 import slogging.StrictLogging
@@ -24,6 +25,13 @@ class DoobieDB(config: PostgresConfig) extends DB
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val contextShift: ContextShift[IO] = IO.contextShift(executionContext)
+  
+  implicit val logHandler : LogHandler = LogHandler {
+    case ExecFailure(str, args, _, ex) => logger.error(s"ExecFailure: $str\nArgs: $args\nException: $ex")
+    case ProcessingFailure(str, args, _, _, ex) => logger.error(s"ProcessingFailure: $str \nArgs: $args\n Exception: $ex")
+//    case Success(str, args, t1, t2) => logger.info(s"$str \nArgs: $args, $t1, $t2")
+    case _ => Unit
+  }
 
   private val transactor = Transactor.fromDriverManager[IO](
     config.driver,

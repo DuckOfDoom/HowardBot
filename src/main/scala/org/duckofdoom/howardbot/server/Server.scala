@@ -66,7 +66,6 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
       s"""Started server at http://$address:$port
             http://$address:$port/menu
             http://$address:$port/users
-            http://$address:$port/get/0
             http://$address:$port/users/new
         """
     )
