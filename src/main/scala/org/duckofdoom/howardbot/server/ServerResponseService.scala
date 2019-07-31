@@ -3,15 +3,20 @@ package org.duckofdoom.howardbot.server
 import java.time.Duration
 
 import org.duckofdoom.howardbot.bot.{BotStatus, ResponseService}
+import org.duckofdoom.howardbot.db.DB
+import org.duckofdoom.howardbot.db.dto.User
 import scalatags.Text.all._
 
 trait ServerResponseService {
   def home(): String
   def menu(): String
+  def getUsers(): String
+  def getUser(userId: Int): String
+  def putRandomUser(): String
   def show(itemId: Int): String
 }
 
-class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: ResponseService) extends ServerResponseService {
+class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: ResponseService, db:DB) extends ServerResponseService {
 
   override def home(): String = {
     
@@ -49,6 +54,26 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: R
   
   override def show(itemId: Int) : String = { 
     responseService.mkItemResponse(itemId)
+  }
+
+  override def putRandomUser(): String = {
+    db.putUser(
+      scala.util.Random.nextInt(),
+      faker.Name.first_name,
+      faker.Name.first_name,
+      faker.Name.last_name
+    ).toString
+  }
+  
+  override def getUsers() : String = {
+    "Users:<br>" + 
+    db.users.foldLeft("")((s, u) => {
+      s + (u.toString + "<br>")
+    })
+  }
+
+  override def getUser(userId: Int): String = {
+    db.getUser(userId).toString
   }
 
 }

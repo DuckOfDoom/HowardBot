@@ -6,6 +6,7 @@ import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.api.declarative.Commands
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.ParseMode
+import com.bot4s.telegram.models.Message
 import org.duckofdoom.howardbot.Config
 import slogging.StrictLogging
 
@@ -19,6 +20,12 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
     with Commands[Future] {
   
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(botConfig.token)
+
+  override def receiveMessage(msg: Message): Future[Unit] = {
+    // TODO: Add parsing for '/show' commands
+      
+    super.receiveMessage(msg)
+  }
 
   // TODO: Move command literals to separate file
   onCommand("menu") { implicit msg =>

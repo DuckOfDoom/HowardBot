@@ -37,13 +37,26 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
           path("menu") {
             respond(responseService.menu())
           },
+          pathPrefix("users") {
+            concat(
+              pathEnd {
+                respond(responseService.getUsers())
+              },
+              path("put") {
+                respond(responseService.putRandomUser())
+              },
+              pathPrefix("get") {
+                path(IntNumber) { userId =>
+                  respond(responseService.getUser(userId))
+                }
+              }
+            )
+          },
           pathPrefix("show") {
             path(IntNumber) { itemId =>
-              {
-                respond(responseService.show(itemId))
-              }
+              respond(responseService.show(itemId))
             }
-          }
+          },
         )
       }
 
