@@ -28,8 +28,7 @@ class BotStarter(implicit responseService: ResponseService) extends BotStatus
 
   def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
     try {
-    Future.successful()
-//      startBot(reloadConfig)
+      startBot(reloadConfig)
     }
     catch {
       case e: Exception =>
