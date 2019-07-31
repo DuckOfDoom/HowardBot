@@ -9,4 +9,10 @@ echo Assembly finished, pushing artifacts...
 
 scp $JAR_PATH $ADDRESS:~/bot.jar
 #scp $CONFIG_PATH $ADDRESS:~/$CONFIG_PATH
-ssh $ADDRESS
+ssh $ADDRESS << EOF
+  pkill "java"
+  cp log.txt log_$(date +%d%m%Y-%H%M).txt
+  nohup java -jar bot.jar > log.txt &
+EOF
+
+echo Finished!
