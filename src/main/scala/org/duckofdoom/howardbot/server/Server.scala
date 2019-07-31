@@ -42,13 +42,11 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
               pathEnd {
                 respond(responseService.getUsers())
               },
-              path("put") {
+              path("new") {
                 respond(responseService.putRandomUser())
               },
-              pathPrefix("get") {
-                path(IntNumber) { userId =>
-                  respond(responseService.getUser(userId))
-                }
+              path(IntNumber) { userId =>
+                respond(responseService.getUser(userId))
               }
             )
           },
@@ -64,7 +62,16 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     val port    = config.get.serverPort
     Http().bindAndHandle(route, address, port)
 
-    logger.info(s"Started server at http://$address:$port")
+    logger.info(
+      s"""Started server at http://$address:$port
+            http://$address:$port/menu
+            http://$address:$port/users
+            http://$address:$port/get/0
+            http://$address:$port/users/new
+        """
+    )
+    
+    route.toString()
 
 //        bindingFuture
 //          .flatMap(_.unbind()) // trigger unbinding from the port
