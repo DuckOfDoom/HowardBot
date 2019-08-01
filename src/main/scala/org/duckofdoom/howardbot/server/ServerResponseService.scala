@@ -58,7 +58,7 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: R
 
   override def putRandomUser(): String = {
     db.putUser(
-      scala.util.Random.nextInt(),
+      scala.util.Random.nextInt(Int.MaxValue),
       faker.Name.first_name,
       faker.Name.first_name,
       faker.Name.last_name
