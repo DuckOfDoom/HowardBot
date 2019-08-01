@@ -26,9 +26,25 @@ class BotStarter(implicit responseService: ResponseService) extends BotStatus
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
 
-  def run(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
+  def run(implicit loadConfig: () => Option[Config]): Future[Unit] = {
     try {
-      startBot(reloadConfig)
+      loadConfig() match {
+        case None =>
+          Future.failed(new Exception("Invalid bot configuration!"))
+        case Some(conf) =>
+          if (!conf.startBot) {
+            logger.info("Skipping bot start.")
+            return Future.successful()
+          }
+          
+          logger.info("Running bot.")
+          val bot = new HowardBot(conf)
+          startupTime = LocalDateTime.now()
+          val eol = bot.run()
+          Await.result(eol, scala.concurrent.duration.Duration.Inf)
+          bot.shutdown() // initiate shutdown
+          Future.failed(new Exception("Bot was shut down"))
+      }
     }
     catch {
       case e: Exception =>
@@ -38,14 +54,13 @@ class BotStarter(implicit responseService: ResponseService) extends BotStatus
         logger.error(message)
         lastRestartReason = message.some
         restarts += 1
-        run(reloadConfig)
+        run(loadConfig)
     }
   }
 
-  private def startBot(implicit reloadConfig: () => Option[Config]): Future[Unit] = {
-    logger.info("Running bot.")
+  private def startBot(config: Option[Config]): Future[Unit] = {
 
-    reloadConfig() match {
+    config match {
       case None =>
         logger.error("Bot failed to start because config file is invalid!")
         lastRestartReason = "Invalid configuration!".some

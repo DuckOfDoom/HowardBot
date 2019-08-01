@@ -9,25 +9,30 @@ import slogging.StrictLogging
 object Config extends FileHandler with StrictLogging {
   val configPath = "config.json"
 
-  def load(implicit path: String = configPath): Option[Config] = readFile(path).flatMap(f = s => {
-    decode[Config](s) match {
-      case Right(c) => Some(c)
-      case Left(err) => logger.error(s"Failed to parse bot config! Error: $err"); None
-    }
-  })
+  def load(implicit path: String = configPath): Option[Config] =
+    readFile(path).flatMap(f = s => {
+      decode[Config](s) match {
+        case Right(c)  => Some(c)
+        case Left(err) => logger.error(s"Failed to parse '$configPath'! Error: $err"); None
+      }
+    })
 
   def save(botConfig: Config, path: String = configPath): Unit = {
     writeFile(botConfig.asJson.toString, path)
   }
 }
 
-case class Config
-(
-  token: String,
-  serverAddress: String,
-  serverPort: Int,
-  postgres: PostgresConfig
-) 
+case class Config(
+    startBot: Boolean,
+    startServer: Boolean,
+    token: String,
+    serverAddress: String,
+    serverPort: Int,
+    postgres: PostgresConfig
+)
 
-case class PostgresConfig(driver:String, connectUrl:String, user:String, password:String)
-
+case class PostgresConfig(
+    database: String,
+    user: String,
+    password: String
+)

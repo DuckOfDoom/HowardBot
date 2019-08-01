@@ -20,6 +20,11 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
       return Future.failed(new Exception("No server configuration provided!"))
     }
 
+    if (!config.get.startServer) {
+      logger.info("Skipping server start.")
+      return Future.successful()
+    }
+
     implicit val system: ActorSystem                        = ActorSystem("my-system")
     implicit val materializer: ActorMaterializer            = ActorMaterializer()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -60,22 +65,16 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
 
     val address = config.get.serverAddress
     val port    = config.get.serverPort
-    Http().bindAndHandle(route, address, port)
 
     logger.info(
-      s"""Started server at http://$address:$port
+      s"""Starting server at http://$address:$port
             http://$address:$port/menu
             http://$address:$port/users
             http://$address:$port/users/new
         """
     )
     
-    route.toString()
-
-//        bindingFuture
-//          .flatMap(_.unbind()) // trigger unbinding from the port
-//          .onComplete(_ => system.terminate())
-
+    Http().bindAndHandle(route, address, port)
     Future.unit
   }
 

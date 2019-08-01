@@ -1,10 +1,11 @@
 {
-  "token" : "YOUR_BOT_TOKEN",
-  "serverAddress" : "localhost",
-  "serverPort" : 8080,
-  "postgres" : {
-    "driver" : "org.postgresql.Driver",
-    "connectUrl": "jdbc:postgresql:DB",
+  "startBot": true,
+  "startServer": true,
+  "token": "YOUR_BOT_TOKEN",
+  "serverAddress": "localhost",
+  "serverPort": 8080,
+  "postgres": {
+    "database": "DB",
     "user": "USER",
     "password": "PSWRD"
   }

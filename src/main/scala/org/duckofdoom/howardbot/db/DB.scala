@@ -34,8 +34,8 @@ class DoobieDB(config: PostgresConfig) extends DB
   }
 
   private val transactor = Transactor.fromDriverManager[IO](
-    config.driver,
-    config.connectUrl,
+    "org.postgresql.Driver",
+    s"jdbc:postgresql:${config.database}",
     config.user,
     config.password,
     executionContext
