@@ -83,6 +83,7 @@ class CustomScalajHttpClient(token: String, proxy: Proxy = Proxy.NO_PROXY, teleg
         val fileIdsParams = fileIds.map {
           case (key, inputFile: InputFile.FileId) =>
             marshalling.snakenize(key) -> inputFile.fileId
+          case _ => throw new RuntimeException("Failed to map fieldId params")
         }
 
         val params = fields.getOrElse(Map())
