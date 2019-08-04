@@ -2,10 +2,15 @@ package org.duckofdoom.howardbot.server
 
 import java.time.Duration
 
+import io.circe.{Encoder, Json}
+import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
 import org.duckofdoom.howardbot.bot.{BotStatus, ResponseService}
 import org.duckofdoom.howardbot.db.DB
-import org.duckofdoom.howardbot.db.dto.User
 import scalatags.Text.all._
+import io.circe.syntax._
+import io.circe.generic.auto._
+import org.duckofdoom.howardbot.utils.ClassUtils
+
 
 trait ServerResponseService {
   def home(): String
@@ -14,9 +19,10 @@ trait ServerResponseService {
   def getUser(userId: Int): String
   def putRandomUser(): String
   def show(itemId: Int): String
+  def parse(): String
 }
 
-class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: ResponseService, db:DB) extends ServerResponseService {
+class ServerResponseServiceImpl(implicit botStatus:BotStatus, itemDataProvider: ItemDataProvider, responseService: ResponseService, db:DB) extends ServerResponseService {
 
   override def home(): String = {
     
@@ -44,6 +50,8 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: R
           p(s"I've been restarted ${botStatus.restartCount} times!"),
           p(restartReason)
         )
+        
+        // TODO: Add links to services
       )
     ).render
   }
@@ -54,6 +62,18 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, responseService: R
   
   override def show(itemId: Int) : String = { 
     responseService.mkItemResponse(itemId)
+  }
+
+  override def parse(): String = {
+    itemDataProvider.refresh()
+
+    val sb = new StringBuilder()
+    itemDataProvider.allItems.foreach(i => {
+      sb.append(i.toString)
+      sb.append("<br><br><br>")
+    })
+    
+    sb.toString
   }
 
   override def putRandomUser(): String = {

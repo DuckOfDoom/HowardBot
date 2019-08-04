@@ -42,6 +42,9 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
           path("menu") {
             respond(responseService.menu())
           },
+          path("parse") {
+            respond(responseService.parse())
+          },
           pathPrefix("users") {
             concat(
               pathEnd {
@@ -69,11 +72,12 @@ class Server(implicit botStatus: BotStatus, responseService: ServerResponseServi
     logger.info(
       s"""Starting server at http://$address:$port
             http://$address:$port/menu
+            http://$address:$port/parse
             http://$address:$port/users
             http://$address:$port/users/new
         """
     )
-    
+
     Http().bindAndHandle(route, address, port)
     Future.unit
   }

@@ -41,15 +41,15 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends R
     frag(
       b(item.name),
       "\n",
-      s"Стиль: ${item.style}",
+      s"Стиль: ${item.style.getOrElse("UNKNOWN")}",
       "\n",
       s"Пивоварня: ${item.breweryInfo.toString}",
       "\n",
-      i(item.price._1 + item.price._2),
+      i(item.price.toString),
       "\n",
       if (inMenu)
 //        a(href := s"/show$itemLinkSeparator${item.id}")("Подробнее...")
-        s"/show$itemLinkSeparator${item.id}"
+        s"/show$itemLinkSeparator${item.menuOrder}"
       else
         s"\n${item.description}",
       "\n\n"

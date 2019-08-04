@@ -2,34 +2,36 @@ package org.duckofdoom.howardbot.bot.data
 
 trait Item {
   val id: Int
-  val name: String
-  val link: String
-  val pictureLink: String
-  val abv: Float
-  val ibu: Float
-  val breweryInfo : BreweryInfo
-  val style: String
-  val draftType: String
-  val price: (String, Float)
-  val description: String
+  val menuOrder: Option[Int]
+  val name: Option[String]
+  val link: Option[String]
+  val pictureLink: Option[String]
+  val abv: Option[Float]
+  val ibu: Option[Float]
+  val breweryInfo: BreweryInfo
+  val style: Option[String]
+  val draftType: Option[String]
+  val price: Option[(String, Float)]
+  val description: Option[String]
 }
 
 case class BreweryInfo(
-    name: String,
-    link: String,
-    location: String
+    name: Option[String],
+    link: Option[String],
+    location: Option[String]
 )
 
 case class MenuItem(
-   id: Int,
-   name: String,
-   link: String,
-   pictureLink: String,
-   abv: Float,
-   ibu: Float,
-   breweryInfo: BreweryInfo,
-   style: String,
-   draftType: String,
-   price: (String, Float),
-   description: String,
+    id: Int,
+    menuOrder: Option[Int],
+    name: Option[String],
+    link: Option[String],
+    pictureLink: Option[String],
+    abv: Option[Float],
+    ibu: Option[Float],
+    breweryInfo: BreweryInfo,
+    style: Option[String],
+    draftType: Option[String],
+    price: Option[(String, Float)],
+    description: Option[String],
 ) extends Item

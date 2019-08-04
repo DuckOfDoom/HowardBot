@@ -1,7 +1,5 @@
 package org.duckofdoom.howardbot.parser
 
-import java.util.Optional
-
 import cats.syntax.either._
 import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.data.{BreweryInfo, FakeItemDataProvider, Item, MenuItem}
@@ -17,7 +15,7 @@ import scala.util.Try
 
 object MenuParser extends StrictLogging {
 
-  def parseMenu(contents: String): Either[String, List[Item]] = {
+  def parseMenu(contents: String): List[Item] = {
 
     val htmlLineName = "container.innerHTML = \"  "
 
@@ -32,22 +30,78 @@ object MenuParser extends StrictLogging {
       .map(_.replace("\\\"", "\""))
 
     if (menuHtml.isEmpty) {
-      return s"Can't find '$htmlLineName' in provided string!".asLeft
+      logger.error(s"Can't find '$htmlLineName' in provided string!")
+      return List[Item]()
     }
-
-//    print(menuHtml)
 
     val browser = JsoupBrowser()
     val doc     = browser.parseString(menuHtml.get)
 
-    val items = (doc >> elementList(".beer")).map(parseItem)
-    val filtered = items.filter(_.isDefined).map(_.get)
-    
-    println(filtered.length)
-    
-    filtered.asRight
+    (doc >> elementList(".beer")).zipWithIndex.map { case (el: Element, i: Int) => parseItem(i, el)}
   }
 
+  def parseItem(id: Int, el: Element): Item = {
+    val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
+
+    // beerName
+    val beerName = el >?> element(".beer-name")
+    val menuOrder = (beerName >?> element(".tap-number-hideable") >> text).flatten
+      .map(_.takeWhile(_ != '.'))
+      .flatMap(i => Try(i.toInt).toOption)
+
+    val name = (beerName >?> element("a") >> text).flatten
+      .map(_.dropWhile(!_.isLetter))
+
+    val link  = (beerName >?> attr("href")("a")).flatten
+    val style = (beerName >?> element(".beer-style") >> text).flatten
+
+    // meta
+    val metaEl = el >?> element(".item-meta")
+    val abv = (metaEl >?> element(".abv") >> text).flatten
+      .map(_.takeWhile(c => c.isDigit || c == '.'))
+      .flatMap(i => Try(i.toFloat).toOption)
+
+    val ibu = (metaEl >?> element(".ibu") >> text).flatten
+      .map(_.takeWhile(c => c.isDigit || c == '.'))
+      .flatMap(i => Try(i.toFloat).toOption)
+
+    // brewery
+    val breweryEl   = (metaEl >?> element(".brewery")).flatten
+    val breweryLink = (breweryEl >?> attr("href")("a")).flatten
+
+    val breweryName     = (breweryEl >?> element("a") >> text).flatten
+    val breweryLocation = (metaEl >?> element(".location")).flatten >> text
+
+    // description
+    val description = (el >?> element(".item-description") >?> element("p")).flatten >> text
+
+    // container
+    val containerEl    = el >?> element(".container-list")
+    val draftType      = (containerEl >?> element(".type")).flatten >> text
+    val currencySymbol = (containerEl >?> element(".currency-hideable")).flatten >> text
+    val price = (containerEl >?> element(".price") >> text).flatten
+      .map(_.dropWhile(!_.isDigit))
+      .flatMap(i => Try(i.toFloat).toOption)
+
+    MenuItem(
+      id,
+      menuOrder,
+      name,
+      link,
+      picLink,
+      abv,
+      ibu,
+      BreweryInfo(breweryName, breweryLink, breweryLocation),
+      style,
+      draftType,
+      for {
+        s <- currencySymbol
+        p <- price
+      } yield (s, p),
+      description
+    )
+  }
+  
   private def toOption[T](v: java.util.Optional[T]): Option[T] = {
     if (v.isPresent)
       v.get.some
@@ -55,99 +109,4 @@ object MenuParser extends StrictLogging {
       Option.empty[T]
   }
 
-  def parseItem(el: Element): Option[Item] = {
-    val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
-    println(picLink)
-
-    // beerName
-    val beerName = el >?> element(".beer-name")
-    
-    val id = (beerName >?> element(".tap-number-hideable") >> text).flatten
-      .map(_.takeWhile(_ != '.'))
-      .flatMap(i => Try(i.toInt).toOption)
-    println(id)
-
-    val name = (beerName >?> element("a") >> text).flatten
-      .map(_.dropWhile(!_.isLetter))
-
-    println(name)
-
-    val link = (beerName >?> attr("href")("a")).flatten
-    println(link)
-
-   
-    val style = (beerName >?> element(".beer-style") >> text).flatten
-    println(style)
-
-    // meta
-    val metaEl = el >?> element(".item-meta")
-    val abv = (metaEl >?> element(".abv") >> text).flatten
-      .map(_.takeWhile(c => c.isDigit || c == '.'))
-      .flatMap(i => Try(i.toFloat).toOption)
-    println(abv)
-
-    val ibu = (metaEl >?> element(".ibu") >> text).flatten
-      .map(_.takeWhile(c => c.isDigit || c == '.'))
-      .flatMap(i => Try(i.toInt).toOption)
-    println(ibu)
-
-    // brewery
-    val breweryEl   = (metaEl >?> element(".brewery")).flatten
-    val breweryLink = (breweryEl >?> attr("href")("a")).flatten
-    println(breweryLink)
-    val breweryName = (breweryEl >?> element("a") >> text).flatten
-    println(breweryName)
-    val breweryLocation = (metaEl >?> element(".location")).flatten >> text
-    println(breweryLocation)
-
-    // description
-
-    val description = (el >?> element(".item-description") >?> element("p")).flatten >> text
-    println(description)
-
-    // container
-    val containerEl = el >?> element(".container-list")
-    val draftType   = (containerEl >?> element(".type")).flatten >> text
-    println(draftType)
-
-    val currencySymbol = (containerEl >?> element(".currency-hideable")).flatten >> text
-    println(currencySymbol)
-
-    val price = (containerEl >?> element(".price") >> text).flatten
-      .map(_.dropWhile(!_.isDigit))
-      .flatMap(i => Try(i.toFloat).toOption)
-
-    println(price)
-    //    print(beerNameClass)
-
-    for {
-      id              <- id
-      name            <- name
-      link            <- link
-      picLink         <- picLink
-      style           <- style
-      abv             <- abv
-      ibu             <- ibu
-      breweryName     <- breweryName
-      breweryLink     <- breweryLink
-      breweryLocation <- breweryLocation
-      description     <- description
-      draftType       <- draftType
-      currencySymbol  <- currencySymbol
-      price           <- price
-    } yield
-      MenuItem(
-        id,
-        name,
-        link,
-        picLink,
-        abv,
-        ibu,
-        BreweryInfo(breweryName, breweryLink, breweryLocation),
-        style,
-        draftType,
-        (currencySymbol, price),
-        description
-      )
-  }
 }
