@@ -43,15 +43,15 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends R
       "\n",
       s"Стиль: ${item.style}",
       "\n",
-      s"Пивоварня: ${item.brewery}",
+      s"Пивоварня: ${item.breweryInfo.toString}",
       "\n",
-      i(item.price + "\u20BD"),
+      i(item.price._1 + item.price._2),
       "\n",
       if (inMenu)
 //        a(href := s"/show$itemLinkSeparator${item.id}")("Подробнее...")
         s"/show$itemLinkSeparator${item.id}"
       else
-        s"\n${item.flavorText}",
+        s"\n${item.description}",
       "\n\n"
     )
   }

@@ -5,7 +5,7 @@ trait ItemDataProvider {
   def getItem(itemId: Int): Option[Item]
 }
 
-class PlaceholderItemDataProvider extends ItemDataProvider {
+class FakeItemDataProvider extends ItemDataProvider {
   val items: Map[Int, Item] = randomItems(10)
 
   override def allItems: Iterable[Item]           = items.values
@@ -22,12 +22,21 @@ class PlaceholderItemDataProvider extends ItemDataProvider {
     
     (0 to count)
       .map(i => {
-        val item = PlaceholderItem(
+        val item = MenuItem(
           i,
           faker.Lorem.words(2).head.capitalize,
+          "http://url.com",
+          "http://pic_url.com",
+          scala.util.Random.nextInt(20),
+          scala.util.Random.nextInt(100) / 1000 ,
+          BreweryInfo(
+            faker.Company.name + " Brewery",
+            "http://brewery_url.com",
+            faker.Address.street_address()
+          ),
           mkStyle(),
-          faker.Company.name + " Brewery",
-          i * 100,
+          200 + scala.util.Random.nextInt(300) + "ml Draft",
+          ("\u20BD", i * 100),
           faker.Lorem.paragraph()
         )
 

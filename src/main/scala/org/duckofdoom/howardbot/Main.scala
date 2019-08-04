@@ -42,8 +42,8 @@ object Main {
     LoggerConfig.factory = PrintLoggerFactory
     LoggerConfig.level = LogLevel.TRACE
 
-//    new App()
-    test()
+    new App()
+//    test()
   }
 
   def test(): Unit = {
