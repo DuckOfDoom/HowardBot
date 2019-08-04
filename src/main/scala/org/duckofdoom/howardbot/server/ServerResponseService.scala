@@ -9,7 +9,6 @@ import org.duckofdoom.howardbot.db.DB
 import scalatags.Text.all._
 import io.circe.syntax._
 import io.circe.generic.auto._
-import org.duckofdoom.howardbot.utils.ClassUtils
 
 
 trait ServerResponseService {
