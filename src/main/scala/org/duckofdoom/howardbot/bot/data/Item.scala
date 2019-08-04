@@ -13,6 +13,33 @@ trait Item {
   val draftType: Option[String]
   val price: Option[(String, Float)]
   val description: Option[String]
+
+  override def toString: String = {
+
+    def toString[T](name: String, v: Option[T]): String = {
+      s"$name = ${if (v.isDefined) v.get.toString else "?"}\n"
+    }
+
+    val sb = new StringBuilder()
+    sb.append(s"Id = $id\n")
+    sb.append(toString("menuOrder", menuOrder))
+    sb.append(toString("name", name))
+    sb.append(toString("style", style))
+    sb.append(toString("link", link))
+    sb.append(toString("pictureLink", pictureLink))
+    sb.append(toString("abv", abv))
+    sb.append(toString("ibu", ibu))
+    sb.append(toString("draftType", draftType))
+    sb.append("BreweryInfo:\n")
+    sb.append(s"\t ${toString("name", breweryInfo.name)}")
+    sb.append(s"\t ${toString("link", breweryInfo.link)}")
+    sb.append(s"\t ${toString("location", breweryInfo.location)}")
+
+    sb.append(toString("price", price))
+    sb.append(toString("description", description))
+
+    sb.toString
+  }
 }
 
 case class BreweryInfo(
@@ -34,4 +61,5 @@ case class MenuItem(
     draftType: Option[String],
     price: Option[(String, Float)],
     description: Option[String],
-) extends Item
+) extends Item {
+}

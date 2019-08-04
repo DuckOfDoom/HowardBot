@@ -7,8 +7,6 @@ import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
 import org.duckofdoom.howardbot.bot.{BotStatus, ResponseService}
 import org.duckofdoom.howardbot.db.DB
 import scalatags.Text.all._
-import io.circe.syntax._
-import io.circe.generic.auto._
 
 
 trait ServerResponseService {
@@ -68,8 +66,11 @@ class ServerResponseServiceImpl(implicit botStatus:BotStatus, itemDataProvider: 
 
     val sb = new StringBuilder()
     itemDataProvider.allItems.foreach(i => {
-      sb.append(i.toString)
-      sb.append("<br><br><br>")
+      sb.append(i.toString
+        .replace("\n", "<br>")
+        .replace("\t", "<nbsp>")
+      )
+      sb.append("<br><br>")
     })
     
     sb.toString

@@ -17,7 +17,7 @@ fi
 
 ssh $ADDRESS << EOF
   pkill "java"
-  cp log.txt logs/$(date +%Y_%m_%d_%H%M).txt
+  mv log.txt logs/$(date +%Y_%m_%d_%H%M).txt
   nohup java -jar bot.jar > log.txt 2>&1 & tail -f log.txt
 EOF
 
