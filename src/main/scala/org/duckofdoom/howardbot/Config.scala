@@ -28,6 +28,7 @@ case class Config(
     token: String,
     serverAddress: String,
     serverPort: Int,
+    menuUrl: String,
     postgres: PostgresConfig
 )
 

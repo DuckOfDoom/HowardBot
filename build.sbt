@@ -25,6 +25,9 @@ libraryDependencies += "biz.enef" %% "slogging" % "0.6.1"
 
 // HTML generation
 libraryDependencies += "com.lihaoyi" %% "scalatags" % "0.7.0"
+
+// HTML parsing
+libraryDependencies += "net.ruippeixotog" %% "scala-scraper" % "2.1.0"
   
 // HTTP library
 libraryDependencies += "com.softwaremill.sttp" %% "core" % "1.6.3"
