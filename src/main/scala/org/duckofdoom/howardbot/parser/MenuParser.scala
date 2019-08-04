@@ -81,6 +81,7 @@ object MenuParser extends StrictLogging {
     val currencySymbol = (containerEl >?> element(".currency-hideable")).flatten >> text
     val price = (containerEl >?> element(".price") >> text).flatten
       .map(_.dropWhile(!_.isDigit))
+      .map(_.replace(",", "")) // 1,700.00 
       .flatMap(i => Try(i.toFloat).toOption)
 
     MenuItem(
