@@ -29,6 +29,7 @@ case class Config(
     serverAddress: String,
     serverPort: Int,
     menuUrl: String,
+    menuPaginationCount: Int,
     postgres: PostgresConfig
 )
 

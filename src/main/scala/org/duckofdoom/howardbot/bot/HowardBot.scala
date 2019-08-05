@@ -4,10 +4,10 @@ import cats.instances.future._
 import cats.syntax.option._
 import cats.syntax.functor._
 import com.bot4s.telegram.api.RequestHandler
-import com.bot4s.telegram.api.declarative.Commands
+import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.ParseMode
-import com.bot4s.telegram.models.Message
+import com.bot4s.telegram.models.{InlineKeyboardMarkup, Message}
 import org.duckofdoom.howardbot.Config
 import slogging.StrictLogging
 
@@ -19,7 +19,8 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
     extends TelegramBot
     with StrictLogging
     with Polling
-    with Commands[Future] {
+    with Commands[Future] 
+    with Callbacks[Future] {
 
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(botConfig.token)
 
@@ -30,11 +31,17 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
     }
   }
 
+//  onCallbackQuery { implicit query =>
+//    query.chatInstance
+//    ackCallback()
+//  }
+
   // TODO: Move command literals to separate file
   onCommand("menu") { implicit msg =>
     respond(responseService.mkMenuResponse()).void
   }
-
+  
+  // TODO: Move command literals to separate file
   private def processShowRequest(msg: Message): Option[String] = {
     val showRegex: Regex = "\\/show(\\d+)".r
     msg.text
@@ -50,5 +57,16 @@ class HowardBot(val botConfig: Config)(implicit responseService: ResponseService
   private def respond(text: String)(implicit message: Message) = {
     reply(text, parseMode = ParseMode.HTML.some).void
   }
+//  
+//  private def respondWithKeyboard(text: String, replyKeyboardMarkup: InlineKeyboardMarkup)(implicit message: Message) = {
+//    reply(
+//      text,
+//      ParseMode.HTML.some,
+//      None,
+//      None, 
+//      None,
+//      replyKeyboardMarkup(),
+//    ).void
+//  }
 
 }
