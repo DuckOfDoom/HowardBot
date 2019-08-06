@@ -5,7 +5,6 @@ import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
 import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
 import scalatags.Text.all._
 import cats.syntax.option._
-
 import scala.collection.mutable.ListBuffer
 
 trait ResponseService {
@@ -17,12 +16,6 @@ trait ResponseService {
                               itemsPerPage: Int): (String, InlineKeyboardMarkup)
   def mkItemResponse(itemId: Int, itemLinkSeparator: String = defaultSeparator): String
   def mkInvalidArgumentResponse(value: String): String
-}
-
-object ResponseService {
-  def mkButtonsForPaginatedQuery(currentPage: Int, itemsPerPage: Int, itemsCount: Int): List[(String, String)] = {
-    List(("123", "123"))
-  }
 }
 
 class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends ResponseService {
