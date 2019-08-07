@@ -4,29 +4,30 @@ import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
 import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
 import scalatags.Text.all._
-import cats.syntax.option._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import slogging.StrictLogging
 
 trait ResponseService {
   val defaultSeparator: String = ""
 
+  @deprecated("Move to ServerResponseService")
   def mkMenuResponse(itemLinkSeparator: String = defaultSeparator): String
   def mkMenuResponsePaginated(menuTab: MenuTab,
                               page: Int,
                               itemsPerPage: Int): (String, InlineKeyboardMarkup)
-  def mkItemResponse(itemId: Int, itemLinkSeparator: String = defaultSeparator): String
-  def mkInvalidArgumentResponse(value: String): String
+
+  def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
     extends ResponseService
     with StrictLogging {
 
+  @deprecated("Move to ServerResponseService")
   override def mkMenuResponse(itemLinkSeparator: String): String = {
     frag(
       itemDataProvider.allItems
-        .map(i => mkItemInfo(i, inMenu = true, itemLinkSeparator))
+        .map(i => mkItemInfo(i, inMenu = true))
         .toArray: _*
     ).render
   }
@@ -35,64 +36,57 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
                                        page: Int,
                                        itemsPerPage: Int): (String, InlineKeyboardMarkup) = {
 
-    var items = (0 to 100).map(i => { "item " + i }) //-itemDataProvider.allItems.toList
-//    var items      = itemDataProvider.getItems(menuTab)
-    val totalPages = items.length / itemsPerPage
-
-    if (items.length > itemsPerPage) {
-      items = items.slice((page - 1) * itemsPerPage, (page - 1) * itemsPerPage + itemsPerPage)
-    }
-
+    // Filter everything without brewery since those are food.
+    val items = itemDataProvider.allItems.filter(_.breweryInfo.name.isDefined).toList.sortBy(i => i.id)
     val renderedItems = frag(
-      items.map(is => is + "\n")
-//        .map(i => mkItemInfo(i, inMenu = true, " "))
-//        .toArray: _*
+      items
+        .slice((page - 1) * itemsPerPage, (page - 1) * itemsPerPage + itemsPerPage)
+        .map(i => mkItemInfo(i, inMenu = true))
+        .toArray: _*
     ).render
 
-    logger.info(
-      s"Getting items. Page:$page, itemsPerPage:$itemsPerPage, total items: ${items.length}, total pages: $totalPages")
-
-    val buttons = PaginationUtils.mkButtonsForPaginatedQuery(page, totalPages, items.length)
     val markup = InlineKeyboardMarkup.singleRow(
-      buttons.map {
-        case Button(bText, bCallbackData) => InlineKeyboardButton.callbackData(bText, bCallbackData)
-      }
+      PaginationUtils
+        .mkButtonsForPaginatedQuery(page, itemsPerPage, items.length)
+        .map {
+          case Button(bText, bCallbackData) =>
+            InlineKeyboardButton.callbackData(bText, bCallbackData)
+        }
     )
 
     (renderedItems, markup)
   }
 
-  override def mkItemResponse(itemId: Int, itemLinkSeparator: String): String = {
+  override def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
+
+    val menuButton =
+      InlineKeyboardMarkup.singleButton(InlineKeyboardButton.callbackData("Menu", "menu"))
+
     itemDataProvider.getItem(itemId) match {
       case Some(item) =>
-        mkItemInfo(item, inMenu = false, itemLinkSeparator).render // TODO: Separate response for a single item?
-      case None => mkItemNotFoundResponse(itemId)
+        (mkItemInfo(item, inMenu = false).render, menuButton) // TODO: Separate response for a single item?
+      case None => (mkItemNotFoundResponse(itemId), menuButton)
     }
-  }
-
-  override def mkInvalidArgumentResponse(value: String): String = {
-    s"Неверный параметр: '$value'"
   }
 
   private def mkItemNotFoundResponse(itemId: Int): String = {
     s"Позиции с ID '$itemId' не существует."
   }
 
-  private def mkItemInfo(item: Item, inMenu: Boolean, itemLinkSeparator: String) = {
+  private def mkItemInfo(item: Item, inMenu: Boolean) = {
     frag(
-      b(item.name),
+      a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
       "\n",
-      s"Стиль: ${item.style.getOrElse("UNKNOWN")}",
+      s"Стиль: ${item.style.getOrElse("style = ?")}",
       "\n",
-      s"Пивоварня: ${item.breweryInfo.toString}",
+      s"Пивоварня: ${item.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      i(item.price.toString),
+      item.draftType.getOrElse("draftType = ?") + " - " + item.price.map { case (c, price) => c + price },
       "\n",
       if (inMenu)
-//        a(href := s"/show$itemLinkSeparator${item.id}")("Подробнее...")
-        s"/show$itemLinkSeparator${item.menuOrder}"
+        s"Подробнее: /show${item.id}"
       else
-        s"\n${item.description}",
+        s"\n${item.description.getOrElse("?")}",
       "\n\n"
     )
   }

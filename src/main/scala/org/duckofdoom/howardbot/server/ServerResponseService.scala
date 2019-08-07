@@ -60,7 +60,7 @@ class ServerResponseServiceImpl(implicit botStatus: BotStatus,
   }
 
   override def show(itemId: Int): String = {
-    responseService.mkItemResponse(itemId)
+    responseService.mkItemResponse(itemId)._1
   }
 
   override def parse(): String = {

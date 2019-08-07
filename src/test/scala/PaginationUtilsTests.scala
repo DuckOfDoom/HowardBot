@@ -116,7 +116,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
       )
     }
   }
-
+  
   test("Buttons generation. Less pages than buttons.") {
 
     val itemsCount = 3
@@ -133,4 +133,5 @@ class PaginationUtilsTests extends FunSuite with Matchers {
       )
     }
   }
+  
 }

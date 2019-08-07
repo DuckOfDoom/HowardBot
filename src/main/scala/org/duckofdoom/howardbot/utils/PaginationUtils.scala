@@ -13,7 +13,7 @@ object PaginationUtils {
   def mkNext(page: Int)     = s"$page >"
   def mkCurr(page: Int)     = s"* $page *"
   def mkNormal(page: Int)   = page.toString
-  def mkCallback(page: Int) = menuPaginationPrefix + "page"
+  def mkCallback(page: Int) = menuPaginationPrefix + page
 
   def mkButtonsForPaginatedQuery(currentPage: Int,
                                  itemsPerPage: Int,
@@ -25,7 +25,9 @@ object PaginationUtils {
         list += Button(if (i == currentPage) mkCurr(i) else mkNormal(i), mkCallback(i))
       }
     } else {
-      val totalPages = (itemsCount / itemsPerPage) + 1
+      var totalPages = itemsCount / itemsPerPage
+      if (itemsCount % itemsPerPage != 0)
+        totalPages += 1
 
       if (currentPage >= 1 && currentPage <= 3) {
         currentPage match {

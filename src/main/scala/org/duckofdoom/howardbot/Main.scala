@@ -34,8 +34,14 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     PrintLoggerFactory.formatter = new LogFormatter
-    LoggerConfig.factory = PrintLoggerFactory
+    
+    LoggerConfig.factory = FilterLoggerFactory
     LoggerConfig.level = LogLevel.TRACE
+    
+    FilterLogger.filter = {
+      case (LogLevel.TRACE, "org.duckofdoom.howardbot.bot.CustomScalajHttpClient") => NullLogger
+      case _ => PrintLogger
+    }
 
     new App()
   }
