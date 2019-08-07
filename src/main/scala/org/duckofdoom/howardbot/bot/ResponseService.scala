@@ -81,7 +81,7 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
       "\n",
       s"Пивоварня: ${item.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      item.draftType.getOrElse("draftType = ?") + " - " + item.price.map { case (c, price) => c + price },
+      item.draftType.getOrElse("draftType = ?") + " - " + item.price.map { case (c, price) => c + price }.getOrElse("?"),
       "\n",
       if (inMenu)
         s"Подробнее: /show${item.id}"
