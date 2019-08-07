@@ -5,13 +5,15 @@ import scala.collection.mutable
 case class Button(text: String, callback: String)
 
 object PaginationUtils {
+  val menuPaginationPrefix = "menu_page_"
+  
   def mkFirst(page: Int)    = s"<< $page"
   def mkLast(page: Int)     = s"$page >>"
   def mkPrev(page: Int)     = s"< $page"
   def mkNext(page: Int)     = s"$page >"
   def mkCurr(page: Int)     = s"* $page *"
   def mkNormal(page: Int)   = page.toString
-  def mkCallback(page: Int) = page.toString
+  def mkCallback(page: Int) = menuPaginationPrefix + "page"
 
   def mkButtonsForPaginatedQuery(currentPage: Int,
                                  itemsPerPage: Int,

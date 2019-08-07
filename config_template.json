@@ -5,6 +5,7 @@
   "serverAddress": "localhost",
   "serverPort": 8080,
   "menuUrl": "http:://herpderp.com",
+  "menuItemsPerPage" : 5,
   "postgres": {
     "database": "DB",
     "user": "USER",

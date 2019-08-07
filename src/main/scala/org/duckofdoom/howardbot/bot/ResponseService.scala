@@ -5,7 +5,8 @@ import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
 import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
 import scalatags.Text.all._
 import cats.syntax.option._
-import scala.collection.mutable.ListBuffer
+import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
+import slogging.StrictLogging
 
 trait ResponseService {
   val defaultSeparator: String = ""
@@ -18,7 +19,9 @@ trait ResponseService {
   def mkInvalidArgumentResponse(value: String): String
 }
 
-class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends ResponseService {
+class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
+    extends ResponseService
+    with StrictLogging {
 
   override def mkMenuResponse(itemLinkSeparator: String): String = {
     frag(
@@ -32,54 +35,31 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider) extends R
                                        page: Int,
                                        itemsPerPage: Int): (String, InlineKeyboardMarkup) = {
 
-    var items      = itemDataProvider.getItems(menuTab)
+    var items = (0 to 100).map(i => { "item " + i }) //-itemDataProvider.allItems.toList
+//    var items      = itemDataProvider.getItems(menuTab)
     val totalPages = items.length / itemsPerPage
 
     if (items.length > itemsPerPage) {
-      items = items.slice(page * itemsPerPage, page * itemsPerPage + itemsPerPage)
+      items = items.slice((page - 1) * itemsPerPage, (page - 1) * itemsPerPage + itemsPerPage)
     }
 
-    var buttons: ListBuffer[InlineKeyboardButton] = ListBuffer[InlineKeyboardButton]()
+    val renderedItems = frag(
+      items.map(is => is + "\n")
+//        .map(i => mkItemInfo(i, inMenu = true, " "))
+//        .toArray: _*
+    ).render
 
-//    if (totalPages > 3) {
-//      if (page > 2) {
-//        buttons += InlineKeyboardButton("<< 1", "1".some)
-//        buttons += InlineKeyboardButton(s"< ${page - 1}", (page - 1).toString.some)
-//        buttons += InlineKeyboardButton(s"* $page *", page.toString.some)
-//        buttons += InlineKeyboardButton(s"${page + 1} >", page.toString.some)
-//        buttons += InlineKeyboardButton("<< 1", "1".some)
-//      } else {
-//        buttons += InlineKeyboardButton("<< 1", "1".some)
-//        buttons += InlineKeyboardButton(s"< ${page - 1}", (page - 1).toString.some)
-//        buttons += InlineKeyboardButton(s"* $page *", page.toString.some)
-//        buttons += InlineKeyboardButton(s"${page + 1} >", page.toString.some)
-//        buttons += InlineKeyboardButton("<< 1", "1".some)
-//      }
-//    } else {
-//      page match {
-//        case 1 =>
-//          buttons += InlineKeyboardButton("* 1 *", "1".some)
-//          buttons += InlineKeyboardButton("2 >", "2".some)
-//          buttons += InlineKeyboardButton("3 >>", "3".some)
-//        case 2 =>
-//          buttons += InlineKeyboardButton("< 1", "1".some)
-//          buttons += InlineKeyboardButton("* 2 *", "2".some)
-//          buttons += InlineKeyboardButton("3 >", "3".some)
-//        case 3 =>
-//          buttons += InlineKeyboardButton("<< 1", "1".some)
-//          buttons += InlineKeyboardButton("< 2", "2".some)
-//          buttons += InlineKeyboardButton("* 3 *", "3".some)
-//      }
-//    }
+    logger.info(
+      s"Getting items. Page:$page, itemsPerPage:$itemsPerPage, total items: ${items.length}, total pages: $totalPages")
 
-    (
-      frag(
-        itemDataProvider.allItems
-          .map(i => mkItemInfo(i, inMenu = true, " "))
-          .toArray: _*
-      ).render,
-      InlineKeyboardMarkup.singleRow(buttons)
+    val buttons = PaginationUtils.mkButtonsForPaginatedQuery(page, totalPages, items.length)
+    val markup = InlineKeyboardMarkup.singleRow(
+      buttons.map {
+        case Button(bText, bCallbackData) => InlineKeyboardButton.callbackData(bText, bCallbackData)
+      }
     )
+
+    (renderedItems, markup)
   }
 
   override def mkItemResponse(itemId: Int, itemLinkSeparator: String): String = {

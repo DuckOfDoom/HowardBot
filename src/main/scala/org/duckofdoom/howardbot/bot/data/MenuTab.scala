@@ -5,8 +5,8 @@ package org.duckofdoom.howardbot.bot.data
   */
 object MenuTab extends Enumeration {
   type MenuTab = Value
-  case object OnTap
-  case object Bottled
-  case object OnDeck
-  case object Other
+  val OnTap = Value(1)
+  val Bottled = Value(1 << 1)
+  val OnDeck = Value(1 << 2)
+  val Other = Value(1 << 3)
 }

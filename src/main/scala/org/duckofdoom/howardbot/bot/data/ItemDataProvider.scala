@@ -61,6 +61,8 @@ class ParsedItemsDataProvider(httpService: HttpService, parseUrl: String)
     List[Item]()
     
   }
+  
+  refresh()
 }
 
 class FakeItemDataProvider extends ItemDataProvider {
