@@ -1,21 +1,26 @@
 package org.duckofdoom.howardbot.parser
 
-import cats.syntax.either._
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.data.{BreweryInfo, FakeItemDataProvider, Item, MenuItem}
-import slogging.StrictLogging
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
+import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Element
+import org.duckofdoom.howardbot.bot.data.{BreweryInfo, Item, MenuItem}
+import slogging.StrictLogging
 
-import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
-object MenuParser extends StrictLogging {
+class MenuParser(scriptOutput:String, additionalMenuPage:String) extends StrictLogging {
+  
+  val parsedItemsByName = Map[String, Item]
+  
+  def parse():List[Item] = { 
+    
+    parseScriptOutput(scriptOutput)
+    
+  }
 
-  def parseMenu(contents: String): List[Item] = {
+  private def parseScriptOutput(contents: String): List[Item] = {
 
     val htmlLineName = "container.innerHTML = \"  "
 
@@ -24,10 +29,8 @@ object MenuParser extends StrictLogging {
         .filter(l => l.contains(htmlLineName))
         .findFirst())
       .map(_.substring(htmlLineName.length))
+      .map(cleanHtml)
       .map(s => s.substring(0, s.length - 2))
-      .map(_.replace("\\n", "\n"))
-      .map(_.replace("\\/", "/"))
-      .map(_.replace("\\\"", "\""))
 
     if (menuHtml.isEmpty) {
       logger.error(s"Can't find '$htmlLineName' in provided string!")
@@ -40,7 +43,13 @@ object MenuParser extends StrictLogging {
     (doc >> elementList(".beer")).zipWithIndex.map { case (el: Element, i: Int) => parseItem(i, el)}
   }
 
-  def parseItem(id: Int, el: Element): Item = {
+  private def cleanHtml(html: String) = {
+    html.replace("\\n", "\n")
+    .replace("\\/", "/")
+    .replace("\\\"", "\"")
+  }
+
+  private def parseItem(id: Int, el: Element): Item = {
     val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
 
     // beerName
