@@ -103,6 +103,7 @@ class FakeItemDataProvider extends ItemDataProvider {
           i,
           i.some,
           faker.Lorem.words(2).head.capitalize.some,
+          (scala.util.Random.nextFloat() * 5f, 5f).some,
           "http://url.com".some,
           "http://pic_url.com".some,
           (scala.util.Random.nextInt(20) / 1000f).some,

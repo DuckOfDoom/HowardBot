@@ -4,6 +4,7 @@ trait Item {
   val id: Int
   val menuOrder: Option[Int]
   val name: Option[String]
+  val rating: Option[(Float, Float)]
   val link: Option[String]
   val pictureLink: Option[String]
   val abv: Option[Float]
@@ -24,6 +25,7 @@ trait Item {
     sb.append(s"Id = $id\n")
     sb.append(toString("menuOrder", menuOrder))
     sb.append(toString("name", name))
+    sb.append(toString("rating", rating))
     sb.append(toString("style", style))
     sb.append(toString("link", link))
     sb.append(toString("pictureLink", pictureLink))
@@ -52,6 +54,7 @@ case class MenuItem(
     id: Int,
     menuOrder: Option[Int],
     name: Option[String],
+    rating: Option[(Float, Float)],
     link: Option[String],
     pictureLink: Option[String],
     abv: Option[Float],

@@ -5,6 +5,7 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Element
+import net.ruippeixotog.scalascraper.scraper.HtmlExtractor
 import org.duckofdoom.howardbot.bot.data.{BreweryInfo, Item, MenuItem}
 import org.duckofdoom.howardbot.utils.FileUtils
 import slogging.StrictLogging
@@ -42,7 +43,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     if (menuHtml.isEmpty) {
       logger.error(s"Can't find '$htmlLineName' in provided string!")
-      return 0
+      return
     }
 
     val doc = browser.parseString(menuHtml.get)
@@ -96,7 +97,9 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .replace("\\/", "/")
       .replace("\\\"", "\"")
   }
-
+  
+  val ratingRegex = "rating small r(\\d{3})".r
+  
   private def parseItem(id: Int, el: Element): Item = {
     val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
 
@@ -105,6 +108,12 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
     val menuOrder = (beerName >?> element(".tap-number-hideable") >> text).flatten
       .map(_.takeWhile(_ != '.'))
       .flatMap(i => Try(i.toInt).toOption)
+    
+    val rating = (el >?> element(".rating-hideable"))
+      .flatMap(_ >?> element("span"))
+      .flatMap(_.attrs.get("class"))
+      .flatMap(v => ratingRegex.findFirstMatchIn(v).map(_.group(1)).flatMap(s => Try(s.toFloat / 100f).toOption))
+      .map(v => (v, 5f))
 
     val name = (beerName >?> element("a") >> text).flatten
       .map(_.dropWhile(!_.isLetter))
@@ -145,6 +154,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       id,
       menuOrder,
       name,
+      rating,
       link,
       picLink,
       abv,
