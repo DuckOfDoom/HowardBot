@@ -1,7 +1,7 @@
 package org.duckofdoom.howardbot.server
 
 import org.duckofdoom.howardbot.bot.data.ItemDataProvider
-import org.duckofdoom.howardbot.bot.{StatusInfoProvider, ResponseService}
+import org.duckofdoom.howardbot.bot.{StatusProvider, ResponseService}
 import org.duckofdoom.howardbot.db.DB
 
 trait ServerResponseService {
@@ -14,14 +14,14 @@ trait ServerResponseService {
   def parse(): String
 }
 
-class ServerResponseServiceImpl(implicit statusInfoProvider: StatusInfoProvider,
+class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
                                 itemDataProvider: ItemDataProvider,
                                 responseService: ResponseService,
                                 db: DB)
     extends ServerResponseService {
 
   override def home(): String = {
-    statusInfoProvider.getStatusInfoHtml()
+    statusInfoProvider.getStatusInfoHtml
   }
 
   override def menu(): String = {

@@ -5,7 +5,7 @@ import org.duckofdoom.howardbot.bot.{
   BotStarter,
   ResponseService,
   ResponseServiceImpl,
-  StatusInfoProvider
+  StatusProvider
 }
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
@@ -32,7 +32,7 @@ class App extends StrictLogging {
   implicit val db: DB                                       = new DoobieDB(config.get.postgres)
   implicit val responseService: ResponseService             = new ResponseServiceImpl
   implicit val bot: BotStarter                              = new BotStarter()
-  implicit val statusProvider: StatusInfoProvider           = new StatusInfoProvider()
+  implicit val statusProvider: StatusProvider           = new StatusProvider()
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 
