@@ -6,7 +6,7 @@ import slogging.StrictLogging
 /**
   * A class to handle file operations
   */
-class FileHandler() extends StrictLogging {
+object FileUtils extends StrictLogging {
 
   /**
     * Reads file from supplied path
@@ -31,7 +31,7 @@ class FileHandler() extends StrictLogging {
   /**
     * Writes a file at supplied path
     */
-  def writeFile(contents: String, path: String): Unit = {
+  def writeFile(path: String, contents: String): Unit = {
     import java.io._
     
     val pw = new PrintWriter(new File(path))

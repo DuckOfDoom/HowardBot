@@ -21,8 +21,9 @@ class App extends StrictLogging {
 
   implicit val dataProvider: ItemDataProvider = new ParsedItemsDataProvider(
     new ScalajHttpService(),
-    config.get.menuUrl
+    config.get
   )
+
   implicit val db: DB                           = new DoobieDB(config.get.postgres)
   implicit val responseService: ResponseService = new ResponseServiceImpl
   implicit val bot: BotStarter                  = new BotStarter()

@@ -6,24 +6,32 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Element
 import org.duckofdoom.howardbot.bot.data.{BreweryInfo, Item, MenuItem}
+import org.duckofdoom.howardbot.utils.FileUtils
 import slogging.StrictLogging
 
 import scala.util.Try
 
-class MenuParser(scriptOutput:String, additionalMenuPage:String) extends StrictLogging {
-  
-  val parsedItemsByName = Map[String, Item]
-  
-  def parse():List[Item] = { 
-    
+class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extends StrictLogging {
+
+  private val parsedItemsByName = scala.collection.mutable.Map[String, Item]()
+  private val browser           = JsoupBrowser()
+
+  def parse(): List[Item] = {
     parseScriptOutput(scriptOutput)
-    
+    logger.info(s"Parsed ${parsedItemsByName.count(_ => true)} items from main script output.")
+    val parsedItemsCount = parsedItemsByName.count(_ => true)
+    parseAdditionalPages(additionalMenuPages, parsedItemsCount)
+    logger.info(s"""Parsed ${parsedItemsByName
+      .count(_ => true) - parsedItemsCount} more items from additional pages.
+          Total items: ${parsedItemsByName.count(_ => true)}
+        """)
+
+    parsedItemsByName.values.toList
   }
 
-  private def parseScriptOutput(contents: String): List[Item] = {
-
+  private def parseScriptOutput(contents: String): Unit = {
+    logger.info("Parsing main script output...")
     val htmlLineName = "container.innerHTML = \"  "
-
     val menuHtml: Option[String] = toOption(
       contents.lines
         .filter(l => l.contains(htmlLineName))
@@ -34,19 +42,59 @@ class MenuParser(scriptOutput:String, additionalMenuPage:String) extends StrictL
 
     if (menuHtml.isEmpty) {
       logger.error(s"Can't find '$htmlLineName' in provided string!")
-      return List[Item]()
+      return 0
     }
 
-    val browser = JsoupBrowser()
-    val doc     = browser.parseString(menuHtml.get)
+    val doc = browser.parseString(menuHtml.get)
+    val elements = doc >> elementList(".beer")
 
-    (doc >> elementList(".beer")).zipWithIndex.map { case (el: Element, i: Int) => parseItem(i, el)}
+    elements.zipWithIndex
+      .map { case (el: Element, i: Int) => parseItem(i, el) }
+      .foreach(addItem)
+  }
+
+  private def parseAdditionalPages(pages: List[String], startingId: Int): Unit = {
+
+    logger.info(s"Parsing ${pages.length} additional pages...")
+
+    var id = startingId
+
+//    pages.zipWithIndex.foreach { case (p: String, i: Int) => FileUtils.writeFile(s"page_$i", p) }
+
+    pages
+      .map(cleanHtml)
+      .foreach(html => {
+        val doc = browser.parseString(html)
+        (doc >> elementList(".beer"))
+          .map(el => {
+            val item = parseItem(id, el)
+            id += 1
+            item
+          })
+          .foreach(addItem)
+      })
+  }
+
+  private def addItem(item: Item): Unit = {
+    if (item.name.isEmpty) {
+      logger.trace(s"Can't add parsed item because name is not defined:\n$item")
+      return
+    }
+
+    val n = item.name.getOrElse("_")
+    if (!parsedItemsByName.contains(n)) {
+      parsedItemsByName(n) = item
+      logger.trace("New item: " + item.name)
+    } else {
+      logger.trace("Already has: " + item.name)
+    }
   }
 
   private def cleanHtml(html: String) = {
-    html.replace("\\n", "\n")
-    .replace("\\/", "/")
-    .replace("\\\"", "\"")
+    html
+      .replace("\\n", "\n")
+      .replace("\\/", "/")
+      .replace("\\\"", "\"")
   }
 
   private def parseItem(id: Int, el: Element): Item = {
@@ -111,7 +159,7 @@ class MenuParser(scriptOutput:String, additionalMenuPage:String) extends StrictL
       description
     )
   }
-  
+
   private def toOption[T](v: java.util.Optional[T]): Option[T] = {
     if (v.isPresent)
       v.get.some

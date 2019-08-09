@@ -1,20 +1,22 @@
 package org.duckofdoom.howardbot.bot.data
 
 import cats.syntax.option._
+import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.utils.HttpService
 import slogging.StrictLogging
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 trait ItemDataProvider {
+
   /**
     * Refresh the list of items available
     */
   def refresh(): Unit
-  
+
   /**
     * Get all items available
     */
@@ -31,42 +33,55 @@ trait ItemDataProvider {
   def getItems(menuTab: MenuTab): List[Item]
 }
 
-class ParsedItemsDataProvider(httpService: HttpService, parseUrl: String)
+class ParsedItemsDataProvider(httpService: HttpService, config: Config)
     extends ItemDataProvider
     with StrictLogging {
+
   private var items: Map[Int, Item] = Map()
 
   override def allItems: Iterable[Item]           = items.values
   override def getItem(itemId: Int): Option[Item] = items.get(itemId)
 
+  // TODO: Make this async
   override def refresh(): Unit = {
-    
-    // TODO: Make this async
+
     implicit val ec: ExecutionContext = ExecutionContext.global
 
-    val result = Await.result(httpService.makeRequestAsync(parseUrl), Duration.Inf)
+    val resultsFuture = for {
+      mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
+      pages <- Future.sequence(
+        (1 to config.additionalPagesCount)
+          .map(
+            p =>
+              httpService.makeRequestAsync(
+                config.getAdditionalResultPageUrl(p)
+            ))
+      )
+    } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
+
+    val result = Await.result(resultsFuture, Duration.Inf)
+
     result match {
-      case Left(error) =>
-        logger.error(s"Refresh failed. Failed to fetch menu from '$parseUrl'. Error:\n$error")
-      case Right(r) =>
-        items = MenuParser.parseMenu(r).map(item => (item.id, item)).toMap
+      case (Some(mainOutput), additionalPages) =>
+        logger.info(s"Got main output and ${additionalPages.length} additional pages.")
+        items =
+          new MenuParser(mainOutput, additionalPages).parse().map(item => (item.id, item)).toMap
+      case _ => logger.error("Refresh failed, got empty results!")
     }
   }
 
   /**
-    * Get items for specific menu tab
+    * Get items for specific menu togwrijlgerklgertjhilgbwjiweab
     */
   override def getItems(menuTab: MenuTab): List[Item] = {
-    
-    List[Item]()
-    
+    throw new NotImplementedError("Not implemented yet")
   }
-  
+
   refresh()
 }
 
 class FakeItemDataProvider extends ItemDataProvider {
-  private var items: Map[Int, Item] = Map()
+  private var items: Map[Int, Item]                = Map()
   private val itemsByTab: Map[MenuTab, List[Item]] = Map()
 
   override def allItems: Iterable[Item]           = items.values
@@ -106,9 +121,7 @@ class FakeItemDataProvider extends ItemDataProvider {
         (i, item)
       })
       .toMap
-    
-    
-    
+
   }
 
   /**
