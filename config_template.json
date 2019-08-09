@@ -8,6 +8,7 @@
   "additionalPagesUrl": "http:://herpderp.com",
   "additionalPagesCount": 2,
   "menuItemsPerPage" : 5,
+  "menuRefreshPeriod": 300,
   "postgres": {
     "database": "DB",
     "user": "USER",

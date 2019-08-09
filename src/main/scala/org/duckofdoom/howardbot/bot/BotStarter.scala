@@ -9,18 +9,11 @@ import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
 
-trait BotStatus {
-  def runningTime: Duration 
-  def restartCount: Int  
-  def restartReason: Option[String] 
-}
-
-class BotStarter(implicit responseService: ResponseService) extends BotStatus
-  with StrictLogging {
+class BotStarter(implicit responseService: ResponseService) extends StrictLogging {
   
-  override def runningTime: Duration = Duration.between(startupTime, LocalDateTime.now())
-  override def restartReason: Option[String] = lastRestartReason
-  override def restartCount: Int = restarts
+  def runningTime: Duration = Duration.between(startupTime, LocalDateTime.now())
+  def restartReason: Option[String] = lastRestartReason
+  def restartCount: Int = restarts
 
   private var startupTime: LocalDateTime = LocalDateTime.now()
   private var lastRestartReason: Option[String] = None

@@ -1,7 +1,12 @@
 package org.duckofdoom.howardbot
 
 import org.duckofdoom.howardbot.bot.data.{ItemDataProvider, ParsedItemsDataProvider}
-import org.duckofdoom.howardbot.bot.{BotStarter, ResponseService, ResponseServiceImpl}
+import org.duckofdoom.howardbot.bot.{
+  BotStarter,
+  ResponseService,
+  ResponseServiceImpl,
+  StatusInfoProvider
+}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
 import org.duckofdoom.howardbot.utils.ScalajHttpService
@@ -24,15 +29,14 @@ class App extends StrictLogging {
     config.get
   )
 
-  implicit val db: DB                           = new DoobieDB(config.get.postgres)
-  implicit val responseService: ResponseService = new ResponseServiceImpl
-  implicit val bot: BotStarter                  = new BotStarter()
-
+  implicit val db: DB                                       = new DoobieDB(config.get.postgres)
+  implicit val responseService: ResponseService             = new ResponseServiceImpl
+  implicit val bot: BotStarter                              = new BotStarter()
+  implicit val statusProvider: StatusInfoProvider           = new StatusInfoProvider()
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 
-  for {
-    a <- server.run
-    b <- bot.run
-  } yield (a, b)
+  dataProvider.refresh
+  server.run
+  bot.run
 }

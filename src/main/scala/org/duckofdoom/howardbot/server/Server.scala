@@ -6,12 +6,11 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.BotStatus
 import slogging.StrictLogging
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class Server(implicit botStatus: BotStatus, responseService: ServerResponseService)
+class Server(implicit responseService: ServerResponseService)
     extends StrictLogging {
 
   def run(implicit config: Option[Config]): Future[Unit] = {

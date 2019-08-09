@@ -76,7 +76,7 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
   private def mkItemInfo(item: Item, inMenu: Boolean) = {
     frag(
       a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
-//      item.rating.map { case (v1, v2) => s"$v1 / $v2"}.getOrElse(" rating = ?").toString,
+      item.rating.map { case (v1, _) => i(s" $v1")}.getOrElse(" rating = ?").toString,
       "\n",
       s"Стиль: ${item.style.getOrElse("style = ?")}",
       "\n",

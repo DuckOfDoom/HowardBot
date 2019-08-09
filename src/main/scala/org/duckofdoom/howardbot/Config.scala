@@ -31,6 +31,7 @@ case class Config(
     mainMenuUrl: String,
     additionalPagesUrl: String,
     additionalPagesCount: Int,
+    menuRefreshPeriod: Float,
     menuItemsPerPage: Int,
     postgres: PostgresConfig
 ) extends StrictLogging {

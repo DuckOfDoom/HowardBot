@@ -1,5 +1,7 @@
 package org.duckofdoom.howardbot.bot.data
 
+import java.time.LocalDateTime
+
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
@@ -13,9 +15,19 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 trait ItemDataProvider {
 
   /**
+    * Time since last refresh
+    */
+  def lastRefreshTime: LocalDateTime
+
+  /**
+    * Current items count
+    */
+  def itemsCount: Int
+
+  /**
     * Refresh the list of items available
     */
-  def refresh(): Unit
+  def refresh()(implicit ec: ExecutionContext): Future[Unit]
 
   /**
     * Get all items available
@@ -37,36 +49,54 @@ class ParsedItemsDataProvider(httpService: HttpService, config: Config)
     extends ItemDataProvider
     with StrictLogging {
 
-  private var items: Map[Int, Item] = Map()
+  logger.info(
+    s"ParsedItemsDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
 
-  override def allItems: Iterable[Item]           = items.values
-  override def getItem(itemId: Int): Option[Item] = items.get(itemId)
+  override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
+  override def itemsCount: Int                    = _items.count(_ => true)
+  override def allItems: Iterable[Item]           = _items.values
+  override def getItem(itemId: Int): Option[Item] = _items.get(itemId)
 
-  // TODO: Make this async
-  override def refresh(): Unit = {
+  private var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
+  private var _items: Map[Int, Item]          = Map()
 
-    implicit val ec: ExecutionContext = ExecutionContext.global
+  override def refresh()(implicit ec: ExecutionContext): Future[Unit] = {
 
-    val resultsFuture = for {
-      mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
-      pages <- Future.sequence(
-        (1 to config.additionalPagesCount)
-          .map(
-            p =>
-              httpService.makeRequestAsync(
-                config.getAdditionalResultPageUrl(p)
-            ))
-      )
-    } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
+    def refreshSync(): Unit = {
 
-    val result = Await.result(resultsFuture, Duration.Inf)
+      logger.info("Refreshing items...")
 
-    result match {
-      case (Some(mainOutput), additionalPages) =>
-        logger.info(s"Got main output and ${additionalPages.length} additional pages.")
-        items =
-          new MenuParser(mainOutput, additionalPages).parse().map(item => (item.id, item)).toMap
-      case _ => logger.error("Refresh failed, got empty results!")
+      val resultsFuture = for {
+        mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
+        pages <- Future.sequence(
+          (1 to config.additionalPagesCount)
+            .map(
+              p =>
+                httpService.makeRequestAsync(
+                  config.getAdditionalResultPageUrl(p)
+              ))
+        )
+      } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
+
+      val result = Await.result(resultsFuture, Duration.Inf)
+
+      result match {
+        case (Some(mainOutput), additionalPages) =>
+          logger.info(s"Got main output and ${additionalPages.length} additional pages.")
+          _items = new MenuParser(mainOutput, additionalPages)
+            .parse()
+            .map(item => (item.id, item))
+            .toMap
+          _lastRefreshTime = LocalDateTime.now
+        case _ => logger.error("Refresh failed, got empty results!")
+      }
+    }
+
+    Future {
+      while (true) {
+        refreshSync()
+        Thread.sleep((config.menuRefreshPeriod * 1000).toInt)
+      }
     }
   }
 
@@ -76,28 +106,28 @@ class ParsedItemsDataProvider(httpService: HttpService, config: Config)
   override def getItems(menuTab: MenuTab): List[Item] = {
     throw new NotImplementedError("Not implemented yet")
   }
-
-  refresh()
 }
 
 class FakeItemDataProvider extends ItemDataProvider {
-  private var items: Map[Int, Item]                = Map()
-  private val itemsByTab: Map[MenuTab, List[Item]] = Map()
+  override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
+  override def itemsCount: Int                    = _items.count(_ => true)
+  override def allItems: Iterable[Item]           = _items.values
+  override def getItem(itemId: Int): Option[Item] = _items.get(itemId)
 
-  override def allItems: Iterable[Item]           = items.values
-  override def getItem(itemId: Int): Option[Item] = items.get(itemId)
+  private var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
+  private var _items: Map[Int, Item]          = Map()
 
   /**
     * Refresh the list of items available
     */
-  def refresh(): Unit = {
+  def refresh()(implicit ec: ExecutionContext): Future[Unit] = {
 
     def mkStyle() = {
       val wrds = faker.Lorem.words(3).map(_.capitalize)
       wrds.head + " / " + wrds(1)
     }
 
-    items = (0 to 10)
+    _items = (0 to 10)
       .map(i => {
         val item = MenuItem(
           i,
@@ -123,12 +153,13 @@ class FakeItemDataProvider extends ItemDataProvider {
       })
       .toMap
 
+    Future.successful()
   }
 
   /**
     * Get items for specific menu tab
     */
   override def getItems(menuTab: MenuTab): List[Item] = {
-    itemsByTab.get(menuTab).getOrElse(List[Item]())
+    allItems.toList
   }
 }
