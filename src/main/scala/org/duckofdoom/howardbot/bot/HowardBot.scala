@@ -100,7 +100,9 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           mkMenuResponse(u.state.menuPage, msg, newMessage = true).some
         case (Some(menuPaginationRegex(page)), Some(msg)) =>
           Try(page.toInt).toOption match {
-            case Some(p) => mkMenuResponse(p, msg, newMessage = false).some
+            case Some(p) =>
+              u.state.menuPage = p
+              mkMenuResponse(p, msg, newMessage = false).some
             case _ =>
               logger.error(s"Failed to parse page from callback query data: ${query.data}")
               None
