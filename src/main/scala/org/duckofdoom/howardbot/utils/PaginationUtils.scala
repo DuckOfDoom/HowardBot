@@ -56,7 +56,7 @@ object PaginationUtils {
           list += Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1))
           list += Button(PaginationUtils.mkPrev(currentPage - 1),
                          PaginationUtils.mkCallback(currentPage - 1))
-          list += Button(PaginationUtils.mkNormal(currentPage),
+          list += Button(PaginationUtils.mkCurr(currentPage),
                          PaginationUtils.mkCallback(currentPage))
           list += Button(PaginationUtils.mkNext(currentPage + 1),
                          PaginationUtils.mkCallback(currentPage + 1))

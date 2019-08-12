@@ -50,7 +50,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
       result(curr, itemsCount) should contain theSameElementsAs List(
         Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
         Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-        Button(PaginationUtils.mkNormal(curr), PaginationUtils.mkCallback(curr)),
+        Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
         Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallback(curr + 1)),
         Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
       )
@@ -61,7 +61,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
     result(curr, itemsCount) should contain theSameElementsAs List(
       Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
       Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-      Button(PaginationUtils.mkNormal(curr), PaginationUtils.mkCallback(curr)),
+      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
       Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallback(curr + 1)),
       Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
     )
