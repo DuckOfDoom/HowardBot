@@ -1,5 +1,7 @@
 package org.duckofdoom.howardbot
 
+import java.util.concurrent.Executors
+
 import org.duckofdoom.howardbot.bot.data.{ItemDataProvider, ParsedItemsDataProvider}
 import org.duckofdoom.howardbot.bot.{
   BotStarter,
@@ -16,13 +18,15 @@ import scala.concurrent.ExecutionContext
 
 class App extends StrictLogging {
 
-  implicit val executionContext: ExecutionContext = ExecutionContext.global
-
   implicit val configLoader: () => Option[Config] = () => Config.load
   implicit val config: Option[Config]             = configLoader()
 
   if (config.isEmpty)
     throw new InvalidConfigurationException("No valid config found!")
+
+  logger.info(s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.get.parallelismLevel}")
+  implicit val executionContext: ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.get.parallelismLevel))
 
   implicit val dataProvider: ItemDataProvider = new ParsedItemsDataProvider(
     new ScalajHttpService(),
@@ -32,7 +36,7 @@ class App extends StrictLogging {
   implicit val db: DB                                       = new DoobieDB(config.get.postgres)
   implicit val responseService: ResponseService             = new ResponseServiceImpl
   implicit val bot: BotStarter                              = new BotStarter()
-  implicit val statusProvider: StatusProvider           = new StatusProvider()
+  implicit val statusProvider: StatusProvider               = new StatusProvider()
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 

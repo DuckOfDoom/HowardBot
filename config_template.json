@@ -1,4 +1,5 @@
 {
+  "parallelismLevel": 100,
   "startBot": true,
   "startServer": true,
   "token": "YOUR_BOT_TOKEN",
