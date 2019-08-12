@@ -3,6 +3,7 @@ package org.duckofdoom.howardbot.server
 import org.duckofdoom.howardbot.bot.data.ItemDataProvider
 import org.duckofdoom.howardbot.bot.{StatusProvider, ResponseService}
 import org.duckofdoom.howardbot.db.DB
+import cats.syntax.option._
 
 trait ServerResponseService {
   def home(): String
@@ -52,8 +53,8 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
     db.putUser(
         scala.util.Random.nextInt(Int.MaxValue),
         faker.Name.first_name,
-        faker.Name.first_name,
-        faker.Name.last_name
+        faker.Name.first_name.some,
+        faker.Name.last_name.some
       )
       .toString
   }

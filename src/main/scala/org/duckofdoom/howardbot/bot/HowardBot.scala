@@ -7,9 +7,11 @@ import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
-import com.bot4s.telegram.models.{ChatId, InlineKeyboardMarkup, Message, ReplyMarkup}
+import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup}
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.MenuTab
+import org.duckofdoom.howardbot.db.DB
+import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.PaginationUtils
 import slogging.StrictLogging
 
@@ -17,20 +19,36 @@ import scala.concurrent.Future
 import scala.util.Try
 import scala.util.matching.Regex
 
-class HowardBot(val config: Config)(implicit responseService: ResponseService)
+class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
     extends TelegramBot
     with StrictLogging
     with Polling
     with Commands[Future]
     with Callbacks[Future] {
 
+  type TelegramUser = com.bot4s.telegram.models.User
+
+  // TODO: We need to serve multiple users in separate threads. Right now one user blocks everything =(
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
 
   private val menuPaginationRegex = (PaginationUtils.menuPaginationPrefix + "(\\d+)").r
 
+  // TODO: Move command literals to separate file
+  onCommand("start" | "menu") { implicit msg =>
+    withChat(msg.chat) { u =>
+      val (items, markup) = responseService.mkMenuResponsePaginated(
+        MenuTab.Bottled,
+        u.state.menuPage,
+        config.menuItemsPerPage
+      )
+
+      respond(items, markup.some)
+    }
+  }
+
   override def receiveMessage(msg: Message): Future[Unit] = {
     processShowRequest(msg) match {
-      case Some((item, markup)) => {
+      case Some((item, markup)) =>
         request(
           SendMessage(ChatId(msg.source),
                       item,
@@ -40,78 +58,66 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService)
                       None,
                       markup.some)
         ).void
-//        respond(item, markup.some)(msg)
-      }
       case _ => super.receiveMessage(msg)
     }
   }
 
   onCallbackQuery { implicit query =>
-    // TODO: User atto for parsing
-    def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
-      val (items, buttons) = responseService
-        .mkMenuResponsePaginated(
-          MenuTab.Bottled,
-          page,
-          config.menuItemsPerPage
-        )
+    withUser(query.from) { u =>
+      def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
+        val (items, buttons) = responseService
+          .mkMenuResponsePaginated(
+            MenuTab.Bottled,
+            page,
+            config.menuItemsPerPage
+          )
 
-      if (newMessage) {
-        request(
-          SendMessage(ChatId(msg.source),
-                      items,
-                      ParseMode.HTML.some,
-                      true.some,
-                      None,
-                      None,
-                      buttons.some)
-        )
-      } else {
-        request(
-          EditMessageText(ChatId(msg.source).some,
-                          msg.messageId.some,
-                          None,
-                          items,
-                          ParseMode.HTML.some,
-                          true.some,
-                          buttons.some)
-        )
-      }
-    }
-
-    val responseFuture = (query.data, query.message) match {
-      case (Some("menu"), Some(msg)) => mkMenuResponse(1, msg, newMessage = true).some
-      case (Some(menuPaginationRegex(page)), Some(msg)) =>
-        Try(page.toInt).toOption match {
-          case Some(p) => mkMenuResponse(p, msg, newMessage = false).some
-          case _ =>
-            logger.error(s"Failed to parse page from callback query data: ${query.data}")
-            None
+        if (newMessage) {
+          request(
+            SendMessage(ChatId(msg.source),
+                        items,
+                        ParseMode.HTML.some,
+                        true.some,
+                        None,
+                        None,
+                        buttons.some)
+          )
+        } else {
+          request(
+            EditMessageText(ChatId(msg.source).some,
+                            msg.messageId.some,
+                            None,
+                            items,
+                            ParseMode.HTML.some,
+                            true.some,
+                            buttons.some)
+          )
         }
-      case _ => Future.successful().some
+      }
+
+      val responseFuture = (query.data, query.message) match {
+        case (Some("menu"), Some(msg)) =>
+          mkMenuResponse(u.state.menuPage, msg, newMessage = true).some
+        case (Some(menuPaginationRegex(page)), Some(msg)) =>
+          Try(page.toInt).toOption match {
+            case Some(p) => mkMenuResponse(p, msg, newMessage = false).some
+            case _ =>
+              logger.error(s"Failed to parse page from callback query data: ${query.data}")
+              None
+          }
+        case _ => Future.successful().some
+      }
+
+      if (responseFuture.isEmpty)
+        logger.error(s"Failed to construct response for callback query: ${query.data}")
+
+      for {
+        ack    <- ackCallback()
+        answer <- responseFuture.getOrElse(Future.successful())
+      } yield (ack, answer)
     }
-
-    if (responseFuture.isEmpty)
-      logger.error(s"Failed to construct response for callback query: ${query.data}")
-
-    for {
-      ack    <- ackCallback()
-      answer <- responseFuture.getOrElse(Future.successful())
-    } yield (ack, answer)
   }
 
-  // TODO: Move command literals to separate file
-  onCommand("start" | "menu") { implicit msg =>
-    val (items, markup) = responseService.mkMenuResponsePaginated(
-      MenuTab.Bottled,
-      1,
-      config.menuItemsPerPage
-    )
-
-    respond(items, markup.some)
-  }
-
-  // TODO: Move command literals to separate file
   private def processShowRequest(msg: Message): Option[(String, InlineKeyboardMarkup)] = {
     val showRegex: Regex = "\\/show(\\d+)".r
     msg.text
@@ -122,6 +128,58 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService)
       .fold(Option.empty[(String, InlineKeyboardMarkup)]) { s =>
         responseService.mkItemResponse(s).some
       }
+  }
+
+  private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
+
+    if (tgUser.firstName.isEmpty) {
+      return Future.failed(new Exception(
+        "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."))
+    }
+
+    val user = db.getUserByTelegramId(tgUser.id) match {
+      case Some(u) => u.some
+      case _ =>
+        db.putUser(
+          tgUser.id,
+          tgUser.firstName,
+          tgUser.lastName,
+          tgUser.username
+        )
+    }
+
+    user match {
+      case Some(u) => action(u)
+      case _ =>
+        Future.failed(
+          new Exception(
+            s"Failed to process action! Could not create user for telegramUser: $tgUser"))
+    }
+  }
+
+  private def withChat(chat: Chat)(action: User => Future[Unit]): Future[Unit] = {
+    if (chat.firstName.isEmpty) {
+      return Future.failed(new Exception(
+        "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."))
+    }
+
+    val user = db.getUserByTelegramId(chat.id) match {
+      case Some(u) => u.some
+      case _ =>
+        db.putUser(
+          chat.id,
+          chat.firstName.get,
+          chat.lastName,
+          chat.username
+        )
+    }
+
+    user match {
+      case Some(u) => action(u)
+      case _ =>
+        Future.failed(
+          new Exception(s"Failed to process action! Could not create user for chat: $chat"))
+    }
   }
 
   private def respond(text: String, markup: Option[ReplyMarkup] = None)(

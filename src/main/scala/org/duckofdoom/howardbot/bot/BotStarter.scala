@@ -5,6 +5,7 @@ import java.time.{Duration, LocalDateTime}
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.db.DB
 import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
@@ -19,7 +20,7 @@ class BotStarter(implicit responseService: ResponseService) extends StrictLoggin
   private var lastRestartReason: Option[String] = None
   private var restarts: Int = 0
 
-  def run(implicit loadConfig: () => Option[Config]): Future[Unit] = {
+  def run(implicit loadConfig: () => Option[Config], db:DB): Future[Unit] = {
     try {
       loadConfig() match {
         case None =>
@@ -47,23 +48,7 @@ class BotStarter(implicit responseService: ResponseService) extends StrictLoggin
         logger.error(message)
         lastRestartReason = message.some
         restarts += 1
-        run(loadConfig)
-    }
-  }
-
-  private def startBot(config: Option[Config]): Future[Unit] = {
-
-    config match {
-      case None =>
-        logger.error("Bot failed to start because config file is invalid!")
-        lastRestartReason = "Invalid configuration!".some
-        Future.unit
-      case Some(conf) =>
-        val bot = new HowardBot(conf)
-        startupTime = LocalDateTime.now()
-        Await.result(bot.run(), scala.concurrent.duration.Duration.Inf)
-        bot.shutdown() // initiate shutdown
-        Future.failed(new Exception("Bot was shut down"))
+        run(loadConfig, db)
     }
   }
 }

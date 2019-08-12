@@ -1,13 +1,12 @@
 package org.duckofdoom.howardbot.db
 
+import cats.effect.{ContextShift, IO}
+import io.circe.generic.auto._
+import io.circe.parser.decode
+import io.circe.syntax._
 import doobie._
 import doobie.implicits._
-import doobie.util.ExecutionContexts
-import cats._
-import cats.data._
-import cats.effect.{ContextShift, IO}
-import cats.implicits._
-import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
+import doobie.util.log.{ExecFailure, ProcessingFailure}
 import org.duckofdoom.howardbot._
 import org.duckofdoom.howardbot.db.dto._
 import slogging.StrictLogging
@@ -17,7 +16,8 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 trait DB {
   def users: List[User]
   def getUser(userId: Long): Option[User]
-  def putUser(userId: Int, username: String, firstName:String, lastName: String): Option[User]
+  def getUserByTelegramId(userId: Long): Option[User]
+  def putUser(userId: Long, firstName:String, lastName: Option[String], username: Option[String]): Option[User]
 }
 
 class DoobieDB(config: PostgresConfig) extends DB 
@@ -26,6 +26,17 @@ class DoobieDB(config: PostgresConfig) extends DB
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val contextShift: ContextShift[IO] = IO.contextShift(executionContext)
   
+  implicit val getUserState: Get[UserState] = Get[String].tmap(str => {
+    decode[UserState](str) match {
+      case Left(err) => 
+        logger.error(s"Failed to deserialize user state '$str'\n$err.\nReturning default state.")
+        UserState()
+      case Right(st) => st
+    }
+  })
+  
+  implicit val putUserState: Put[UserState] = Put[String].tcontramap(_.asJson.toString)
+
   implicit val logHandler : LogHandler = LogHandler {
     case ExecFailure(str, args, _, ex) => logger.error(s"ExecFailure: $str\nArgs: $args\nException: $ex")
     case ProcessingFailure(str, args, _, _, ex) => logger.error(s"ProcessingFailure: $str \nArgs: $args\n Exception: $ex")
@@ -41,16 +52,17 @@ class DoobieDB(config: PostgresConfig) extends DB
     executionContext
   )
 
-  createUsersTable()
+  initTable()
   
-  private def createUsersTable(): Unit = {
+  private def initTable(): Unit = {
     sql"""
     CREATE TABLE IF NOT EXISTS users (  
       id   SERIAL,
       userId INTEGER,
       username VARCHAR,
       firstName VARCHAR,
-      lastName VARCHAR
+      lastName VARCHAR,
+      state VARCHAR
     )"""
       .update
       .run
@@ -68,6 +80,14 @@ class DoobieDB(config: PostgresConfig) extends DB
     logger.info(s"Selected ${users.length} users")
     users
   }
+  
+  override def getUserByTelegramId(userId: Long): Option[User] = {
+    sql"select * from users where userId=$userId"
+      .query[User]
+      .option
+      .transact(transactor)
+      .unsafeRunSync()
+  }
 
   override def getUser(id: Long): Option[User] = {
     selectUserQuery(id)
@@ -75,7 +95,7 @@ class DoobieDB(config: PostgresConfig) extends DB
       .unsafeRunSync()
   }
 
-  override def putUser(userId: Int, username: String, firstName:String, lastName: String): Option[User] = {
+  def putUser(userId: Long, firstName:String, lastName: Option[String], username: Option[String]): Option[User] = {
     logger.info(s"Creating new user: $userId / $username / $firstName / $lastName")
     
     val conn = for {

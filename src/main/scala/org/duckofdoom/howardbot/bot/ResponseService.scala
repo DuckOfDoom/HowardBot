@@ -35,19 +35,21 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
   override def mkMenuResponsePaginated(menuTab: MenuTab,
                                        page: Int,
                                        itemsPerPage: Int): (String, InlineKeyboardMarkup) = {
+    
+    val p = if (page < 1) 1 else page 
 
     // Filter everything without brewery since those are food.
     val items = itemDataProvider.allItems.filter(_.breweryInfo.name.isDefined).toList.sortBy(i => i.id)
     val renderedItems = frag(
       items
-        .slice((page - 1) * itemsPerPage, (page - 1) * itemsPerPage + itemsPerPage)
+        .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
         .map(i => mkItemInfo(i, inMenu = true))
         .toArray: _*
     ).render
 
     val markup = InlineKeyboardMarkup.singleRow(
       PaginationUtils
-        .mkButtonsForPaginatedQuery(page, itemsPerPage, items.length)
+        .mkButtonsForPaginatedQuery(p, itemsPerPage, items.length)
         .map {
           case Button(bText, bCallbackData) =>
             InlineKeyboardButton.callbackData(bText, bCallbackData)
