@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot
 
 import java.util.concurrent.Executors
 
-import org.duckofdoom.howardbot.bot.data.{ItemDataProvider, ParsedItemsDataProvider}
+import org.duckofdoom.howardbot.bot.data.{ItemsProvider, ParsedItemsProvider}
 import org.duckofdoom.howardbot.bot.{
   BotStarter,
   ResponseService,
@@ -28,7 +28,7 @@ class App extends StrictLogging {
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.get.parallelismLevel))
 
-  implicit val dataProvider: ItemDataProvider = new ParsedItemsDataProvider(
+  implicit val dataProvider: ItemsProvider = new ParsedItemsProvider(
     new ScalajHttpService(),
     config.get
   )
@@ -40,7 +40,7 @@ class App extends StrictLogging {
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 
-  dataProvider.refresh
+  dataProvider.startRefreshLoop
   server.run
   bot.run
 }

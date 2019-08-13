@@ -1,8 +1,7 @@
 package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
-import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
-import org.duckofdoom.howardbot.bot.data.{Item, ItemDataProvider}
+import org.duckofdoom.howardbot.bot.data.{Item, ItemsProvider}
 import scalatags.Text.all._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import slogging.StrictLogging
@@ -12,14 +11,12 @@ trait ResponseService {
 
   @deprecated("Move to ServerResponseService")
   def mkMenuResponse(itemLinkSeparator: String = defaultSeparator): String
-  def mkMenuResponsePaginated(menuTab: MenuTab,
-                              page: Int,
-                              itemsPerPage: Int): (String, InlineKeyboardMarkup)
+  def mkMenuResponsePaginated(page: Int, itemsPerPage: Int): (String, InlineKeyboardMarkup)
 
   def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
 }
 
-class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
+class ResponseServiceImpl(implicit itemDataProvider: ItemsProvider)
     extends ResponseService
     with StrictLogging {
 
@@ -32,14 +29,14 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
     ).render
   }
 
-  override def mkMenuResponsePaginated(menuTab: MenuTab,
-                                       page: Int,
+  override def mkMenuResponsePaginated(page: Int,
                                        itemsPerPage: Int): (String, InlineKeyboardMarkup) = {
-    
-    val p = if (page < 1) 1 else page 
+
+    val p = if (page < 1) 1 else page
 
     // Filter everything without brewery since those are food.
-    val items = itemDataProvider.allItems.filter(_.breweryInfo.name.isDefined).toList.sortBy(i => i.id)
+    val items =
+      itemDataProvider.allItems.filter(_.breweryInfo.name.isDefined).toList.sortBy(i => i.id)
     val renderedItems = frag(
       items
         .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
@@ -78,13 +75,15 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemDataProvider)
   private def mkItemInfo(item: Item, inMenu: Boolean) = {
     frag(
       a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
-      item.rating.map { case (v1, _) => s" $v1"}.getOrElse(" rating = ?").toString,
+      item.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
       "\n",
       s"Стиль: ${item.style.getOrElse("style = ?")}",
       "\n",
       s"Пивоварня: ${item.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      item.draftType.getOrElse("draftType = ?") + " - " + item.price.map { case (c, price) => c + price }.getOrElse("?"),
+      item.draftType.getOrElse("draftType = ?") + " - " + item.price
+        .map { case (c, price) => c + price }
+        .getOrElse("?"),
       "\n",
       if (inMenu)
         s"Подробнее: /show${item.id}"

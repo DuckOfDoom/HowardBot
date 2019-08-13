@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot.server
 
-import org.duckofdoom.howardbot.bot.data.ItemDataProvider
+import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.bot.{StatusProvider, ResponseService}
 import org.duckofdoom.howardbot.db.DB
 import cats.syntax.option._
@@ -16,7 +16,7 @@ trait ServerResponseService {
 }
 
 class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
-                                itemDataProvider: ItemDataProvider,
+                                itemDataProvider: ItemsProvider,
                                 responseService: ResponseService,
                                 db: DB)
     extends ServerResponseService {

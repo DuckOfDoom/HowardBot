@@ -4,12 +4,12 @@ import java.time.format.DateTimeFormatter
 import java.time.{Duration, LocalDateTime}
 
 import scalatags.Text.all._
-import org.duckofdoom.howardbot.bot.data.ItemDataProvider
+import org.duckofdoom.howardbot.bot.data.ItemsProvider
 
 /**
   * Provides info about running services
   */
-class StatusProvider(implicit bot: BotStarter, itemProvider: ItemDataProvider) {
+class StatusProvider(implicit bot: BotStarter, itemProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 

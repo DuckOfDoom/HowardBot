@@ -9,7 +9,6 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.MenuTab
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.PaginationUtils
@@ -37,7 +36,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkMenuResponsePaginated(
-        MenuTab.Bottled,
         u.state.menuPage,
         config.menuItemsPerPage
       )
@@ -48,7 +46,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   onCallbackQuery { implicit query =>
     withUser(query.from) { u =>
-
       def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
 
         u.state.menuPage = page
@@ -56,29 +53,28 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
         val (items, buttons) = responseService
           .mkMenuResponsePaginated(
-            MenuTab.Bottled,
             page,
             config.menuItemsPerPage
           )
         if (newMessage) {
           request(
             SendMessage(ChatId(msg.source),
-              items,
-              ParseMode.HTML.some,
-              true.some,
-              None,
-              None,
-              buttons.some)
+                        items,
+                        ParseMode.HTML.some,
+                        true.some,
+                        None,
+                        None,
+                        buttons.some)
           )
         } else {
           request(
             EditMessageText(ChatId(msg.source).some,
-              msg.messageId.some,
-              None,
-              items,
-              ParseMode.HTML.some,
-              true.some,
-              buttons.some)
+                            msg.messageId.some,
+                            None,
+                            items,
+                            ParseMode.HTML.some,
+                            true.some,
+                            buttons.some)
           )
         }
       }
@@ -114,7 +110,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     msg.text
       .fold(Option.empty[Int]) {
         case showRegex(id) => Try(id.toInt).toOption
-        case _ => None
+        case _             => None
       }
       .fold(Option.empty[(String, InlineKeyboardMarkup)]) { s =>
         responseService.mkItemResponse(s).some
@@ -122,12 +118,12 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       case Some((item, markup)) =>
         request(
           SendMessage(ChatId(msg.source),
-            item,
-            ParseMode.HTML.some,
-            true.some,
-            None,
-            None,
-            markup.some)
+                      item,
+                      ParseMode.HTML.some,
+                      true.some,
+                      None,
+                      None,
+                      markup.some)
         ).void
       case _ => super.receiveMessage(msg)
     }

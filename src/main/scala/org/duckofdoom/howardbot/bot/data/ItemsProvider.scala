@@ -4,7 +4,6 @@ import java.time.LocalDateTime
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.MenuTab.MenuTab
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.utils.HttpService
 import slogging.StrictLogging
@@ -12,7 +11,7 @@ import slogging.StrictLogging
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-trait ItemDataProvider {
+trait ItemsProvider {
 
   /**
     * Time since last refresh
@@ -27,7 +26,7 @@ trait ItemDataProvider {
   /**
     * Refresh the list of items available
     */
-  def refresh()(implicit ec: ExecutionContext): Future[Unit]
+  def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit]
 
   /**
     * Get all items available
@@ -40,27 +39,37 @@ trait ItemDataProvider {
   def getItem(itemId: Int): Option[Item]
 
   /**
-    * Get items for specific menu tab
+    * Get items for specific style
     */
-  def getItems(menuTab: MenuTab): List[Item]
+  def findItemsByStyle(style: String): List[Item]
 }
 
-class ParsedItemsDataProvider(httpService: HttpService, config: Config)
-    extends ItemDataProvider
-    with StrictLogging {
-
-  logger.info(
-    s"ParsedItemsDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
+abstract class ItemsProviderBase extends ItemsProvider {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def itemsCount: Int                    = _items.count(_ => true)
   override def allItems: Iterable[Item]           = _items.values
   override def getItem(itemId: Int): Option[Item] = _items.get(itemId)
 
-  private var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
-  private var _items: Map[Int, Item]          = Map()
+  protected var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
+  protected var _items: Map[Int, Item]          = Map()
 
-  override def refresh()(implicit ec: ExecutionContext): Future[Unit] = {
+  /**
+    * Get items for specific style
+    */
+  override def findItemsByStyle(style: String): List[Item] = {
+    allItems.filter(i => i.style.fold(false)(_.contains(style))).toList
+  }
+}
+
+class ParsedItemsProvider(httpService: HttpService, config: Config)
+    extends ItemsProviderBase
+    with StrictLogging {
+
+  logger.info(
+    s"ParsedItemsDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
+
+  override def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
 
     def refreshSync(): Unit = {
 
@@ -99,28 +108,14 @@ class ParsedItemsDataProvider(httpService: HttpService, config: Config)
       }
     }
   }
-
-  /**
-    * Get items for specific menu togwrijlgerklgertjhilgbwjiweab
-    */
-  override def getItems(menuTab: MenuTab): List[Item] = {
-    throw new NotImplementedError("Not implemented yet")
-  }
 }
 
-class FakeItemDataProvider extends ItemDataProvider {
-  override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def itemsCount: Int                    = _items.count(_ => true)
-  override def allItems: Iterable[Item]           = _items.values
-  override def getItem(itemId: Int): Option[Item] = _items.get(itemId)
-
-  private var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
-  private var _items: Map[Int, Item]          = Map()
+class FakeItemsProvider extends ItemsProviderBase {
 
   /**
     * Refresh the list of items available
     */
-  def refresh()(implicit ec: ExecutionContext): Future[Unit] = {
+  def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
 
     def mkStyle() = {
       val wrds = faker.Lorem.words(3).map(_.capitalize)
@@ -153,13 +148,8 @@ class FakeItemDataProvider extends ItemDataProvider {
       })
       .toMap
 
+    _lastRefreshTime = LocalDateTime.now()
     Future.successful()
   }
 
-  /**
-    * Get items for specific menu tab
-    */
-  override def getItems(menuTab: MenuTab): List[Item] = {
-    allItems.toList
-  }
 }
