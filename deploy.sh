@@ -8,7 +8,7 @@ sbt assembly
 echo Assembly finished, pushing artifacts...
 
 echo Pushing $JAR_PATH ...
-scp $JAR_PATH $ADDRESS:~/bot.jar
+scp $JAR_PATH $ADDRESS:~/bot_new.jar
 
 if [ "$1" == "-conf" ]; then
   echo Pushing $CONFIG_PATH ...
@@ -18,6 +18,8 @@ fi
 ssh $ADDRESS << EOF
   pkill "java"
   mv log.txt logs/$(date +%Y_%m_%d_%H%M).txt
+  mv bot.jar builds/bot_$(date +%Y_%m_%d_%H%M).jar
+  cp bot_new.jar bot.jar
   nohup java -jar bot.jar > log.txt 2>&1 & 
   sleep 3
   tail -f log.txt

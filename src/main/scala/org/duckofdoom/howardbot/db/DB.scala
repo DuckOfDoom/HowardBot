@@ -62,7 +62,7 @@ class DoobieDB(config: PostgresConfig) extends DB
       username VARCHAR,
       firstName VARCHAR,
       lastName VARCHAR,
-      state VARCHAR
+      state VARCHAR DEFAULT '' 
     )"""
       .update
       .run
