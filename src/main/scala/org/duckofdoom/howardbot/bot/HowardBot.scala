@@ -46,25 +46,9 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  override def receiveMessage(msg: Message): Future[Unit] = {
-    processShowRequest(msg) match {
-      case Some((item, markup)) =>
-        request(
-          SendMessage(ChatId(msg.source),
-                      item,
-                      ParseMode.HTML.some,
-                      true.some,
-                      None,
-                      None,
-                      markup.some)
-        ).void
-      case _ => super.receiveMessage(msg)
-    }
-  }
-
   onCallbackQuery { implicit query =>
     withUser(query.from) { u =>
-    
+
       def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
 
         u.state.menuPage = page
@@ -79,22 +63,22 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
         if (newMessage) {
           request(
             SendMessage(ChatId(msg.source),
-                        items,
-                        ParseMode.HTML.some,
-                        true.some,
-                        None,
-                        None,
-                        buttons.some)
+              items,
+              ParseMode.HTML.some,
+              true.some,
+              None,
+              None,
+              buttons.some)
           )
         } else {
           request(
             EditMessageText(ChatId(msg.source).some,
-                            msg.messageId.some,
-                            None,
-                            items,
-                            ParseMode.HTML.some,
-                            true.some,
-                            buttons.some)
+              msg.messageId.some,
+              None,
+              items,
+              ParseMode.HTML.some,
+              true.some,
+              buttons.some)
           )
         }
       }
@@ -124,16 +108,29 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  private def processShowRequest(msg: Message): Option[(String, InlineKeyboardMarkup)] = {
+  override def receiveMessage(msg: Message): Future[Unit] = {
+
     val showRegex: Regex = "\\/show(\\d+)".r
     msg.text
       .fold(Option.empty[Int]) {
         case showRegex(id) => Try(id.toInt).toOption
-        case _             => None
+        case _ => None
       }
       .fold(Option.empty[(String, InlineKeyboardMarkup)]) { s =>
         responseService.mkItemResponse(s).some
-      }
+      } match {
+      case Some((item, markup)) =>
+        request(
+          SendMessage(ChatId(msg.source),
+            item,
+            ParseMode.HTML.some,
+            true.some,
+            None,
+            None,
+            markup.some)
+        ).void
+      case _ => super.receiveMessage(msg)
+    }
   }
 
   private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
