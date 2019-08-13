@@ -31,7 +31,7 @@ trait ItemsProvider {
   /**
     * Get all items available
     */
-  def allItems: Iterable[Item]
+  def items: List[Item]
 
   /**
     * Get specific item by id
@@ -44,24 +44,30 @@ trait ItemsProvider {
   def findItemsByStyle(style: String): List[Item]
 }
 
+/**
+  * Base class for items provider
+  */
 abstract class ItemsProviderBase extends ItemsProvider {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def itemsCount: Int                    = _items.count(_ => true)
-  override def allItems: Iterable[Item]           = _items.values
-  override def getItem(itemId: Int): Option[Item] = _items.get(itemId)
+  override def itemsCount: Int                    = _itemsMap.count(_ => true)
+  override def items: List[Item]               = _items
+  override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
 
   protected var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
-  protected var _items: Map[Int, Item]          = Map()
+  protected var _itemsMap: Map[Int, Item]       = Map()
+  protected var _items: List[Item]              = List()
 
   /**
     * Get items for specific style
     */
-  override def findItemsByStyle(style: String): List[Item] = {
-    allItems.filter(i => i.style.fold(false)(_.contains(style))).toList
-  }
+  override def findItemsByStyle(style: String): List[Item] =
+    items.filter(i => i.style.fold(false)(_.contains(style)))
 }
 
+/**
+  * Items provider that can refresh itself via parsing html
+  */
 class ParsedItemsProvider(httpService: HttpService, config: Config)
     extends ItemsProviderBase
     with StrictLogging {
@@ -92,10 +98,12 @@ class ParsedItemsProvider(httpService: HttpService, config: Config)
       result match {
         case (Some(mainOutput), additionalPages) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
-          _items = new MenuParser(mainOutput, additionalPages)
+          _itemsMap = new MenuParser(mainOutput, additionalPages)
             .parse()
             .map(item => (item.id, item))
             .toMap
+
+          _items = _itemsMap.values.toList
           _lastRefreshTime = LocalDateTime.now
         case _ => logger.error("Refresh failed, got empty results!")
       }
@@ -110,11 +118,11 @@ class ParsedItemsProvider(httpService: HttpService, config: Config)
   }
 }
 
+/**
+  * Parse
+  */
 class FakeItemsProvider extends ItemsProviderBase {
 
-  /**
-    * Refresh the list of items available
-    */
   def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
 
     def mkStyle() = {
@@ -122,7 +130,7 @@ class FakeItemsProvider extends ItemsProviderBase {
       wrds.head + " / " + wrds(1)
     }
 
-    _items = (0 to 10)
+    _itemsMap = (0 to 10)
       .map(i => {
         val item = MenuItem(
           i,
@@ -148,6 +156,7 @@ class FakeItemsProvider extends ItemsProviderBase {
       })
       .toMap
 
+    _items = _itemsMap.values.toList
     _lastRefreshTime = LocalDateTime.now()
     Future.successful()
   }

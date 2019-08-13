@@ -8,26 +8,13 @@ import slogging.StrictLogging
 
 trait ResponseService {
   val defaultSeparator: String = ""
-
-  @deprecated("Move to ServerResponseService")
-  def mkMenuResponse(itemLinkSeparator: String = defaultSeparator): String
   def mkMenuResponsePaginated(page: Int, itemsPerPage: Int): (String, InlineKeyboardMarkup)
-
   def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemDataProvider: ItemsProvider)
     extends ResponseService
     with StrictLogging {
-
-  @deprecated("Move to ServerResponseService")
-  override def mkMenuResponse(itemLinkSeparator: String): String = {
-    frag(
-      itemDataProvider.allItems
-        .map(i => mkItemInfo(i, inMenu = true))
-        .toArray: _*
-    ).render
-  }
 
   override def mkMenuResponsePaginated(page: Int,
                                        itemsPerPage: Int): (String, InlineKeyboardMarkup) = {
@@ -36,7 +23,7 @@ class ResponseServiceImpl(implicit itemDataProvider: ItemsProvider)
 
     // Filter everything without brewery since those are food.
     val items =
-      itemDataProvider.allItems.filter(_.breweryInfo.name.isDefined).toList.sortBy(i => i.id)
+      itemDataProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
     val renderedItems = frag(
       items
         .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)

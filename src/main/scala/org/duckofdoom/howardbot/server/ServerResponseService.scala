@@ -1,9 +1,9 @@
 package org.duckofdoom.howardbot.server
 
-import org.duckofdoom.howardbot.bot.data.ItemsProvider
-import org.duckofdoom.howardbot.bot.{StatusProvider, ResponseService}
-import org.duckofdoom.howardbot.db.DB
 import cats.syntax.option._
+import org.duckofdoom.howardbot.bot.data.ItemsProvider
+import org.duckofdoom.howardbot.bot.{ResponseService, StatusProvider}
+import org.duckofdoom.howardbot.db.DB
 
 trait ServerResponseService {
   def home(): String
@@ -26,7 +26,7 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
   }
 
   override def menu(): String = {
-    responseService.mkMenuResponse("/")
+    responseService.mkMenuResponsePaginated(1, itemDataProvider.items.length)._1
   }
 
   override def show(itemId: Int): String = {
@@ -34,9 +34,9 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
   }
 
   override def parse(): String = {
-    
+
     val sb = new StringBuilder()
-    itemDataProvider.allItems.toList
+    itemDataProvider.items.toList
       .sortBy(_.id)
       .foreach(i => {
         sb.append(
