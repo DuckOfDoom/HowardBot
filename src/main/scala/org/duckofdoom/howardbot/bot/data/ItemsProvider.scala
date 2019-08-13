@@ -19,11 +19,6 @@ trait ItemsProvider {
   def lastRefreshTime: LocalDateTime
 
   /**
-    * Current items count
-    */
-  def itemsCount: Int
-
-  /**
     * Refresh the list of items available
     */
   def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit]
@@ -50,8 +45,7 @@ trait ItemsProvider {
 abstract class ItemsProviderBase extends ItemsProvider {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def itemsCount: Int                    = _itemsMap.count(_ => true)
-  override def items: List[Item]               = _items
+  override def items: List[Item]                  = _items
   override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
 
   protected var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN

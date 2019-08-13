@@ -27,7 +27,7 @@ class StatusProvider(implicit bot: BotStarter, itemProvider: ItemsProvider) {
           p(s"I've been running for ${formatDuration(bot.runningTime)}"),
           p(s"Last menu refresh: ${formatDate(itemProvider.lastRefreshTime)} (${formatDuration(
             Duration.between(itemProvider.lastRefreshTime, LocalDateTime.now))} ago)"),
-          p(s"I have ${itemProvider.itemsCount} items in menu."),
+          p(s"I have ${itemProvider.items.length} items in menu."),
           p(s"I've been restarted ${bot.restartCount} times!"),
           p(restartReason)
         )
