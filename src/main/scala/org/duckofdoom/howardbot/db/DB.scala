@@ -18,6 +18,7 @@ trait DB {
   def getUser(userId: Long): Option[User]
   def getUserByTelegramId(userId: Long): Option[User]
   def putUser(userId: Long, firstName:String, lastName: Option[String], username: Option[String]): Option[User]
+  def updateUser(user:User): Unit
 }
 
 class DoobieDB(config: PostgresConfig) extends DB 
@@ -57,7 +58,7 @@ class DoobieDB(config: PostgresConfig) extends DB
   private def initTable(): Unit = {
     sql"""
     CREATE TABLE IF NOT EXISTS users (  
-      id   SERIAL,
+      id SERIAL UNIQUE,
       userId INTEGER,
       username VARCHAR,
       firstName VARCHAR,
@@ -108,6 +109,21 @@ class DoobieDB(config: PostgresConfig) extends DB
     } yield p
     
     conn.transact(transactor).unsafeRunSync()
+  }
+  
+  def updateUser(user: User): Unit = {
+    sql"""UPDATE users  
+    SET 
+      userId = ${user.userId},
+      firstName = ${user.firstName},
+      lastName = ${user.lastName},
+      username = ${user.username},
+      state = ${user.state.asJson.toString}      
+    WHERE id = ${user.id}"""
+      .update
+      .run
+      .transact(transactor)
+      .unsafeRunSync()
   }
   
   private def selectUserQuery(id:Long) : ConnectionIO[Option[User]] = {

@@ -35,7 +35,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
-    withChat(msg.chat) { u =>
+    withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkMenuResponsePaginated(
         MenuTab.Bottled,
         u.state.menuPage,
@@ -64,14 +64,18 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   onCallbackQuery { implicit query =>
     withUser(query.from) { u =>
+    
       def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
+
+        u.state.menuPage = page
+        db.updateUser(u)
+
         val (items, buttons) = responseService
           .mkMenuResponsePaginated(
             MenuTab.Bottled,
             page,
             config.menuItemsPerPage
           )
-
         if (newMessage) {
           request(
             SendMessage(ChatId(msg.source),
@@ -159,7 +163,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  private def withChat(chat: Chat)(action: User => Future[Unit]): Future[Unit] = {
+  private def withUser(chat: Chat)(action: User => Future[Unit]): Future[Unit] = {
     if (chat.firstName.isEmpty) {
       return Future.failed(new Exception(
         "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."))
