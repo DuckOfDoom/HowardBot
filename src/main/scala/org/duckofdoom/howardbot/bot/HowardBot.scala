@@ -9,9 +9,9 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup}
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.data.Static
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
-import org.duckofdoom.howardbot.utils.PaginationUtils
 import slogging.StrictLogging
 
 import scala.concurrent.Future
@@ -30,14 +30,21 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   // TODO: We need to serve multiple users in separate threads. Right now one user blocks everything =(
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
 
-  private val menuPaginationRegex = (PaginationUtils.menuPaginationPrefix + "(\\d+)").r
-
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkMenuResponsePaginated(
-        u.state.menuPage,
-        config.menuItemsPerPage
+        u.state.menuPage
+      )
+
+      respond(items, markup.some)
+    }
+  }
+
+  onCommand("styles" | "стили") { implicit msg =>
+    withUser(msg.chat) { u =>
+      val (items, markup) = responseService.mkMenuResponsePaginated(
+        u.state.menuPage
       )
 
       respond(items, markup.some)
@@ -46,49 +53,42 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   onCallbackQuery { implicit query =>
     withUser(query.from) { u =>
-      def mkMenuResponse(page: Int, msg: Message, newMessage: Boolean) = {
-
-        u.state.menuPage = page
-        db.updateUser(u)
-
-        val (items, buttons) = responseService
-          .mkMenuResponsePaginated(
-            page,
-            config.menuItemsPerPage
-          )
-        if (newMessage) {
-          request(
-            SendMessage(ChatId(msg.source),
-                        items,
-                        ParseMode.HTML.some,
-                        true.some,
-                        None,
-                        None,
-                        buttons.some)
-          )
-        } else {
-          request(
-            EditMessageText(ChatId(msg.source).some,
-                            msg.messageId.some,
-                            None,
-                            items,
-                            ParseMode.HTML.some,
-                            true.some,
-                            buttons.some)
-          )
-        }
-      }
-
+  
       val responseFuture = (query.data, query.message) match {
+        // Make response for the whole menu
         case (Some("menu"), Some(msg)) =>
-          mkMenuResponse(u.state.menuPage, msg, newMessage = true).some
-        case (Some(menuPaginationRegex(page)), Some(msg)) =>
+          mkPaginatedResponse(u.state.menuPage, msg, newMessage = true) { p => 
+          
+            u.state.menuPage = p
+            db.updateUser(u)
+            
+            responseService.mkMenuResponsePaginated(p)
+          }.some
+
+        // Make response for specific page when button is clicked
+        case (Some(Static.menuCallbackRegex(page)), Some(msg)) =>
           Try(page.toInt).toOption match {
             case Some(p) =>
-              u.state.menuPage = p
-              mkMenuResponse(p, msg, newMessage = false).some
+              mkPaginatedResponse(p, msg, newMessage = false) { p =>
+              
+                u.state.menuPage = p
+                db.updateUser(u)
+                
+                responseService.mkMenuResponsePaginated(p)
+                
+              }.some
             case _ =>
               logger.error(s"Failed to parse page from callback query data: ${query.data}")
+              None
+          }
+        case (Some(Static.itemsByStyleCallbackRegex(style, page)), Some(msg)) =>
+          Try(page.toInt).toOption match {
+            case Some(p) =>
+              mkPaginatedResponse(p, msg, newMessage = false) { p =>
+                responseService.mkItemsByStyleResponse(p, style)
+              }.some
+            case _ =>
+              logger.error(s"Failed to parse page and args from callback query data: ${query.data}")
               None
           }
         case _ => Future.successful().some
@@ -193,4 +193,33 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       markup,
     ).void
   }
+
+
+  def mkPaginatedResponse(page: Int, msg: Message, newMessage: Boolean)(mkResponse: Int => (String, InlineKeyboardMarkup)) = {
+
+    val (items, buttons) = mkResponse(page)
+
+    if (newMessage) {
+      request(
+        SendMessage(ChatId(msg.source),
+          items,
+          ParseMode.HTML.some,
+          true.some,
+          None,
+          None,
+          buttons.some)
+      )
+    } else {
+      request(
+        EditMessageText(ChatId(msg.source).some,
+          msg.messageId.some,
+          None,
+          items,
+          ParseMode.HTML.some,
+          true.some,
+          buttons.some)
+      )
+    }
+  }
+
 }

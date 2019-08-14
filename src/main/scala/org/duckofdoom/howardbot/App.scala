@@ -11,7 +11,7 @@ import org.duckofdoom.howardbot.bot.{
 }
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
-import org.duckofdoom.howardbot.utils.ScalajHttpService
+import org.duckofdoom.howardbot.utils.{HttpService, ScalajHttpService}
 import slogging.StrictLogging
 
 import scala.concurrent.ExecutionContext
@@ -19,21 +19,21 @@ import scala.concurrent.ExecutionContext
 class App extends StrictLogging {
 
   implicit val configLoader: () => Option[Config] = () => Config.load
-  implicit val config: Option[Config]             = configLoader()
+  implicit val mConfig: Option[Config]            = configLoader()
 
-  if (config.isEmpty)
+  if (mConfig.isEmpty)
     throw new InvalidConfigurationException("No valid config found!")
 
-  logger.info(s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.get.parallelismLevel}")
+  implicit val config: Config = mConfig.get
+
+  logger.info(
+    s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}")
   implicit val executionContext: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.get.parallelismLevel))
+    ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
-  implicit val dataProvider: ItemsProvider = new ParsedItemsProvider(
-    new ScalajHttpService(),
-    config.get
-  )
-
-  implicit val db: DB                                       = new DoobieDB(config.get.postgres)
+  implicit val httpService: HttpService                     = new ScalajHttpService
+  implicit val dataProvider: ItemsProvider                  = new ParsedItemsProvider
+  implicit val db: DB                                       = new DoobieDB(config.postgres)
   implicit val responseService: ResponseService             = new ResponseServiceImpl
   implicit val bot: BotStarter                              = new BotStarter()
   implicit val statusProvider: StatusProvider               = new StatusProvider()

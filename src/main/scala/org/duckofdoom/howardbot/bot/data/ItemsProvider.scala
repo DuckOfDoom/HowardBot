@@ -8,6 +8,7 @@ import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.utils.HttpService
 import slogging.StrictLogging
 
+import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -29,6 +30,11 @@ trait ItemsProvider {
   def items: List[Item]
 
   /**
+    * Get all styles available
+    */
+  def styles : List[String]
+
+  /**
     * Get specific item by id
     */
   def getItem(itemId: Int): Option[Item]
@@ -42,29 +48,36 @@ trait ItemsProvider {
 /**
   * Base class for items provider
   */
-abstract class ItemsProviderBase extends ItemsProvider {
+abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def items: List[Item]                  = _items
+  override def styles: List[String]               = _stylesMap.keys.toList
   override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
 
-  protected var _lastRefreshTime: LocalDateTime = LocalDateTime.MIN
-  protected var _itemsMap: Map[Int, Item]       = Map()
-  protected var _items: List[Item]              = List()
+  protected var _lastRefreshTime: LocalDateTime     = LocalDateTime.MIN
+  protected var _itemsMap: Map[Int, Item]           = Map()
+  protected var _stylesMap: Map[String, List[Item]] = Map()
+  protected var _items: List[Item]                  = List()
 
   /**
     * Get items for specific style
     */
-  override def findItemsByStyle(style: String): List[Item] =
-    items.filter(i => i.style.fold(false)(_.contains(style)))
+  override def findItemsByStyle(style: String): List[Item] = {
+    if (_stylesMap.isEmpty)
+      logger.error("Styles map is empty!")
+
+    _stylesMap.keys
+      .filter(_.contains(style))
+      .foldLeft(new mutable.MutableList[Item])((list, style) => list ++= _stylesMap(style))
+      .toList
+  }
 }
 
 /**
   * Items provider that can refresh itself via parsing html
   */
-class ParsedItemsProvider(httpService: HttpService, config: Config)
-    extends ItemsProviderBase
-    with StrictLogging {
+class ParsedItemsProvider(implicit httpService: HttpService, config: Config) extends ItemsProviderBase {
 
   logger.info(
     s"ParsedItemsDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
@@ -92,12 +105,27 @@ class ParsedItemsProvider(httpService: HttpService, config: Config)
       result match {
         case (Some(mainOutput), additionalPages) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
-          _itemsMap = new MenuParser(mainOutput, additionalPages)
-            .parse()
-            .map(item => (item.id, item))
-            .toMap
 
+          val itemsMap: mutable.Map[Int, Item]                          = mutable.Map()
+          val stylesMap: mutable.Map[String, mutable.MutableList[Item]] = mutable.Map()
+
+          for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
+            itemsMap(item.id) = item
+
+            if (item.style.isDefined) {
+              if (stylesMap.contains(item.style.get))
+                stylesMap(item.style.get) += item
+              else
+                stylesMap(item.style.get) = mutable.MutableList[Item](item)
+            }
+
+          }
+
+          _itemsMap = itemsMap.toMap
           _items = _itemsMap.values.toList
+          _stylesMap = stylesMap.toMap {
+            case (style: String, list: mutable.MutableList[Item]) => (style, list.toList)
+          }
           _lastRefreshTime = LocalDateTime.now
         case _ => logger.error("Refresh failed, got empty results!")
       }
