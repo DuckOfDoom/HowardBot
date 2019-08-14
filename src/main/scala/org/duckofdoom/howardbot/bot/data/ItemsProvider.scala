@@ -123,9 +123,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
           _itemsMap = itemsMap.toMap
           _items = _itemsMap.values.toList
-          _stylesMap = stylesMap.toMap {
+          _stylesMap = stylesMap.map {
             case (style: String, list: mutable.MutableList[Item]) => (style, list.toList)
-          }
+          }.toMap
+          
           _lastRefreshTime = LocalDateTime.now
         case _ => logger.error("Refresh failed, got empty results!")
       }

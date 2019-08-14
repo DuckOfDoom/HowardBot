@@ -7,9 +7,9 @@ import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
-import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup}
+import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup, Update}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.Static
+import org.duckofdoom.howardbot.bot.data.CallbackUtils
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import slogging.StrictLogging
@@ -17,6 +17,7 @@ import slogging.StrictLogging
 import scala.concurrent.Future
 import scala.util.Try
 import scala.util.matching.Regex
+import org.duckofdoom.howardbot.utils.Extensions._
 
 class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
     extends TelegramBot
@@ -30,6 +31,17 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   // TODO: We need to serve multiple users in separate threads. Right now one user blocks everything =(
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
 
+  override def receiveUpdate(u: Update, botUser: Option[TelegramUser]): Future[Unit] = {
+    try {
+      super.receiveUpdate(u, botUser)
+    }
+    catch {
+      case ex: Throwable =>
+        logger.error(s"Got Exception while receiving update: ${ex.toStringFull}")
+        Future.successful()
+    }
+  }
+
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
@@ -41,12 +53,10 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  onCommand("styles" | "стили") { implicit msg =>
-    withUser(msg.chat) { u =>
-      val (items, markup) = responseService.mkMenuResponsePaginated(
-        u.state.menuPage
-      )
-
+  // TODO: Add command for searching by style
+  onCommand("styles") { implicit msg =>
+    withUser(msg.chat) { _ =>
+      val (items, markup) = responseService.mkStylesResponse(1)
       respond(items, markup.some)
     }
   }
@@ -66,7 +76,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           }.some
 
         // Make response for specific page when button is clicked
-        case (Some(Static.menuCallbackRegex(page)), Some(msg)) =>
+        case (Some(CallbackUtils.menuCallbackRegex(page)), Some(msg)) =>
           Try(page.toInt).toOption match {
             case Some(p) =>
               mkPaginatedResponse(p, msg, newMessage = false) { p =>
@@ -81,7 +91,17 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               logger.error(s"Failed to parse page from callback query data: ${query.data}")
               None
           }
-        case (Some(Static.itemsByStyleCallbackRegex(style, page)), Some(msg)) =>
+        case (Some(CallbackUtils.stylesCallbackRegex(page)), Some(msg)) =>
+          Try(page.toInt).toOption match {
+            case Some(p) =>
+              mkPaginatedResponse(p, msg, newMessage = false) { p =>
+                responseService.mkStylesResponse(p)
+              }.some
+            case _ =>
+              logger.error(s"Failed to parse page and args from callback query data: ${query.data}")
+              None
+          }
+        case (Some(CallbackUtils.itemsByStyleCallbackRegex(style, page)), Some(msg)) =>
           Try(page.toInt).toOption match {
             case Some(p) =>
               mkPaginatedResponse(p, msg, newMessage = false) { p =>
@@ -196,7 +216,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
 
   def mkPaginatedResponse(page: Int, msg: Message, newMessage: Boolean)(mkResponse: Int => (String, InlineKeyboardMarkup)) = {
-
+    
     val (items, buttons) = mkResponse(page)
 
     if (newMessage) {

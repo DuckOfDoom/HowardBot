@@ -1,7 +1,7 @@
 package org.duckofdoom.howardbot.utils
 
-import org.duckofdoom.howardbot.bot.data.Static
-import org.duckofdoom.howardbot.bot.data.Static.CallbackType.CallbackType
+import org.duckofdoom.howardbot.bot.data.CallbackUtils
+import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType.CallbackType
 
 import scala.collection.mutable
 
@@ -9,14 +9,15 @@ case class Button(text: String, callback: String)
 
 object PaginationUtils {
 
-  def mkFirst(page: Int)  = s"<< $page"
-  def mkLast(page: Int)   = s"$page >>"
-  def mkPrev(page: Int)   = s"< $page"
-  def mkNext(page: Int)   = s"$page >"
-  def mkCurr(page: Int)   = s"* $page *"
+  def mkFirst(page: Int)          = s"<< $page"
+  def mkLast(page: Int)           = s"$page >>"
+  def mkPrev(page: Int)           = s"< $page"
+  def mkNext(page: Int)           = s"$page >"
+  def mkCurr(page: Int)           = s"* $page *"
   def mkNormal(page: Int): String = page.toString
-  def mkCallback(page : Int, values: String*)(implicit callbackType: CallbackType): String = Static.mkCallbackPrefix(values:_*)
-  
+  def mkCallback(page: Int, values: String*)(implicit callbackType: CallbackType): String =
+    CallbackUtils.mkCallbackPrefix(page, values:_*)
+
   def mkButtonsForPaginatedQuery(currentPage: Int, itemsPerPage: Int, itemsCount: Int)(
       implicit callbackType: CallbackType): List[Button] = {
     var list = new mutable.MutableList[Button]

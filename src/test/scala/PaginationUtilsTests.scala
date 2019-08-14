@@ -1,10 +1,10 @@
-import org.duckofdoom.howardbot.bot.data.Static
-import org.duckofdoom.howardbot.bot.data.Static.CallbackType
+import org.duckofdoom.howardbot.bot.data.CallbackUtils
+import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import org.scalatest.{FunSuite, Matchers}
 
 class PaginationUtilsTests extends FunSuite with Matchers {
-  implicit val callbackType: Static.CallbackType.Value = CallbackType.Menu
+  implicit val callbackType: CallbackUtils.CallbackType.Value = CallbackType.Menu
   
   private def result(currentPage: Int, itemsCount: Int)(implicit itemsPerPage: Int) = {
     PaginationUtils.mkButtonsForPaginatedQuery(currentPage, itemsPerPage, itemsCount)
@@ -142,16 +142,22 @@ class PaginationUtilsTests extends FunSuite with Matchers {
     
     val menuCallback = PaginationUtils.mkCallback(10)(CallbackType.Menu)
     menuCallback match {
-      case Static.menuCallbackRegex(page) => page should be 10
-      case _ => fail(s"Failed to parse menu callback '$menuCallback'")
+      case CallbackUtils.menuCallbackRegex(page) => page.toInt should be (10)
+      case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
     
-    val itemsByStyleCallback = PaginationUtils.mkCallback(15, "teh_style")(CallbackType.ItemsByStyle)
+    val stylesCallback = PaginationUtils.mkCallback(8)(CallbackType.Styles)
+    stylesCallback match {
+      case CallbackUtils.stylesCallbackRegex(page) => page.toInt should be (8)
+      case _ => fail(s"Failed to parse callback '$stylesCallback'")
+    }
+    
+    val itemsByStyleCallback = PaginationUtils.mkCallback(15, "teh_style", "upyachka")(CallbackType.ItemsByStyle)
     itemsByStyleCallback match {
-      case Static.itemsByStyleCallbackRegex(style, page) => 
-        page should be 15
-        style should be "teh_style"
-      case _ => fail(s"Failed to parse menu callback '$menuCallback'")
+      case CallbackUtils.itemsByStyleCallbackRegex(style, page) => 
+        page.toInt should be (15)
+        style should be ("teh_style")
+      case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
     }
 
   }

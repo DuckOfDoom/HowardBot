@@ -2,17 +2,21 @@ package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.Static.CallbackType
-import org.duckofdoom.howardbot.bot.data.{Item, ItemsProvider, Static}
+import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType
+import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType.CallbackType
+import org.duckofdoom.howardbot.bot.data.{CallbackUtils, Item, ItemsProvider}
 import scalatags.Text.all._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
+import scalatags.generic
+import scalatags.text.Builder
 import slogging.StrictLogging
 
 trait ResponseService {
+  // TODO: Rename to mkMenuResponse
   def mkMenuResponsePaginated(page: Int): (String, InlineKeyboardMarkup)
+  def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
   def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
-  def mkStylesResponse(): String
-  def mkItemsByStyleResponse(page: Int, query:String): (String, InlineKeyboardMarkup)
+  def mkItemsByStyleResponse(page: Int, query: String): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
@@ -20,32 +24,22 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     with StrictLogging {
 
   override def mkMenuResponsePaginated(page: Int): (String, InlineKeyboardMarkup) = {
-
-    implicit val callbackType: Static.CallbackType.Value = CallbackType.ItemsByStyle
-    
-    val itemsPerPage = config.menuItemsPerPage
-    val p = if (page < 1) 1 else page
-
     // Filter everything without brewery since those are food.
     val items =
       itemsProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
-    val renderedItems = frag(
-      items
-        .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
-        .map(i => mkItemInfo(i, inMenu = true))
-        .toArray: _*
-    ).render
 
-    val markup = InlineKeyboardMarkup.singleRow(
-      PaginationUtils
-        .mkButtonsForPaginatedQuery(p, itemsPerPage, items.length)
-        .map {
-          case Button(bText, bCallbackData) =>
-            InlineKeyboardButton.callbackData(bText, bCallbackData)
-        }
-    )
+    mkPaginatedResponse(items, page) { item =>
+      mkItemInfo(item, inMenu = true)
+    }(CallbackType.Menu)
+  }
 
-    (renderedItems, markup)
+  override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
+    mkPaginatedResponse(itemsProvider.styles, page)(_.toString + "\n")(callbackType = CallbackType.Styles)
+  }
+
+  override def mkItemsByStyleResponse(page: Int, query: String): (String, InlineKeyboardMarkup) = {
+    mkPaginatedResponse(itemsProvider.findItemsByStyle(query), page)(item => frag(item.toString + "\n"))(
+      callbackType = CallbackType.ItemsByStyle)
   }
 
   override def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
@@ -64,7 +58,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     s"Позиции с ID '$itemId' не существует."
   }
 
-  private def mkItemInfo(item: Item, inMenu: Boolean) = {
+  private def mkItemInfo(item: Item, inMenu: Boolean): generic.Frag[Builder, String] = {
     frag(
       a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
       item.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
@@ -85,25 +79,18 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     )
   }
 
-  override def mkStylesResponse(): String = {
-    frag (
-      itemsProvider.styles
-    ).render
-  }
+  // TODO: Move to PaginationUtils
+  private def mkPaginatedResponse[A](items: List[A], page: Int)(
+      renderItem: A => generic.Frag[Builder, String])(
+      implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
 
-  override def mkItemsByStyleResponse(page: Int, query:String): (String, InlineKeyboardMarkup) = {
-    // TODO: Make generic method to generate paginated requests
-    
-    implicit val callbackType: Static.CallbackType.Value = CallbackType.ItemsByStyle
-    
     val itemsPerPage = config.menuItemsPerPage
-    val items = itemsProvider.findItemsByStyle(query)
-    val p = if (page < 1) 1 else page
-    
+    val p            = if (page < 1) 1 else page
+
     val renderedItems = frag(
       items
         .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
-        .map(i => mkItemInfo(i, inMenu = true))
+        .map(renderItem)
         .toArray: _*
     ).render
 
@@ -115,7 +102,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
             InlineKeyboardButton.callbackData(bText, bCallbackData)
         }
     )
-    
+
     (renderedItems, markup)
   }
 }
