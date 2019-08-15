@@ -4,8 +4,9 @@ import java.time.LocalDateTime
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.{CallbackUtils, Consts}
 import org.duckofdoom.howardbot.parser.MenuParser
-import org.duckofdoom.howardbot.utils.HttpService
+import org.duckofdoom.howardbot.utils.{HttpService, PaginationUtils}
 import slogging.StrictLogging
 
 import scala.collection.mutable
@@ -64,7 +65,8 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   override def items: List[Item]                  = _items
   override def styles: List[String]               = _styles
   override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
-  override def getStyleId(style: String): Option[Int] = _stylesMap.find { case (_, st) => st == style }.map(_._1)
+  override def getStyleId(style: String): Option[Int] =
+    _stylesMap.find { case (_, st) => st == style }.map(_._1)
   override def getStyle(id: Int): Option[String] = _stylesMap.get(id)
 
   protected var _lastRefreshTime: LocalDateTime           = LocalDateTime.MIN
@@ -88,7 +90,8 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
       _itemsByStyleMap.keys
         .filter(_.toLowerCase.contains(style.toLowerCase))
         .foldLeft(new mutable.MutableList[Item])((list, style) => list ++= _itemsByStyleMap(style))
-        .toList)
+        .toList
+    )
   }
 }
 
@@ -132,18 +135,27 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
           var styleId = 0
 
           for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
-            itemsMap(item.id) = item
 
             if (item.style.isDefined) {
 
-              if (itemsByStyleMap.contains(item.style.get))
-                itemsByStyleMap(item.style.get) += item
-              else {
-                styleId += 1
-                stylesMap(styleId) = item.style.get
-                itemsByStyleMap(item.style.get) = mutable.MutableList[Item](item)
+              val style = item.style.get
+
+              // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
+              if (!style.matches(CallbackUtils.styleValidationRegex.regex)) {
+                logger.error(
+                  s"Style '$style' does not match style regex (${CallbackUtils.styleValidationRegex.regex}. Callback query will be broken!")
+              } else {
+                if (itemsByStyleMap.contains(item.style.get))
+                  itemsByStyleMap(item.style.get) += item
+                else {
+                  styleId += 1
+                  stylesMap(styleId) = item.style.get
+                  itemsByStyleMap(item.style.get) = mutable.MutableList[Item](item)
+                }
               }
             }
+
+            itemsMap(item.id) = item
           }
 
           _itemsMap = itemsMap.toMap

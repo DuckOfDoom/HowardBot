@@ -15,7 +15,6 @@ import slogging.StrictLogging
 
 import scala.concurrent.Future
 import scala.util.Try
-import org.duckofdoom.howardbot.utils.Extensions._
 import org.duckofdoom.howardbot.utils.Extractors._
 
 class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
@@ -29,7 +28,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   // TODO: We need to serve multiple users in separate threads. Right now one user blocks everything =(
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
-
 
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
@@ -51,16 +49,16 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   }
 
   onCallbackQuery { implicit query =>
+    logger.info(s"Got callback query: ${query.data}.")
+
     withUser(query.from) { u =>
-  
       val responseFuture = (query.data, query.message) match {
         // Make response for the whole menu
         case (Some("menu"), Some(msg)) =>
-          mkPaginatedResponse(u.state.menuPage, msg, newMessage = true) { p => 
-          
+          mkPaginatedResponse(u.state.menuPage, msg, newMessage = true) { p =>
             u.state.menuPage = p
             db.updateUser(u)
-            
+
             responseService.mkMenuResponsePaginated(p)
           }.some
 
@@ -69,12 +67,11 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           Try(page.toInt).toOption match {
             case Some(p) =>
               mkPaginatedResponse(p, msg, newMessage = false) { p =>
-              
                 u.state.menuPage = p
                 db.updateUser(u)
-                
+
                 responseService.mkMenuResponsePaginated(p)
-                
+
               }.some
             case _ =>
               logger.error(s"Failed to parse page from callback query data: ${query.data}")
@@ -114,35 +111,35 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   }
 
   override def receiveMessage(msg: Message): Future[Unit] = {
-    
+
     if (msg.text.isEmpty) {
       logger.warn("Received empty text message.")
       return super.receiveMessage(msg)
     }
-    
+
     msg.text.get match {
       case Consts.showItemRegex(Int(id)) =>
         val (item, markup) = responseService.mkItemResponse(id)
         request(
           SendMessage(ChatId(msg.source),
-            item,
-            ParseMode.HTML.some,
-            true.some,
-            None,
-            None,
-            markup.some)
+                      item,
+                      ParseMode.HTML.some,
+                      true.some,
+                      None,
+                      None,
+                      markup.some)
         ).void
       case Consts.showStyleRegex(Int(styleId)) =>
         // TODO: Maybe remember style choice preferences?
         val (item, markup) = responseService.mkItemsByStyleResponse(1, styleId)
         request(
           SendMessage(ChatId(msg.source),
-            item,
-            ParseMode.HTML.some,
-            true.some,
-            None,
-            None,
-            markup.some)
+                      item,
+                      ParseMode.HTML.some,
+                      true.some,
+                      None,
+                      None,
+                      markup.some)
         ).void
       case _ => super.receiveMessage(msg)
     }
@@ -213,30 +210,30 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     ).void
   }
 
+  def mkPaginatedResponse(page: Int, msg: Message, newMessage: Boolean)(
+      mkResponse: Int => (String, InlineKeyboardMarkup)) = {
 
-  def mkPaginatedResponse(page: Int, msg: Message, newMessage: Boolean)(mkResponse: Int => (String, InlineKeyboardMarkup)) = {
-    
     val (items, buttons) = mkResponse(page)
 
     if (newMessage) {
       request(
         SendMessage(ChatId(msg.source),
-          items,
-          ParseMode.HTML.some,
-          true.some,
-          None,
-          None,
-          buttons.some)
+                    items,
+                    ParseMode.HTML.some,
+                    true.some,
+                    None,
+                    None,
+                    buttons.some)
       )
     } else {
       request(
         EditMessageText(ChatId(msg.source).some,
-          msg.messageId.some,
-          None,
-          items,
-          ParseMode.HTML.some,
-          true.some,
-          buttons.some)
+                        msg.messageId.some,
+                        None,
+                        items,
+                        ParseMode.HTML.some,
+                        true.some,
+                        buttons.some)
       )
     }
   }

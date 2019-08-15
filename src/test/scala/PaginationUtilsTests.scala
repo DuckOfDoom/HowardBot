@@ -5,13 +5,13 @@ import org.scalatest.{FunSuite, Matchers}
 
 class PaginationUtilsTests extends FunSuite with Matchers {
   implicit val callbackType: CallbackUtils.CallbackType.Value = CallbackType.Menu
-  
+
   private def result(currentPage: Int, itemsCount: Int)(implicit itemsPerPage: Int) = {
     PaginationUtils.mkButtonsForPaginatedQuery(currentPage, itemsPerPage, itemsCount)
   }
 
   implicit val itemsPerPage: Int = 8
-  implicit val payload: String = ""
+  implicit val payload: String   = ""
 
   test("Buttons generation. More pages than buttons.") {
 
@@ -121,7 +121,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
       )
     }
   }
-  
+
   test("Buttons generation. Less pages than buttons.") {
 
     val itemsCount = 3
@@ -138,29 +138,30 @@ class PaginationUtilsTests extends FunSuite with Matchers {
       )
     }
   }
-  
+
   test("Callbacks are parsed back and forth.") {
-    
+
     val menuCallback = PaginationUtils.mkCallback(10)(CallbackType.Menu, "")
     menuCallback match {
-      case CallbackUtils.menuCallbackRegex(page) => page.toInt should be (10)
-      case _ => fail(s"Failed to parse callback '$menuCallback'")
+      case CallbackUtils.menuCallbackRegex(page) => page.toInt should be(10)
+      case _                                     => fail(s"Failed to parse callback '$menuCallback'")
     }
-    
+
     val stylesCallback = PaginationUtils.mkCallback(8)(CallbackType.Styles, "")
     stylesCallback match {
-      case CallbackUtils.stylesCallbackRegex(page) => page.toInt should be (8)
-      case _ => fail(s"Failed to parse callback '$stylesCallback'")
+      case CallbackUtils.stylesCallbackRegex(page) => page.toInt should be(8)
+      case _                                       => fail(s"Failed to parse callback '$stylesCallback'")
     }
-    
-    val itemsByStyleCallback = PaginationUtils.mkCallback(15)(CallbackType.ItemsByStyle, "teh_style")
+
+    val itemsByStyleCallback =
+      PaginationUtils.mkCallback(15)(CallbackType.ItemsByStyle, "teh - style 123")
     itemsByStyleCallback match {
-      case CallbackUtils.itemsByStyleCallbackRegex(style, page) => 
-        page.toInt should be (15)
-        style should be ("teh_style")
+      case CallbackUtils.itemsByStyleCallbackRegex(style, page) =>
+        page.toInt should be(15)
+        style should be("teh - style 123")
       case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
     }
 
   }
-  
+
 }
