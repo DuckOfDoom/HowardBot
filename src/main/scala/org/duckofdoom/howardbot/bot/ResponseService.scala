@@ -89,7 +89,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
         .getOrElse("?"),
       "\n",
       if (inMenu)
-        s"Подробнее: /${Consts.showItemPrefix}${item.id}"
+        s"Подробнее: ${Consts.showItemPrefix}${item.id}"
       else
         s"\n${item.description.getOrElse("?")}",
       "\n\n"
