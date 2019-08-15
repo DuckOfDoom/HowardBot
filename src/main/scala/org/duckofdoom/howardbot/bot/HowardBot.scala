@@ -30,16 +30,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   // TODO: We need to serve multiple users in separate threads. Right now one user blocks everything =(
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
 
-  override def receiveUpdate(u: Update, botUser: Option[TelegramUser]): Future[Unit] = {
-    try {
-      super.receiveUpdate(u, botUser)
-    }
-    catch {
-      case ex: Throwable =>
-        logger.error(s"Got Exception while receiving update: ${ex.toStringFull}")
-        Future.successful()
-    }
-  }
 
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
@@ -133,6 +123,18 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     msg.text.get match {
       case Consts.showItemRegex(Int(id)) =>
         val (item, markup) = responseService.mkItemResponse(id)
+        request(
+          SendMessage(ChatId(msg.source),
+            item,
+            ParseMode.HTML.some,
+            true.some,
+            None,
+            None,
+            markup.some)
+        ).void
+      case Consts.showStyleRegex(Int(styleId)) =>
+        // TODO: Maybe remember style choice preferences?
+        val (item, markup) = responseService.mkItemsByStyleResponse(1, styleId)
         request(
           SendMessage(ChatId(msg.source),
             item,

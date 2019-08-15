@@ -9,6 +9,7 @@
   "additionalPagesUrl": "https://business.untappd.com/locations/25676/themes/98350/items?section_id=403861&page=__PAGE__",
   "additionalPagesCount": 2,
   "menuItemsPerPage": 5,
+  "stylesPerPage": 5,
   "menuRefreshPeriod": 600,
   "postgres": {
     "database": "DB",

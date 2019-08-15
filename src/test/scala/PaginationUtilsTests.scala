@@ -1,5 +1,5 @@
 import org.duckofdoom.howardbot.bot.CallbackUtils
-import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType
+import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -11,6 +11,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
   }
 
   implicit val itemsPerPage: Int = 8
+  implicit val payload: String = ""
 
   test("Buttons generation. More pages than buttons.") {
 
@@ -140,19 +141,19 @@ class PaginationUtilsTests extends FunSuite with Matchers {
   
   test("Callbacks are parsed back and forth.") {
     
-    val menuCallback = PaginationUtils.mkCallback(10)(CallbackType.Menu)
+    val menuCallback = PaginationUtils.mkCallback(10)(CallbackType.Menu, "")
     menuCallback match {
       case CallbackUtils.menuCallbackRegex(page) => page.toInt should be (10)
       case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
     
-    val stylesCallback = PaginationUtils.mkCallback(8)(CallbackType.Styles)
+    val stylesCallback = PaginationUtils.mkCallback(8)(CallbackType.Styles, "")
     stylesCallback match {
       case CallbackUtils.stylesCallbackRegex(page) => page.toInt should be (8)
       case _ => fail(s"Failed to parse callback '$stylesCallback'")
     }
     
-    val itemsByStyleCallback = PaginationUtils.mkCallback(15, "teh_style", "upyachka")(CallbackType.ItemsByStyle)
+    val itemsByStyleCallback = PaginationUtils.mkCallback(15)(CallbackType.ItemsByStyle, "teh_style")
     itemsByStyleCallback match {
       case CallbackUtils.itemsByStyleCallbackRegex(style, page) => 
         page.toInt should be (15)

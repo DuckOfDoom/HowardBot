@@ -32,7 +32,17 @@ trait ItemsProvider {
   /**
     * Get all styles available
     */
-  def styles : List[String]
+  def styles: List[String]
+
+  /**
+    * Gets id for a style
+    */
+  def getStyleId(style: String): Option[Int]
+
+  /**
+    * Gets a style by id
+    */
+  def getStyle(id: Int): Option[String]
 
   /**
     * Get specific item by id
@@ -52,32 +62,41 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def items: List[Item]                  = _items
-  override def styles: List[String]               = _stylesMap.keys.toList
+  override def styles: List[String]               = _styles
   override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
+  override def getStyleId(style: String): Option[Int] = _stylesMap.find { case (_, st) => st == style }.map(_._1)
+  override def getStyle(id: Int): Option[String] = _stylesMap.get(id)
 
-  protected var _lastRefreshTime: LocalDateTime     = LocalDateTime.MIN
-  protected var _itemsMap: Map[Int, Item]           = Map()
-  protected var _stylesMap: Map[String, List[Item]] = Map()
-  protected var _items: List[Item]                  = List()
+  protected var _lastRefreshTime: LocalDateTime           = LocalDateTime.MIN
+  protected var _itemsMap: Map[Int, Item]                 = Map()
+  protected var _itemsByStyleMap: Map[String, List[Item]] = Map()
+  protected var _stylesMap: Map[Int, String]              = Map()
+  protected var _items: List[Item]                        = List()
+  protected var _styles: List[String]                     = List()
 
   /**
     * Get items for specific style
     */
   override def findItemsByStyle(style: String): List[Item] = {
-    if (_stylesMap.isEmpty)
+    if (_itemsByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
+      return List()
+    }
 
-    _stylesMap.keys
-      .filter(_.contains(style))
-      .foldLeft(new mutable.MutableList[Item])((list, style) => list ++= _stylesMap(style))
-      .toList
+    _itemsByStyleMap.getOrElse(
+      style,
+      _itemsByStyleMap.keys
+        .filter(_.toLowerCase.contains(style.toLowerCase))
+        .foldLeft(new mutable.MutableList[Item])((list, style) => list ++= _itemsByStyleMap(style))
+        .toList)
   }
 }
 
 /**
   * Items provider that can refresh itself via parsing html
   */
-class ParsedItemsProvider(implicit httpService: HttpService, config: Config) extends ItemsProviderBase {
+class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
+    extends ItemsProviderBase {
 
   logger.info(
     s"ParsedItemsDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
@@ -106,27 +125,36 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
         case (Some(mainOutput), additionalPages) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
 
-          val itemsMap: mutable.Map[Int, Item]                          = mutable.Map()
-          val stylesMap: mutable.Map[String, mutable.MutableList[Item]] = mutable.Map()
+          val itemsMap: mutable.Map[Int, Item]                                = mutable.Map()
+          val stylesMap: mutable.Map[Int, String]                             = mutable.Map()
+          val itemsByStyleMap: mutable.Map[String, mutable.MutableList[Item]] = mutable.Map()
+
+          var styleId = 0
 
           for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
             itemsMap(item.id) = item
 
             if (item.style.isDefined) {
-              if (stylesMap.contains(item.style.get))
-                stylesMap(item.style.get) += item
-              else
-                stylesMap(item.style.get) = mutable.MutableList[Item](item)
-            }
 
+              if (itemsByStyleMap.contains(item.style.get))
+                itemsByStyleMap(item.style.get) += item
+              else {
+                styleId += 1
+                stylesMap(styleId) = item.style.get
+                itemsByStyleMap(item.style.get) = mutable.MutableList[Item](item)
+              }
+            }
           }
 
           _itemsMap = itemsMap.toMap
           _items = _itemsMap.values.toList
-          _stylesMap = stylesMap.map {
+          _itemsByStyleMap = itemsByStyleMap.map {
             case (style: String, list: mutable.MutableList[Item]) => (style, list.toList)
           }.toMap
-          
+
+          _stylesMap = stylesMap.toMap
+          _styles = stylesMap.values.toList
+
           _lastRefreshTime = LocalDateTime.now
         case _ => logger.error("Refresh failed, got empty results!")
       }
@@ -141,9 +169,6 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
   }
 }
 
-/**
-  * Parse
-  */
 class FakeItemsProvider extends ItemsProviderBase {
 
   def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {

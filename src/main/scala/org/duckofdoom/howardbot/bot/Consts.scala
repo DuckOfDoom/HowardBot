@@ -4,7 +4,9 @@ import scala.util.matching.Regex
 
 object Consts {
   
-  val showItemRegex: Regex = "\\/show(\\d+)".r
-  val showStyleRegex: Regex = "\\/showStyle(\\d+)".r
-
+  val showItemPrefix = "/show"
+  val showStylePrefix = "/showStyle"
+  
+  val showItemRegex: Regex = (showItemPrefix + "(\\d+)").r
+  val showStyleRegex: Regex = (showStylePrefix + "(\\d+)").r
 }

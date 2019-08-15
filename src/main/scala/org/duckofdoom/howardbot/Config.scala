@@ -35,8 +35,8 @@ case class Config(
     additionalPagesUrl: String,
     additionalPagesCount: Int,
     menuRefreshPeriod: Float,
-    // TODO: Add styles per page count
     menuItemsPerPage: Int,
+    stylesPerPage: Int,
     postgres: PostgresConfig
 ) extends StrictLogging {
 

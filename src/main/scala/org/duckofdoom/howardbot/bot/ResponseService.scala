@@ -16,12 +16,17 @@ trait ResponseService {
   def mkMenuResponsePaginated(page: Int): (String, InlineKeyboardMarkup)
   def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
   def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
+
+  def mkItemsByStyleResponse(page: Int, styleId: Int): (String, InlineKeyboardMarkup)
   def mkItemsByStyleResponse(page: Int, query: String): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     extends ResponseService
     with StrictLogging {
+
+  private val menuButton =
+    InlineKeyboardMarkup.singleButton(InlineKeyboardButton.callbackData("Menu", "menu"))
 
   override def mkMenuResponsePaginated(page: Int): (String, InlineKeyboardMarkup) = {
     // Filter everything without brewery since those are food.
@@ -30,32 +35,44 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
     mkPaginatedResponse(items, page) { item =>
       mkItemInfo(item, inMenu = true)
-    }(CallbackType.Menu)
+    }(CallbackType.Menu, "")
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.styles.sorted, page)(_.toString + "\n")(callbackType = CallbackType.Styles)
+    mkPaginatedResponse(itemsProvider.styles.sorted, page) { style =>
+      val itemsByStyleCount = itemsProvider.findItemsByStyle(style).length
+      frag(
+        s"$style: $itemsByStyleCount  - ${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("?")}\n"
+      )
+    }(callbackType = CallbackType.Styles, "")
   }
 
   override def mkItemsByStyleResponse(page: Int, query: String): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.findItemsByStyle(query), page)(item => frag(item.toString + "\n"))(
-      callbackType = CallbackType.ItemsByStyle)
+    mkPaginatedResponse(itemsProvider.findItemsByStyle(query), page)(item =>
+      mkItemInfo(item, inMenu = true))(callbackType = CallbackType.ItemsByStyle, query)
+  }
+
+  override def mkItemsByStyleResponse(page: Int, styleId: Int): (String, InlineKeyboardMarkup) = {
+    itemsProvider.getStyle(page) match {
+      case Some(st) =>
+        mkItemsByStyleResponse(page, st)
+      case _ =>
+        (mkItemNotFoundResponse("Style", styleId), menuButton)
+    }
   }
 
   override def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
 
-    val menuButton =
-      InlineKeyboardMarkup.singleButton(InlineKeyboardButton.callbackData("Menu", "menu"))
-
     itemsProvider.getItem(itemId) match {
       case Some(item) =>
-        (mkItemInfo(item, inMenu = false).render, menuButton) // TODO: Separate response for a single item?
-      case None => (mkItemNotFoundResponse(itemId), menuButton)
+         // TODO: Separate response for a single item?
+        (mkItemInfo(item, inMenu = false).render, menuButton)
+      case None => (mkItemNotFoundResponse("Item", itemId), menuButton)
     }
   }
 
-  private def mkItemNotFoundResponse(itemId: Int): String = {
-    s"Позиции с ID '$itemId' не существует."
+  private def mkItemNotFoundResponse(itemType: String, itemId: Int): String = {
+    s"Позиции с ID '$itemId' и типом '$itemType' не существует."
   }
 
   private def mkItemInfo(item: Item, inMenu: Boolean): generic.Frag[Builder, String] = {
@@ -72,21 +89,25 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
         .getOrElse("?"),
       "\n",
       if (inMenu)
-        s"Подробнее: /show${item.id}"
+        s"Подробнее: /${Consts.showItemPrefix}${item.id}"
       else
         s"\n${item.description.getOrElse("?")}",
       "\n\n"
     )
   }
 
-  // TODO: Move to PaginationUtils
   private def mkPaginatedResponse[A](items: List[A], page: Int)(
       renderItem: A => generic.Frag[Builder, String])(
-      implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
+      implicit callbackType: CallbackType,
+      payload: String): (String, InlineKeyboardMarkup) = {
 
-    val itemsPerPage = config.menuItemsPerPage
-    val p            = if (page < 1) 1 else page
+    val itemsPerPage = callbackType match {
+      case CallbackType.Styles                           => config.stylesPerPage
+      case CallbackType.Menu | CallbackType.ItemsByStyle => config.menuItemsPerPage
+      case _                                             => throw new Exception(s"Unknown callback type '$callbackType'!")
+    }
 
+    val p = if (page < 1) 1 else page
     val renderedItems = frag(
       items
         .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)

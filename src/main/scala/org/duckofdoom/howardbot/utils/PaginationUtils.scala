@@ -15,11 +15,12 @@ object PaginationUtils {
   def mkNext(page: Int)           = s"$page >"
   def mkCurr(page: Int)           = s"* $page *"
   def mkNormal(page: Int): String = page.toString
-  def mkCallback(page: Int, values: String*)(implicit callbackType: CallbackType): String =
-    CallbackUtils.mkCallbackPrefix(page, values:_*)
+  def mkCallback(page: Int)(implicit callbackType: CallbackType, payload: String): String =
+    CallbackUtils.mkCallbackPrefix(page, payload)
 
   def mkButtonsForPaginatedQuery(currentPage: Int, itemsPerPage: Int, itemsCount: Int)(
-      implicit callbackType: CallbackType): List[Button] = {
+      implicit callbackType: CallbackType, payload: String): List[Button] = {
+    
     var list = new mutable.MutableList[Button]
 
     if (itemsCount <= itemsPerPage) {

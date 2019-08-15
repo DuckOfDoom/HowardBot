@@ -22,7 +22,9 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
     extends ServerResponseService {
 
   override def home(): String = {
-    statusInfoProvider.getStatusInfoHtml
+//    statusInfoProvider.getStatusInfoHtml
+    
+    responseService.mkStylesResponse(1)._1
   }
 
   override def menu(): String = {
