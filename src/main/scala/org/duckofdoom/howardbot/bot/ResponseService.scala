@@ -2,9 +2,9 @@ package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType
-import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType.CallbackType
-import org.duckofdoom.howardbot.bot.data.{CallbackUtils, Item, ItemsProvider}
+import CallbackUtils.CallbackType
+import CallbackUtils.CallbackType.CallbackType
+import org.duckofdoom.howardbot.bot.data.{Item, ItemsProvider}
 import scalatags.Text.all._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import scalatags.generic

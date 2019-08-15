@@ -1,4 +1,4 @@
-import org.duckofdoom.howardbot.bot.data.CallbackUtils
+import org.duckofdoom.howardbot.bot.CallbackUtils
 import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import org.scalatest.{FunSuite, Matchers}

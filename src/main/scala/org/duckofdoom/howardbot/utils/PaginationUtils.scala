@@ -1,7 +1,7 @@
 package org.duckofdoom.howardbot.utils
 
-import org.duckofdoom.howardbot.bot.data.CallbackUtils
-import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType.CallbackType
+import org.duckofdoom.howardbot.bot.CallbackUtils
+import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType.CallbackType
 
 import scala.collection.mutable
 

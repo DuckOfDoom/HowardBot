@@ -1,6 +1,6 @@
-package org.duckofdoom.howardbot.bot.data
+package org.duckofdoom.howardbot.bot
 
-import org.duckofdoom.howardbot.bot.data.CallbackUtils.CallbackType.CallbackType
+import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType.CallbackType
 
 import scala.util.matching.Regex
 

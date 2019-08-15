@@ -9,15 +9,14 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup, Update}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.CallbackUtils
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import slogging.StrictLogging
 
 import scala.concurrent.Future
 import scala.util.Try
-import scala.util.matching.Regex
 import org.duckofdoom.howardbot.utils.Extensions._
+import org.duckofdoom.howardbot.utils.Extractors._
 
 class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
     extends TelegramBot
@@ -125,25 +124,23 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   }
 
   override def receiveMessage(msg: Message): Future[Unit] = {
-
-    val showRegex: Regex = "\\/show(\\d+)".r
-    msg.text
-      .fold(Option.empty[Int]) {
-        case showRegex(id) => Try(id.toInt).toOption
-        case _             => None
-      }
-      .fold(Option.empty[(String, InlineKeyboardMarkup)]) { s =>
-        responseService.mkItemResponse(s).some
-      } match {
-      case Some((item, markup)) =>
+    
+    if (msg.text.isEmpty) {
+      logger.warn("Received empty text message.")
+      return super.receiveMessage(msg)
+    }
+    
+    msg.text.get match {
+      case Consts.showItemRegex(Int(id)) =>
+        val (item, markup) = responseService.mkItemResponse(id)
         request(
           SendMessage(ChatId(msg.source),
-                      item,
-                      ParseMode.HTML.some,
-                      true.some,
-                      None,
-                      None,
-                      markup.some)
+            item,
+            ParseMode.HTML.some,
+            true.some,
+            None,
+            None,
+            markup.some)
         ).void
       case _ => super.receiveMessage(msg)
     }
