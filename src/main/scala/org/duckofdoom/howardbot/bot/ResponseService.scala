@@ -34,7 +34,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.styles, page)(_.toString + "\n")(callbackType = CallbackType.Styles)
+    mkPaginatedResponse(itemsProvider.styles.sorted, page)(_.toString + "\n")(callbackType = CallbackType.Styles)
   }
 
   override def mkItemsByStyleResponse(page: Int, query: String): (String, InlineKeyboardMarkup) = {
