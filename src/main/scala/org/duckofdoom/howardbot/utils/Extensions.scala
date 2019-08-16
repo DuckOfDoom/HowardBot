@@ -3,6 +3,7 @@ package org.duckofdoom.howardbot.utils
 import java.io.{PrintWriter, StringWriter}
 
 object Extensions {
+
   implicit class ThrowableExtensions(val e: Throwable) extends AnyVal {
 
     /**
@@ -15,4 +16,26 @@ object Extensions {
     }
   }
 
+  implicit class IntExtensions(val i: Int) extends AnyVal {
+
+    /**
+      * Clamps value between two values
+      */
+    def clamp(from: Int, to: Int): Int = {
+      if (from < to) {
+        if (i < from)
+          return from
+        if (i > to)
+          return to
+      }
+      else if (to < from) {
+        if (i < to)
+          return to
+        if (i > from)
+          return from
+      }
+
+      i
+    }
+  }
 }

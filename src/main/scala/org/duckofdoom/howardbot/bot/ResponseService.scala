@@ -2,6 +2,7 @@ package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.utils.Extensions._
 import CallbackUtils.CallbackType
 import CallbackUtils.CallbackType.CallbackType
 import org.duckofdoom.howardbot.bot.data.{Item, ItemsProvider}
@@ -16,7 +17,6 @@ trait ResponseService {
   def mkMenuResponse(page: Int): (String, InlineKeyboardMarkup)
   def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
   def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
-
   def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup)
 }
 
@@ -100,7 +100,11 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case _                                             => throw new Exception(s"Unknown callback type '$callbackType'!")
     }
 
-    val p = if (page < 1) 1 else page
+    var totalPages = items.length / itemsPerPage
+    if (items.length % itemsPerPage != 0)
+      totalPages += 1
+    
+    val p = page.clamp(1, totalPages)
     val renderedItems = frag(
       items
         .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
