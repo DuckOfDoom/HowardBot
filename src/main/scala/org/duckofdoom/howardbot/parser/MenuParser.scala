@@ -5,7 +5,6 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Element
-import net.ruippeixotog.scalascraper.scraper.HtmlExtractor
 import org.duckofdoom.howardbot.bot.data.{BreweryInfo, Item, MenuItem}
 import org.duckofdoom.howardbot.utils.FileUtils
 import slogging.StrictLogging
@@ -60,7 +59,8 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     var id = startingId
 
-//    pages.zipWithIndex.foreach { case (p: String, i: Int) => FileUtils.writeFile(s"page_$i", p) }
+    // Uncomment to debug additional pages.
+    pages.zipWithIndex.foreach { case (p: String, i: Int) => FileUtils.writeFile(s"page_$i", p) }
 
     pages
       .map(cleanHtml)

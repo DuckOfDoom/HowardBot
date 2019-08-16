@@ -4,9 +4,8 @@ import java.time.LocalDateTime
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.{CallbackUtils, Consts}
 import org.duckofdoom.howardbot.parser.MenuParser
-import org.duckofdoom.howardbot.utils.{HttpService, PaginationUtils}
+import org.duckofdoom.howardbot.utils.HttpService
 import slogging.StrictLogging
 
 import scala.collection.mutable
@@ -54,6 +53,11 @@ trait ItemsProvider {
     * Get items for specific style
     */
   def findItemsByStyle(style: String): List[Item]
+
+  /**
+    * Get items for specific style by its id
+    */
+  def findItemsByStyle(styleId: Int): List[Item]
 }
 
 /**
@@ -92,6 +96,20 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
         .foldLeft(new mutable.MutableList[Item])((list, style) => list ++= _itemsByStyleMap(style))
         .toList
     )
+  }
+
+  override def findItemsByStyle(styleId: Int): List[Item] = {
+    if (_itemsByStyleMap.isEmpty) {
+      logger.error("Styles map is empty!")
+      return List()
+    }
+
+    val mItems = for {
+      style <- _stylesMap.get(styleId)
+      items <- _itemsByStyleMap.get(style)
+    } yield items
+    
+    mItems.getOrElse(List())
   }
 }
 
@@ -141,17 +159,12 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
               val style = item.style.get
 
               // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
-              if (!style.matches(CallbackUtils.styleValidationRegex.regex)) {
-                logger.error(
-                  s"Style '$style' does not match style regex (${CallbackUtils.styleValidationRegex.regex}. Callback query will be broken!")
-              } else {
-                if (itemsByStyleMap.contains(item.style.get))
-                  itemsByStyleMap(item.style.get) += item
-                else {
-                  styleId += 1
-                  stylesMap(styleId) = item.style.get
-                  itemsByStyleMap(item.style.get) = mutable.MutableList[Item](item)
-                }
+              if (itemsByStyleMap.contains(style))
+                itemsByStyleMap(style) += item
+              else {
+                styleId += 1
+                stylesMap(styleId) = style
+                itemsByStyleMap(style) = mutable.MutableList[Item](item)
               }
             }
 

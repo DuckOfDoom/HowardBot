@@ -1,13 +1,18 @@
-import org.duckofdoom.howardbot.bot.CallbackUtils
+import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils}
 import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import org.scalatest.{FunSuite, Matchers}
+
+import io.circe.generic.auto._
+import io.circe.parser.decode
+
+import cats.syntax.option._
 
 class PaginationUtilsTests extends FunSuite with Matchers {
   implicit val callbackType: CallbackUtils.CallbackType.Value = CallbackType.Menu
 
   private def result(currentPage: Int, itemsCount: Int)(implicit itemsPerPage: Int) = {
-    PaginationUtils.mkButtonsForPaginatedQuery(currentPage, itemsPerPage, itemsCount)
+    PaginationUtils.mkButtonsForPaginatedQuery(currentPage, itemsPerPage, itemsCount, None)
   }
 
   implicit val itemsPerPage: Int = 8
@@ -16,149 +21,152 @@ class PaginationUtilsTests extends FunSuite with Matchers {
   test("Buttons generation. More pages than buttons.") {
 
     val itemsCount      = 50
-    val totalPages: Int = (itemsCount / 8) + 1
+    val totalPages: Int = (itemsCount / itemsPerPage) + 1
 
     var curr = 1
 
     List((1, 3), (3, 4)) should contain theSameElementsAs List((1, 3), (3, 4))
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkCurr(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallback(2)),
-      Button(PaginationUtils.mkNormal(3), PaginationUtils.mkCallback(3)),
-      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallback(4)),
-      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkCurr(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallbackData(2.some, None)),
+      Button(PaginationUtils.mkNormal(3), PaginationUtils.mkCallbackData(3.some, None)),
+      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallbackData(4.some, None)),
+      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     curr = 2
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkCurr(2), PaginationUtils.mkCallback(2)),
-      Button(PaginationUtils.mkNormal(3), PaginationUtils.mkCallback(3)),
-      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallback(4)),
-      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkCurr(2), PaginationUtils.mkCallbackData(2.some, None)),
+      Button(PaginationUtils.mkNormal(3), PaginationUtils.mkCallbackData(3.some, None)),
+      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallbackData(4.some, None)),
+      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     curr = 3
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallback(2)),
-      Button(PaginationUtils.mkCurr(3), PaginationUtils.mkCallback(3)),
-      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallback(4)),
-      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallbackData(2.some, None)),
+      Button(PaginationUtils.mkCurr(3), PaginationUtils.mkCallbackData(3.some, None)),
+      Button(PaginationUtils.mkNext(4), PaginationUtils.mkCallbackData(4.some, None)),
+      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     for (i <- 4 to (totalPages - 4)) {
       curr = i
 
       result(curr, itemsCount) should contain theSameElementsAs List(
-        Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
-        Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-        Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
-        Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallback(curr + 1)),
-        Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+        Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallbackData(1.some, None)),
+        Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallbackData((curr - 1).some, None)),
+        Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallbackData(curr.some, None)),
+        Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallbackData((curr + 1).some, None)),
+        Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
       )
     }
 
     curr = totalPages - 3
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
-      Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallback(curr + 1)),
-      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallbackData((curr - 1).some, None)),
+      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallbackData(curr.some, None)),
+      Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallbackData((curr + 1).some, None)),
+      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     curr = totalPages - 2
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
-      Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallback(curr + 1)),
-      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkPrev(curr - 1), PaginationUtils.mkCallbackData((curr - 1).some, None)),
+      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallbackData(curr.some, None)),
+      Button(PaginationUtils.mkNext(curr + 1), PaginationUtils.mkCallbackData((curr + 1).some, None)),
+      Button(PaginationUtils.mkLast(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     curr = totalPages - 1
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkPrev(curr - 2), PaginationUtils.mkCallback(curr - 2)),
-      Button(PaginationUtils.mkNormal(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallback(curr)),
-      Button(PaginationUtils.mkNormal(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkPrev(curr - 2), PaginationUtils.mkCallbackData((curr - 2).some, None)),
+      Button(PaginationUtils.mkNormal(curr - 1), PaginationUtils.mkCallbackData((curr - 1).some, None)),
+      Button(PaginationUtils.mkCurr(curr), PaginationUtils.mkCallbackData(curr.some, None)),
+      Button(PaginationUtils.mkNormal(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
 
     curr = totalPages
 
     result(curr, itemsCount) should contain theSameElementsAs List(
-      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallback(1)),
-      Button(PaginationUtils.mkPrev(curr - 3), PaginationUtils.mkCallback(curr - 3)),
-      Button(PaginationUtils.mkNormal(curr - 2), PaginationUtils.mkCallback(curr - 2)),
-      Button(PaginationUtils.mkNormal(curr - 1), PaginationUtils.mkCallback(curr - 1)),
-      Button(PaginationUtils.mkCurr(totalPages), PaginationUtils.mkCallback(totalPages))
+      Button(PaginationUtils.mkFirst(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkPrev(curr - 3), PaginationUtils.mkCallbackData((curr - 3).some, None)),
+      Button(PaginationUtils.mkNormal(curr - 2), PaginationUtils.mkCallbackData((curr - 2).some, None)),
+      Button(PaginationUtils.mkNormal(curr - 1), PaginationUtils.mkCallbackData((curr - 1).some, None)),
+      Button(PaginationUtils.mkCurr(totalPages), PaginationUtils.mkCallbackData(totalPages.some, None))
     )
   }
 
-  test("Buttons generation. Pages == Buttons") {
-    val itemsCount = 5
+  test("Buttons generation. Less than 5 pages.") {
 
-    for (i <- 1 to itemsCount) {
+    var itemsCount = 14
+    
+    result(1, itemsCount) should contain theSameElementsAs List(
+      Button(PaginationUtils.mkCurr(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallbackData(2.some, None)),
+    )
+    
+    result(2, itemsCount) should contain theSameElementsAs List(
+      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkCurr(2), PaginationUtils.mkCallbackData(2.some, None)),
+    )
+    
+    // Edge case for exact items count
+    itemsCount = itemsPerPage * 5
 
-      result(i, itemsCount) should contain theSameElementsAs List(
-        Button(if (i == 1) PaginationUtils.mkCurr(1) else PaginationUtils.mkNormal(1),
-               PaginationUtils.mkCallback(1)),
-        Button(if (i == 2) PaginationUtils.mkCurr(2) else PaginationUtils.mkNormal(2),
-               PaginationUtils.mkCallback(2)),
-        Button(if (i == 3) PaginationUtils.mkCurr(3) else PaginationUtils.mkNormal(3),
-               PaginationUtils.mkCallback(3)),
-        Button(if (i == 4) PaginationUtils.mkCurr(4) else PaginationUtils.mkNormal(4),
-               PaginationUtils.mkCallback(4)),
-        Button(if (i == 5) PaginationUtils.mkCurr(5) else PaginationUtils.mkNormal(5),
-               PaginationUtils.mkCallback(5))
-      )
-    }
+    result(4, itemsCount) should contain theSameElementsAs List(
+      Button(PaginationUtils.mkNormal(1), PaginationUtils.mkCallbackData(1.some, None)),
+      Button(PaginationUtils.mkNormal(2), PaginationUtils.mkCallbackData(2.some, None)),
+      Button(PaginationUtils.mkNormal(3), PaginationUtils.mkCallbackData(3.some, None)),
+      Button(PaginationUtils.mkCurr(4), PaginationUtils.mkCallbackData(4.some, None)),
+      Button(PaginationUtils.mkNormal(5), PaginationUtils.mkCallbackData(5.some, None)),
+    )
   }
 
-  test("Buttons generation. Less pages than buttons.") {
+  test("Buttons generation. No pages.") {
 
-    val itemsCount = 3
+    val itemsCount = 8
 
     for (i <- 1 to itemsCount) {
-
-      result(i, itemsCount) should contain theSameElementsAs List(
-        Button(if (i == 1) PaginationUtils.mkCurr(1) else PaginationUtils.mkNormal(1),
-               PaginationUtils.mkCallback(1)),
-        Button(if (i == 2) PaginationUtils.mkCurr(2) else PaginationUtils.mkNormal(2),
-               PaginationUtils.mkCallback(2)),
-        Button(if (i == 3) PaginationUtils.mkCurr(3) else PaginationUtils.mkNormal(3),
-               PaginationUtils.mkCallback(3))
-      )
+      result(i, itemsCount) shouldBe empty
     }
   }
 
   test("Callbacks are parsed back and forth.") {
 
-    val menuCallback = PaginationUtils.mkCallback(10)(CallbackType.Menu, "")
-    menuCallback match {
-      case CallbackUtils.menuCallbackRegex(page) => page.toInt should be(10)
-      case _                                     => fail(s"Failed to parse callback '$menuCallback'")
+    val menuCallback = PaginationUtils.mkCallbackData(10.some, None)(CallbackType.Menu)
+    decode[Callback](menuCallback) match {
+      case Right(Callback.Menu(page, newMessage)) => 
+        page.get should be(10)
+        newMessage should be(false)
+      case _                          => fail(s"Failed to parse callback '$menuCallback'")
     }
 
-    val stylesCallback = PaginationUtils.mkCallback(8)(CallbackType.Styles, "")
-    stylesCallback match {
-      case CallbackUtils.stylesCallbackRegex(page) => page.toInt should be(8)
-      case _                                       => fail(s"Failed to parse callback '$stylesCallback'")
+    val stylesCallback = PaginationUtils.mkCallbackData(8.some, None)(CallbackType.Styles)
+    decode[Callback](stylesCallback) match {
+      case Right(Callback.Menu(_, _)) => fail("This callback should only be parsed as Styles!")
+      case Right(Callback.Styles(page, newMessage)) =>
+        page.get should be(8)
+        newMessage should be(false)
+      case _                            => fail(s"Failed to parse callback '$stylesCallback'")
     }
 
     val itemsByStyleCallback =
-      PaginationUtils.mkCallback(15)(CallbackType.ItemsByStyle, "teh - style 123")
-    itemsByStyleCallback match {
-      case CallbackUtils.itemsByStyleCallbackRegex(style, page) =>
+      PaginationUtils.mkCallbackData(15.some, 19.some)(CallbackType.ItemsByStyle)
+    decode[Callback](itemsByStyleCallback) match {
+      case Right(Callback.ItemsByStyle(styleId, page)) =>
         page.toInt should be(15)
-        style should be("teh - style 123")
+        styleId should be(19)
       case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
     }
 

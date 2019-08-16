@@ -28,7 +28,7 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
   }
 
   override def menu(): String = {
-    responseService.mkMenuResponsePaginated(1)._1
+    responseService.mkMenuResponse(1)._1
   }
 
   override def show(itemId: Int): String = {

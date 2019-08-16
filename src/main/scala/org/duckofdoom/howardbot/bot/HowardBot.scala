@@ -1,21 +1,23 @@
 package org.duckofdoom.howardbot.bot
 
 import cats.instances.future._
-import cats.syntax.option._
 import cats.syntax.functor._
+import cats.syntax.option._
 import com.bot4s.telegram.api.RequestHandler
 import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
-import com.bot4s.telegram.models.{Chat, ChatId, InlineKeyboardMarkup, Message, ReplyMarkup, Update}
+import com.bot4s.telegram.models._
+import io.circe.generic.auto._
+import io.circe.parser.decode
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
+import org.duckofdoom.howardbot.utils.Extensions._
+import org.duckofdoom.howardbot.utils.Extractors._
 import slogging.StrictLogging
 
 import scala.concurrent.Future
-import scala.util.Try
-import org.duckofdoom.howardbot.utils.Extractors._
 
 class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
     extends TelegramBot
@@ -32,7 +34,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
-      val (items, markup) = responseService.mkMenuResponsePaginated(
+      val (items, markup) = responseService.mkMenuResponse(
         u.state.menuPage
       )
 
@@ -40,7 +42,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  // TODO: Add command for searching by style
   onCommand("styles") { implicit msg =>
     withUser(msg.chat) { _ =>
       val (items, markup) = responseService.mkStylesResponse(1)
@@ -49,60 +50,41 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   }
 
   onCallbackQuery { implicit query =>
-    logger.info(s"Got callback query: ${query.data}.")
-
+    logger.info(s"Received callback query: ${query.data}.")
+    
     withUser(query.from) { u =>
       val responseFuture = (query.data, query.message) match {
-        // Make response for the whole menu
-        case (Some("menu"), Some(msg)) =>
-          mkPaginatedResponse(u.state.menuPage, msg, newMessage = true) { p =>
-            u.state.menuPage = p
-            db.updateUser(u)
-
-            responseService.mkMenuResponsePaginated(p)
-          }.some
-
-        // Make response for specific page when button is clicked
-        case (Some(CallbackUtils.menuCallbackRegex(page)), Some(msg)) =>
-          Try(page.toInt).toOption match {
-            case Some(p) =>
-              mkPaginatedResponse(p, msg, newMessage = false) { p =>
+        case (Some(data), Some(msg)) =>
+          
+          decode[Callback](data) match {
+            case Right(Callback.Menu(page, newMessage)) =>
+              mkResponseWithCallbackButtons(page.getOrElse(u.state.menuPage), msg, newMessage) { p =>
                 u.state.menuPage = p
                 db.updateUser(u)
-
-                responseService.mkMenuResponsePaginated(p)
-
+                responseService.mkMenuResponse(p)
               }.some
-            case _ =>
-              logger.error(s"Failed to parse page from callback query data: ${query.data}")
-              None
-          }
-        case (Some(CallbackUtils.stylesCallbackRegex(page)), Some(msg)) =>
-          Try(page.toInt).toOption match {
-            case Some(p) =>
-              mkPaginatedResponse(p, msg, newMessage = false) { p =>
+
+            case Right(Callback.Styles(page, newMessage)) =>
+              mkResponseWithCallbackButtons(page.getOrElse(u.state.stylesPage), msg, newMessage) { p =>
+                u.state.stylesPage = p
+                db.updateUser(u)
                 responseService.mkStylesResponse(p)
               }.some
-            case _ =>
-              logger.error(s"Failed to parse page and args from callback query data: ${query.data}")
-              None
-          }
-        case (Some(CallbackUtils.itemsByStyleCallbackRegex(style, page)), Some(msg)) =>
-          Try(page.toInt).toOption match {
-            case Some(p) =>
-              mkPaginatedResponse(p, msg, newMessage = false) { p =>
-                responseService.mkItemsByStyleResponse(p, style)
-              }.some
-            case _ =>
-              logger.error(s"Failed to parse page and args from callback query data: ${query.data}")
-              None
-          }
-        case _ => Future.successful().some
-      }
 
+            case Right(Callback.ItemsByStyle(style, page)) => 
+              mkResponseWithCallbackButtons(page, msg, newMessage = false) { p =>
+                responseService.mkItemsByStyleResponse(style, page)
+              }.some
+
+            case _ => 
+              None
+          }
+        case _ => None
+      }
+      
       if (responseFuture.isEmpty)
         logger.error(s"Failed to construct response for callback query: ${query.data}")
-
+      
       for {
         ack    <- ackCallback()
         answer <- responseFuture.getOrElse(Future.successful())
@@ -129,21 +111,25 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                       None,
                       markup.some)
         ).void
-      case Consts.showStyleRegex(Int(styleId)) =>
-        // TODO: Maybe remember style choice preferences?
-        val (item, markup) = responseService.mkItemsByStyleResponse(1, styleId)
-        request(
-          SendMessage(ChatId(msg.source),
-                      item,
-                      ParseMode.HTML.some,
-                      true.some,
-                      None,
-                      None,
-                      markup.some)
-        ).void
+      case Consts.showItemsByStyleRegex(Int(styleId)) =>
+        mkResponseWithCallbackButtons(1, msg, newMessage = true) { p => 
+          responseService.mkItemsByStyleResponse(styleId, p)
+        }.void
       case _ => super.receiveMessage(msg)
     }
   }
+  
+  override def receiveUpdate(u: Update, botUser: Option[TelegramUser]): Future[Unit] = {
+    try {
+      super.receiveUpdate(u, botUser)
+    }
+    catch {
+      case ex :Throwable =>
+        logger.error(s"Caught exception when receiving update:\n${ex.toStringFull}")
+        Future.failed(ex)
+    }
+  }
+
 
   private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
 
@@ -210,7 +196,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     ).void
   }
 
-  def mkPaginatedResponse(page: Int, msg: Message, newMessage: Boolean)(
+  private def mkResponseWithCallbackButtons(page: Int, msg: Message, newMessage: Boolean)(
       mkResponse: Int => (String, InlineKeyboardMarkup)) = {
 
     val (items, buttons) = mkResponse(page)
