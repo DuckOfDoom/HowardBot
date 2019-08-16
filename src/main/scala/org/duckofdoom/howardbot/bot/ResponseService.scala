@@ -30,14 +30,16 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       itemsProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
 
     mkPaginatedResponse(items, page, None) { item =>
-      mkItemInfo(item, inMenu = true)
+      mkItemInfo(item, inMenu = true, showStyle = true)
     }(CallbackType.Menu)
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
     mkPaginatedResponse(itemsProvider.styles.sorted, page, None) { style =>
       val itemsByStyleCount = itemsProvider.findItemsByStyle(style).length
-      frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("?")}\n""")
+      frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider
+        .getStyleId(style)
+        .getOrElse("?")}\n""")
     }(callbackType = CallbackType.Styles)
   }
 
@@ -45,7 +47,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   override def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findItemsByStyle(styleId)
     mkPaginatedResponse(items, page, styleId.some) { i =>
-      mkItemInfo(i, inMenu = true)
+      mkItemInfo(i, inMenu = true, showStyle = false)
     }(CallbackType.ItemsByStyle)
   }
 
@@ -53,7 +55,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     itemsProvider.getItem(itemId) match {
       case Some(item) =>
         // TODO: Separate response for a single item?
-        (mkItemInfo(item, inMenu = false).render,
+        (mkItemInfo(item, inMenu = false, showStyle = true).render,
          InlineKeyboardMarkup(Seq(PaginationUtils.mkAdditionalButtons(menu = true, styles = true))))
       case None =>
         (mkItemNotFoundResponse("Item", itemId),
@@ -65,12 +67,22 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     s"Позиции с ID '$itemId' и типом '$itemType' не существует."
   }
 
-  private def mkItemInfo(item: Item, inMenu: Boolean): generic.Frag[Builder, String] = {
+  private def mkItemInfo(item: Item,
+                         inMenu: Boolean,
+                         showStyle: Boolean): generic.Frag[Builder, String] = {
     frag(
       a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
       item.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
       "\n",
-      s"Стиль: ${item.style.getOrElse("style = ?")}",
+      s"Стиль: ${item.style
+      // TODO: Think about error handling here
+        .map(style => {
+          if (showStyle)
+            s"$style (${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("BROKEN")})"
+          else
+            style.toString
+        })
+        .getOrElse("style = ? ")}",
       "\n",
       s"Пивоварня: ${item.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
@@ -101,7 +113,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     var totalPages = items.length / itemsPerPage
     if (items.length % itemsPerPage != 0)
       totalPages += 1
-    
+
     val p = page.clamp(1, totalPages)
     val renderedItems = frag(
       items
