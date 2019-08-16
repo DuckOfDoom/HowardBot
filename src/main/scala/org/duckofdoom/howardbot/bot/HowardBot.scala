@@ -51,40 +51,41 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   onCallbackQuery { implicit query =>
     logger.info(s"Received callback query: ${query.data}.")
-    
+
     withUser(query.from) { u =>
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
-          
           decode[Callback](data) match {
             case Right(Callback.Menu(page, newMessage)) =>
-              mkResponseWithCallbackButtons(page.getOrElse(u.state.menuPage), msg, newMessage) { p =>
-                u.state.menuPage = p
-                db.updateUser(u)
-                responseService.mkMenuResponse(p)
+              respondWithCallbackButtons(page.getOrElse(u.state.menuPage), msg, newMessage) {
+                p =>
+                  u.state.menuPage = p
+                  db.updateUser(u)
+                  responseService.mkMenuResponse(p)
               }.some
 
             case Right(Callback.Styles(page, newMessage)) =>
-              mkResponseWithCallbackButtons(page.getOrElse(u.state.stylesPage), msg, newMessage) { p =>
-                u.state.stylesPage = p
-                db.updateUser(u)
-                responseService.mkStylesResponse(p)
+              respondWithCallbackButtons(page.getOrElse(u.state.stylesPage), msg, newMessage) {
+                p =>
+                  u.state.stylesPage = p
+                  db.updateUser(u)
+                  responseService.mkStylesResponse(p)
               }.some
 
-            case Right(Callback.ItemsByStyle(style, page)) => 
-              mkResponseWithCallbackButtons(page, msg, newMessage = false) { p =>
+            case Right(Callback.ItemsByStyle(style, page)) =>
+              respondWithCallbackButtons(page, msg, newMessage = false) { p =>
                 responseService.mkItemsByStyleResponse(style, page)
               }.some
 
-            case _ => 
+            case _ =>
               None
           }
         case _ => None
       }
-      
+
       if (responseFuture.isEmpty)
         logger.error(s"Failed to construct response for callback query: ${query.data}")
-      
+
       for {
         ack    <- ackCallback()
         answer <- responseFuture.getOrElse(Future.successful())
@@ -106,30 +107,29 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           SendMessage(ChatId(msg.source),
                       item,
                       ParseMode.HTML.some,
-                      true.some,
+                      // Only this request should show links
+                      false.some,
                       None,
                       None,
                       markup.some)
         ).void
       case Consts.showItemsByStyleRegex(Int(styleId)) =>
-        mkResponseWithCallbackButtons(1, msg, newMessage = true) { p => 
+        respondWithCallbackButtons(1, msg, newMessage = true) { p =>
           responseService.mkItemsByStyleResponse(styleId, p)
         }.void
       case _ => super.receiveMessage(msg)
     }
   }
-  
+
   override def receiveUpdate(u: Update, botUser: Option[TelegramUser]): Future[Unit] = {
     try {
       super.receiveUpdate(u, botUser)
-    }
-    catch {
-      case ex :Throwable =>
+    } catch {
+      case ex: Throwable =>
         logger.error(s"Caught exception when receiving update:\n${ex.toStringFull}")
         Future.failed(ex)
     }
   }
-
 
   private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
 
@@ -196,7 +196,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     ).void
   }
 
-  private def mkResponseWithCallbackButtons(page: Int, msg: Message, newMessage: Boolean)(
+  private def respondWithCallbackButtons(page: Int, msg: Message, newMessage: Boolean)(
       mkResponse: Int => (String, InlineKeyboardMarkup)) = {
 
     val (items, buttons) = mkResponse(page)
