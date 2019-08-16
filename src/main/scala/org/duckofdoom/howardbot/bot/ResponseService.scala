@@ -37,7 +37,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
     mkPaginatedResponse(itemsProvider.styles.sorted, page, None) { style =>
       val itemsByStyleCount = itemsProvider.findItemsByStyle(style).length
-      frag(s"""${style}: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("?")}\n\n""")
+      frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("?")}\n""")
     }(callbackType = CallbackType.Styles)
   }
 

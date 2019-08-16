@@ -60,7 +60,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
     var id = startingId
 
     // Uncomment to debug additional pages.
-    pages.zipWithIndex.foreach { case (p: String, i: Int) => FileUtils.writeFile(s"page_$i", p) }
+//    pages.zipWithIndex.foreach { case (p: String, i: Int) => FileUtils.writeFile(s"page_$i", p) }
 
     pages
       .map(cleanHtml)
