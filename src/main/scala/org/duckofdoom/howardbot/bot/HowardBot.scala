@@ -8,8 +8,6 @@ import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
-import io.circe.generic.auto._
-import io.circe.parser.decode
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
@@ -55,8 +53,8 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     withUser(query.from) { u =>
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
-          decode[Callback](data) match {
-            case Right(Callback.Menu(page, newMessage)) =>
+          Callback.deserialize(data.getBytes) match {
+            case Some(Callback.Menu(page, newMessage)) =>
               respondWithCallbackButtons(page.getOrElse(u.state.menuPage), msg, newMessage) {
                 p =>
                   u.state.menuPage = p
@@ -64,7 +62,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                   responseService.mkMenuResponse(p)
               }.some
 
-            case Right(Callback.Styles(page, newMessage)) =>
+            case Some(Callback.Styles(page, newMessage)) =>
               respondWithCallbackButtons(page.getOrElse(u.state.stylesPage), msg, newMessage) {
                 p =>
                   u.state.stylesPage = p
@@ -72,7 +70,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                   responseService.mkStylesResponse(p)
               }.some
 
-            case Right(Callback.ItemsByStyle(style, page)) =>
+            case Some(Callback.ItemsByStyle(style, page)) =>
               respondWithCallbackButtons(page, msg, newMessage = false) { p =>
                 responseService.mkItemsByStyleResponse(style, page)
               }.some

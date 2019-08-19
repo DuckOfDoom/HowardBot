@@ -3,6 +3,14 @@ package org.duckofdoom.howardbot.utils
 import java.io.{PrintWriter, StringWriter}
 
 object Extensions {
+  implicit class AnyRefExtensions[A](val o: A) extends AnyVal {
+
+    def check(condition: A => Boolean, action: A => Unit): A = {
+      if (!condition(o))
+        action
+      o
+    }
+  }
 
   implicit class ThrowableExtensions(val e: Throwable) extends AnyVal {
 

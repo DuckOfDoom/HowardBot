@@ -5,6 +5,7 @@ import com.bot4s.telegram.models.InlineKeyboardButton
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.duckofdoom.howardbot.bot.Callback
+import org.duckofdoom.howardbot.utils.Extensions.AnyRefExtensions
 import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType
 import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType.CallbackType
 import slogging.LazyLogging
@@ -36,11 +37,11 @@ object PaginationUtils extends LazyLogging {
         Callback.ItemsByStyle(payload.asInstanceOf[Option[Int]].get, page.get)
     }
 
-    val callbackData = c.asJson.toString
-
-    // As per Telegram API requirements
-    if (callbackData.getBytes.length > 64)
-      logger.error(s"Callback data '$callbackData' is too long! Must be below 64 bytes!")
+    val callbackData = c.serialize()
+      // As per Telegram API requirements
+      .check(_.length < 64,
+        _ => logger.error(s"Callback data '$c' is too long! Must be below 64 bytes!")
+      ).map(_.asInstanceOf[Char]).mkString
 
     callbackData
   }
