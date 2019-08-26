@@ -1,7 +1,17 @@
 package org.duckofdoom.howardbot.bot.data
 
-trait Item {
+trait BaseItem {
   val id: Int
+}
+
+object Style {
+  implicit def ordering[A <: Style]: Ordering[A] = Ordering.by(_.name)
+}
+
+case class Style(id: Int, name : String) extends BaseItem{
+}
+
+trait Item extends BaseItem {
   val menuOrder: Option[Int]
   val name: Option[String]
   val rating: Option[(Float, Float)]

@@ -32,17 +32,17 @@ trait ItemsProvider {
   /**
     * Get all styles available
     */
-  def styles: List[String]
+  def styles: List[Style]
 
   /**
     * Gets id for a style
     */
-  def getStyleId(style: String): Option[Int]
+  def getStyleId(styleName: String): Option[Int]
 
   /**
     * Gets a style by id
     */
-  def getStyle(id: Int): Option[String]
+  def getStyle(id: Int): Option[Style]
 
   /**
     * Get specific item by id
@@ -52,7 +52,7 @@ trait ItemsProvider {
   /**
     * Get items for specific style
     */
-  def findItemsByStyle(style: String): List[Item]
+  def findItemsByStyle(styleName: String): List[Item]
 
   /**
     * Get items for specific style by its id
@@ -67,18 +67,18 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def items: List[Item]                  = _items
-  override def styles: List[String]               = _styles
+  override def styles: List[Style]                = _styles
   override def getItem(itemId: Int): Option[Item] = _itemsMap.get(itemId)
-  override def getStyleId(style: String): Option[Int] =
-    _stylesMap.find { case (_, st) => st == style }.map(_._1)
-  override def getStyle(id: Int): Option[String] = _stylesMap.get(id)
+  override def getStyleId(styleName: String): Option[Int] =
+    _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
+  override def getStyle(id: Int): Option[Style] = _stylesMap.get(id)
 
   protected var _lastRefreshTime: LocalDateTime           = LocalDateTime.MIN
   protected var _itemsMap: Map[Int, Item]                 = Map()
   protected var _itemsByStyleMap: Map[String, List[Item]] = Map()
-  protected var _stylesMap: Map[Int, String]              = Map()
+  protected var _stylesMap: Map[Int, Style]               = Map()
   protected var _items: List[Item]                        = List()
-  protected var _styles: List[String]                     = List()
+  protected var _styles: List[Style]                      = List()
 
   /**
     * Get items for specific style
@@ -106,9 +106,9 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
     val mItems = for {
       style <- _stylesMap.get(styleId)
-      items <- _itemsByStyleMap.get(style)
+      items <- _itemsByStyleMap.get(style.name)
     } yield items
-    
+
     mItems.getOrElse(List())
   }
 }
@@ -147,7 +147,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
 
           val itemsMap: mutable.Map[Int, Item]                                = mutable.Map()
-          val stylesMap: mutable.Map[Int, String]                             = mutable.Map()
+          val stylesMap: mutable.Map[Int, Style]                              = mutable.Map()
           val itemsByStyleMap: mutable.Map[String, mutable.MutableList[Item]] = mutable.Map()
 
           var styleId = 0
@@ -163,7 +163,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
                 itemsByStyleMap(style) += item
               else {
                 styleId += 1
-                stylesMap(styleId) = style
+                stylesMap(styleId) = Style(styleId, style)
                 itemsByStyleMap(style) = mutable.MutableList[Item](item)
               }
             }

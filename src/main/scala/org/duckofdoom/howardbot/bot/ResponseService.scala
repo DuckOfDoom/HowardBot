@@ -5,7 +5,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.utils.Extensions._
 import CallbackUtils.CallbackType
 import CallbackUtils.CallbackType.CallbackType
-import org.duckofdoom.howardbot.bot.data.{Item, ItemsProvider}
+import org.duckofdoom.howardbot.bot.data.{BaseItem, Item, ItemsProvider}
 import scalatags.Text.all._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import scalatags.generic
@@ -29,16 +29,16 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val items =
       itemsProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
 
-    mkPaginatedResponse(items, page, None) { item =>
+    mkPaginatedResponse(items, page, None, itemsAsButtons = true) { item =>
       mkItemInfo(item, inMenu = true, showStyle = true)
     }(CallbackType.Menu)
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.styles.sorted, page, None) { style =>
-      val itemsByStyleCount = itemsProvider.findItemsByStyle(style).length
+    mkPaginatedResponse(itemsProvider.styles.sorted, page, None,  itemsAsButtons = true) { style =>
+      val itemsByStyleCount = itemsProvider.findItemsByStyle(style.name).length
       frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider
-        .getStyleId(style)
+        .getStyleId(style.name)
         .getOrElse("?")}\n""")
     }(callbackType = CallbackType.Styles)
   }
@@ -46,7 +46,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   // Concrete style can be rendered with pagination
   override def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findItemsByStyle(styleId)
-    mkPaginatedResponse(items, page, styleId.some) { i =>
+    mkPaginatedResponse(items, page, styleId.some, itemsAsButtons = true) { i =>
       mkItemInfo(i, inMenu = true, showStyle = false)
     }(CallbackType.ItemsByStyle)
   }
@@ -98,10 +98,12 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     )
   }
 
-  private def mkPaginatedResponse[A, TPayload](
-      items: List[A],
+  private def mkPaginatedResponse[A <: BaseItem, TPayload](
+      allItems: List[A],
       page: Int,
-      payload: Option[TPayload])(renderItem: A => generic.Frag[Builder, String])(
+      paginationPayload: Option[TPayload],
+      // Try to render allItems as buttons, do not render them into message
+      itemsAsButtons:Boolean)(renderItem: A => generic.Frag[Builder, String])(
       implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
@@ -110,31 +112,50 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case _                                             => throw new Exception(s"Unknown callback type '$callbackType'!")
     }
 
-    var totalPages = items.length / itemsPerPage
-    if (items.length % itemsPerPage != 0)
+    var totalPages = allItems.length / itemsPerPage
+    if (allItems.length % itemsPerPage != 0)
       totalPages += 1
 
     val p = page.clamp(1, totalPages)
-    val renderedItems = frag(
-      items
-        .slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
-        .map(renderItem)
-        .toArray: _*
-    ).render
-
-    val markup = InlineKeyboardMarkup(
+    val paginationMarkup = InlineKeyboardMarkup(
       Seq(
         PaginationUtils
-          .mkButtonsForPaginatedQuery(p, itemsPerPage, items.length, payload)
+          .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, paginationPayload)
           .map {
             case Button(bText, bCallbackData) =>
               InlineKeyboardButton.callbackData(bText, bCallbackData)
           },
         PaginationUtils.mkAdditionalButtons(callbackType != CallbackType.Menu,
-                                            callbackType != CallbackType.Styles)
+          callbackType != CallbackType.Styles)
       )
     )
+    
+    val selectedItems = allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
+    
+    // Instead of rendering allItems into a message, render them as buttons
+    var messageContents: String = "Пожалуйста:"
+    var markup : InlineKeyboardMarkup = paginationMarkup
+    
+    if (itemsAsButtons) {
+      val itemsMarkup = InlineKeyboardMarkup.singleColumn(
+        selectedItems.map(i => {
+          InlineKeyboardButton(renderItem(i).render, i.id.toString.some)
+        })
+      )
+      
+      // Merge markup with pagination. 
+      // Layout is as follows: Seq( Row(Column(..), Column(..), ..), Row(Column(..), Column(..), ..), ..)
+      
+      markup = InlineKeyboardMarkup(itemsMarkup.inlineKeyboard ++ markup.inlineKeyboard)
+      
+    } else {
+      messageContents = frag(
+        selectedItems.map(i => {
+          renderItem(i).render
+        })
+      ).render
+    }
 
-    (renderedItems, markup)
+    (messageContents, markup)
   }
 }
