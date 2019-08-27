@@ -16,8 +16,8 @@ import cats.syntax.option._
 trait ResponseService {
   def mkMenuResponse(page: Int): (String, InlineKeyboardMarkup)
   def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
-  def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup)
-  def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup)
+  def mkBeerResponse(itemId: Int): (String, InlineKeyboardMarkup)
+  def mkBeersByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
@@ -44,14 +44,14 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   }
 
   // Concrete style can be rendered with pagination
-  override def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
+  override def mkBeersByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findBeersByStyle(styleId)
     mkPaginatedResponse(items, page, styleId.some, renderAsButtons = true) { i =>
       mkBeerButtonInfo(i)
     }(CallbackType.ItemsByStyle)
   }
 
-  override def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
+  override def mkBeerResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
     itemsProvider.getBeer(itemId) match {
       case Some(beer) =>
         // TODO: Separate response for a single beer?

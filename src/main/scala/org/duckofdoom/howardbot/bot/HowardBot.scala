@@ -72,7 +72,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
             case Some(Callback.ItemsByStyle(style, page)) =>
               respondWithCallbackButtons(page, msg, newMessage = false) { p =>
-                responseService.mkItemsByStyleResponse(style, page)
+                responseService.mkBeersByStyleResponse(style, page)
               }.some
 
             case _ =>
@@ -100,7 +100,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
     msg.text.get match {
       case Consts.showItemRegex(Int(id)) =>
-        val (item, markup) = responseService.mkItemResponse(id)
+        val (item, markup) = responseService.mkBeerResponse(id)
         request(
           SendMessage(ChatId(msg.source),
                       item,
@@ -113,7 +113,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
         ).void
       case Consts.showItemsByStyleRegex(Int(styleId)) =>
         respondWithCallbackButtons(1, msg, newMessage = true) { p =>
-          responseService.mkItemsByStyleResponse(styleId, p)
+          responseService.mkBeersByStyleResponse(styleId, p)
         }.void
       case _ => super.receiveMessage(msg)
     }

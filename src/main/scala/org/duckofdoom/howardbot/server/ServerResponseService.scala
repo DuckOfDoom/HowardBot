@@ -30,7 +30,7 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
   }
 
   override def show(itemId: Int): String = {
-    responseService.mkItemResponse(itemId)._1
+    responseService.mkBeerResponse(itemId)._1
   }
 
   override def parse(): String = {
