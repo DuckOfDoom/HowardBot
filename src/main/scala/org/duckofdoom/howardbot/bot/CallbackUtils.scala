@@ -20,9 +20,9 @@ sealed abstract class Callback extends Product with Serializable
 
 object Callback {
 
-  final case class Menu(page: Option[Int], newMessage: Boolean)   extends Callback
+  final case class Menu(page: Option[Int], newMessage: Boolean) extends Callback
   final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
-  final case class ItemsByStyle(styleId: Int, page: Int)          extends Callback
+  final case class ItemsByStyle(styleId: Int, page: Int) extends Callback
 
   implicit class SerializableCallback(c: Callback) {
 

@@ -5,7 +5,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.utils.Extensions._
 import CallbackUtils.CallbackType
 import CallbackUtils.CallbackType.CallbackType
-import org.duckofdoom.howardbot.bot.data.{BaseItem, Item, ItemsProvider}
+import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemsProvider}
 import scalatags.Text.all._
 import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
 import scalatags.generic
@@ -29,14 +29,14 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val items =
       itemsProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
 
-    mkPaginatedResponse(items, page, None, itemsAsButtons = true) { item =>
-      mkItemInfo(item, inMenu = true, showStyle = true)
+    mkPaginatedResponse(items, page, None, renderAsButtons = true) { item =>
+      mkBeerButtonInfo(item)
     }(CallbackType.Menu)
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.styles.sorted, page, None,  itemsAsButtons = true) { style =>
-      val itemsByStyleCount = itemsProvider.findItemsByStyle(style.name).length
+    mkPaginatedResponse(itemsProvider.styles.sorted, page, None,  renderAsButtons = true) { style =>
+      val itemsByStyleCount = itemsProvider.findBeersByStyle(style.name).length
       frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider
         .getStyleId(style.name)
         .getOrElse("?")}\n""")
@@ -45,17 +45,17 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
   // Concrete style can be rendered with pagination
   override def mkItemsByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
-    val items = itemsProvider.findItemsByStyle(styleId)
-    mkPaginatedResponse(items, page, styleId.some, itemsAsButtons = true) { i =>
-      mkItemInfo(i, inMenu = true, showStyle = false)
+    val items = itemsProvider.findBeersByStyle(styleId)
+    mkPaginatedResponse(items, page, styleId.some, renderAsButtons = true) { i =>
+      mkBeerButtonInfo(i)
     }(CallbackType.ItemsByStyle)
   }
 
   override def mkItemResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
-    itemsProvider.getItem(itemId) match {
-      case Some(item) =>
-        // TODO: Separate response for a single item?
-        (mkItemInfo(item, inMenu = false, showStyle = true).render,
+    itemsProvider.getBeer(itemId) match {
+      case Some(beer) =>
+        // TODO: Separate response for a single beer?
+        (mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render,
          InlineKeyboardMarkup(Seq(PaginationUtils.mkAdditionalButtons(menu = true, styles = true))))
       case None =>
         (mkItemNotFoundResponse("Item", itemId),
@@ -67,43 +67,56 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     s"Позиции с ID '$itemId' и типом '$itemType' не существует."
   }
 
-  private def mkItemInfo(item: Item,
-                         inMenu: Boolean,
-                         showStyle: Boolean): generic.Frag[Builder, String] = {
+  private def mkBeerHtmlInfo(beer: Beer,
+                         verbose: Boolean,
+                         withStyleLink: Boolean): generic.Frag[Builder, String] = {
     frag(
-      a(href := item.link.getOrElse("?"))("🍺 " + item.name.getOrElse("name = ?")),
-      item.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
+      a(href := beer.link.getOrElse("?"))("🍺 " + beer.name.getOrElse("name = ?")),
+      beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
       "\n",
-      s"Стиль: ${item.style
+      s"Стиль: ${beer.style
       // TODO: Think about error handling here
         .map(style => {
-          if (showStyle)
+          if (withStyleLink)
             s"$style (${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("BROKEN")})"
           else
             style.toString
         })
         .getOrElse("style = ? ")}",
       "\n",
-      s"Пивоварня: ${item.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
+      s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      item.draftType.getOrElse("draftType = ?") + " - " + item.price
+      beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
         .map { case (c, price) => c + price }
         .getOrElse("?"),
       "\n",
-      if (inMenu)
-        s"Подробнее: ${Consts.showItemPrefix}${item.id}"
+      if (!verbose)
+        s"Подробнее: ${Consts.showItemPrefix}${beer.id}"
       else
-        s"\n${item.description.getOrElse("?")}",
+        s"\n${beer.description.getOrElse("?")}",
       "\n\n"
     )
   }
 
-  private def mkPaginatedResponse[A <: BaseItem, TPayload](
+  private def mkBeerButtonInfo(beer: Beer): String = {
+    s"""${beer.name}
+       |Стиль: ${beer.style}
+       |Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
+       |${
+      beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
+        .map { case (c, price) => c + price }
+        .getOrElse("?")
+    },
+      "\n",
+     """.stripMargin
+  }
+
+  private def mkPaginatedResponse[A <: Item, TPayload](
       allItems: List[A],
       page: Int,
       paginationPayload: Option[TPayload],
       // Try to render allItems as buttons, do not render them into message
-      itemsAsButtons:Boolean)(renderItem: A => generic.Frag[Builder, String])(
+      renderAsButtons:Boolean)(renderItem: A => generic.Frag[Builder, String])(
       implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
@@ -136,7 +149,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     var messageContents: String = "Пожалуйста:"
     var markup : InlineKeyboardMarkup = paginationMarkup
     
-    if (itemsAsButtons) {
+    if (renderAsButtons) {
       val itemsMarkup = InlineKeyboardMarkup.singleColumn(
         selectedItems.map(i => {
           InlineKeyboardButton(renderItem(i).render, i.id.toString.some)

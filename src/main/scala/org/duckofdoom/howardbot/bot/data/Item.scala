@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot.bot.data
 
-trait BaseItem {
+trait Item {
   val id: Int
 }
 
@@ -8,22 +8,29 @@ object Style {
   implicit def ordering[A <: Style]: Ordering[A] = Ordering.by(_.name)
 }
 
-case class Style(id: Int, name : String) extends BaseItem{
-}
+case class Style(id: Int, name: String) extends Item {}
 
-trait Item extends BaseItem {
-  val menuOrder: Option[Int]
-  val name: Option[String]
-  val rating: Option[(Float, Float)]
-  val link: Option[String]
-  val pictureLink: Option[String]
-  val abv: Option[Float]
-  val ibu: Option[Float]
-  val breweryInfo: BreweryInfo
-  val style: Option[String]
-  val draftType: Option[String]
-  val price: Option[(String, Float)]
-  val description: Option[String]
+case class BreweryInfo(
+    name: Option[String],
+    link: Option[String],
+    location: Option[String]
+)
+
+case class Beer(
+    id: Int,
+    menuOrder: Option[Int],
+    name: Option[String],
+    rating: Option[(Float, Float)],
+    link: Option[String],
+    pictureLink: Option[String],
+    abv: Option[Float],
+    ibu: Option[Float],
+    breweryInfo: BreweryInfo,
+    style: Option[String],
+    draftType: Option[String],
+    price: Option[(String, Float)],
+    description: Option[String],
+) extends Item {
 
   override def toString: String = {
 
@@ -52,27 +59,4 @@ trait Item extends BaseItem {
 
     sb.toString
   }
-}
-
-case class BreweryInfo(
-    name: Option[String],
-    link: Option[String],
-    location: Option[String]
-)
-
-case class MenuItem(
-    id: Int,
-    menuOrder: Option[Int],
-    name: Option[String],
-    rating: Option[(Float, Float)],
-    link: Option[String],
-    pictureLink: Option[String],
-    abv: Option[Float],
-    ibu: Option[Float],
-    breweryInfo: BreweryInfo,
-    style: Option[String],
-    draftType: Option[String],
-    price: Option[(String, Float)],
-    description: Option[String],
-) extends Item {
 }

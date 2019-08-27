@@ -5,28 +5,27 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Element
-import org.duckofdoom.howardbot.bot.data.{BreweryInfo, Item, MenuItem}
-import org.duckofdoom.howardbot.utils.FileUtils
+import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
 import slogging.StrictLogging
 
 import scala.util.Try
 
 class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extends StrictLogging {
 
-  private val parsedItemsByName = scala.collection.mutable.Map[String, Item]()
+  private val parsedBeersByName = scala.collection.mutable.Map[String, Beer]()
   private val browser           = JsoupBrowser()
 
-  def parse(): List[Item] = {
+  def parse(): List[Beer] = {
     parseScriptOutput(scriptOutput)
-    logger.info(s"Parsed ${parsedItemsByName.count(_ => true)} items from main script output.")
-    val parsedItemsCount = parsedItemsByName.count(_ => true)
-    parseAdditionalPages(additionalMenuPages, parsedItemsCount)
-    logger.info(s"""Parsed ${parsedItemsByName
-      .count(_ => true) - parsedItemsCount} more items from additional pages.
-          Total items: ${parsedItemsByName.count(_ => true)}
+    logger.info(s"Parsed ${parsedBeersByName.count(_ => true)} items from main script output.")
+    val parsedBeersCount = parsedBeersByName.count(_ => true)
+    parseAdditionalPages(additionalMenuPages, parsedBeersCount)
+    logger.info(s"""Parsed ${parsedBeersByName
+      .count(_ => true) - parsedBeersCount} more items from additional pages.
+          Total items: ${parsedBeersByName.count(_ => true)}
         """)
 
-    parsedItemsByName.values.toList
+    parsedBeersByName.values.toList
   }
 
   private def parseScriptOutput(contents: String): Unit = {
@@ -45,12 +44,12 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       return
     }
 
-    val doc = browser.parseString(menuHtml.get)
+    val doc      = browser.parseString(menuHtml.get)
     val elements = doc >> elementList(".beer")
 
     elements.zipWithIndex
-      .map { case (el: Element, i: Int) => parseItem(i, el) }
-      .foreach(addItem)
+      .map { case (el: Element, i: Int) => parseBeer(i, el) }
+      .foreach(addBeer)
   }
 
   private def parseAdditionalPages(pages: List[String], startingId: Int): Unit = {
@@ -68,23 +67,23 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
         val doc = browser.parseString(html)
         (doc >> elementList(".beer"))
           .map(el => {
-            val item = parseItem(id, el)
+            val item = parseBeer(id, el)
             id += 1
             item
           })
-          .foreach(addItem)
+          .foreach(addBeer)
       })
   }
 
-  private def addItem(item: Item): Unit = {
+  private def addBeer(item: Beer): Unit = {
     if (item.name.isEmpty) {
       logger.trace(s"Can't add parsed item because name is not defined:\n$item")
       return
     }
 
     val n = item.name.getOrElse("_")
-    if (!parsedItemsByName.contains(n)) {
-      parsedItemsByName(n) = item
+    if (!parsedBeersByName.contains(n)) {
+      parsedBeersByName(n) = item
       logger.trace("New item: " + item.name)
     } else {
       logger.trace("Already has: " + item.name)
@@ -97,10 +96,10 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .replace("\\/", "/")
       .replace("\\\"", "\"")
   }
-  
+
   val ratingRegex = "rating small r(\\d{3})".r
-  
-  private def parseItem(id: Int, el: Element): Item = {
+
+  private def parseBeer(id: Int, el: Element): Beer = {
     val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
 
     // beerName
@@ -108,11 +107,16 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
     val menuOrder = (beerName >?> element(".tap-number-hideable") >> text).flatten
       .map(_.takeWhile(_ != '.'))
       .flatMap(i => Try(i.toInt).toOption)
-    
+
     val rating = (el >?> element(".rating-hideable"))
       .flatMap(_ >?> element("span"))
       .flatMap(_.attrs.get("class"))
-      .flatMap(v => ratingRegex.findFirstMatchIn(v).map(_.group(1)).flatMap(s => Try(s.toFloat / 100f).toOption))
+      .flatMap(
+        v =>
+          ratingRegex
+            .findFirstMatchIn(v)
+            .map(_.group(1))
+            .flatMap(s => Try(s.toFloat / 100f).toOption))
       .map(v => (v, 5f))
 
     val name = (beerName >?> element("a") >> text).flatten
@@ -150,7 +154,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .map(_.replace(",", "")) // 1,700.00 rubley bldjad
       .flatMap(i => Try(i.toFloat).toOption)
 
-    MenuItem(
+    Beer(
       id,
       menuOrder,
       name,
