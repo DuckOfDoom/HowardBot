@@ -1,28 +1,82 @@
 package org.duckofdoom.howardbot.bot
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
+import java.lang.Throwable
 
+import org.duckofdoom.howardbot.utils.Extensions.AnyRefExtensions
 import cats.syntax.option._
+import com.bot4s.telegram.models.InlineKeyboardButton
+import org.duckofdoom.howardbot.bot.data.ItemType
+import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
+import org.duckofdoom.howardbot.utils.Locale
+import slogging.StrictLogging
 
+import scala.collection.mutable
 import scala.util.Try
 
-object CallbackUtils {
+object CallbackUtils extends StrictLogging {
 
   object CallbackType extends Enumeration {
     type CallbackType = Value
     val Menu: CallbackUtils.CallbackType.Value         = Value("Menu")
     val Styles: CallbackUtils.CallbackType.Value       = Value("Styles")
     val ItemsByStyle: CallbackUtils.CallbackType.Value = Value("ItemsByStyle")
+    val Item: CallbackUtils.CallbackType.Value = Value("Item")
+  }
+
+  def mkMenuCallbackData(page: Option[Int], newMessage: Boolean): String = {
+    serializeCallback(Callback.Menu(page, newMessage))
+  }
+
+  def mkStylesCallbackData(page: Option[Int], newMessage: Boolean): String = {
+    serializeCallback(Callback.Styles(page, newMessage))
+  }
+  
+  def mkItemsByStyleCallbackData(styleId : Int, page:Int) : String = {
+    serializeCallback(Callback.ItemsByStyle(styleId, page))
+  }
+  
+  def mkItemCallback(itemType : ItemType, itemId:Int) : String = {
+    serializeCallback(Callback.Item(itemType, itemId))
+  }
+
+
+  def mkAdditionalButtons(menu: Boolean, styles: Boolean): Seq[InlineKeyboardButton] = {
+    var buttonsList = mutable.MutableList[InlineKeyboardButton]()
+    if (menu) {
+      buttonsList += InlineKeyboardButton.callbackData(
+        Locale.menu,
+        mkMenuCallbackData(None, newMessage = false)
+      )
+    }
+
+    if (styles) {
+      buttonsList += InlineKeyboardButton.callbackData(
+        Locale.styles,
+        mkStylesCallbackData(None, newMessage = false)
+      )
+    }
+
+    buttonsList
+  }
+
+  private def serializeCallback(callbackData: Callback ): String = {
+    callbackData.serialize()
+      // As per Telegram API requirements
+      .check(_.length < 64,
+      _ => logger.error(s"Callback data '$callbackData' is too long! Must be below 64 bytes!")
+    ).map(_.asInstanceOf[Char]).mkString
   }
 }
 
 sealed abstract class Callback extends Product with Serializable
 
-object Callback {
+object Callback extends StrictLogging {
 
   final case class Menu(page: Option[Int], newMessage: Boolean) extends Callback
   final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
   final case class ItemsByStyle(styleId: Int, page: Int) extends Callback
+  final case class Item(itemType: ItemType, itemId: Int) extends Callback
 
   implicit class SerializableCallback(c: Callback) {
 
@@ -42,6 +96,10 @@ object Callback {
           stream.writeShort(3)
           stream.writeShort(styleId)
           stream.writeShort(page)
+        case Item(itemType, itemId) =>
+          stream.writeShort(4)
+          stream.writeShort(itemType.id)
+          stream.writeShort(itemId)
       }
 
       byteArrayInputStream.toByteArray
@@ -53,22 +111,33 @@ object Callback {
       if (i >= 0) i.asInstanceOf[Int].some else None
     }
 
-    Try({
+    try {
       val stream = new DataInputStream(new ByteArrayInputStream(bytes))
-      stream.readShort() match {
+      val result = stream.readShort() match {
         case 1 =>
-          val page       = shortToOption(stream.readShort())
+          val page = shortToOption(stream.readShort())
           val newMessage = stream.readBoolean()
           Menu(page, newMessage)
         case 2 =>
-          val page       = shortToOption(stream.readShort())
+          val page = shortToOption(stream.readShort())
           val newMessage = stream.readBoolean()
           Styles(page, newMessage)
         case 3 =>
           val styleId = stream.readShort()
-          val page    = stream.readShort()
+          val page = stream.readShort()
           ItemsByStyle(styleId, page)
+        case 4 =>
+          val itemType = ItemType(stream.readShort())
+          val itemId = stream.readShort()
+          Item(itemType, itemId)
       }
-    }).toOption
+    
+      result.some
+    
+    } catch {
+      case e:Throwable =>
+        logger.error("Failed to deserialize callback", e)
+        None
+    }
   }
 }

@@ -1,8 +1,9 @@
 import org.duckofdoom.howardbot.bot.Callback.{ItemsByStyle, Menu, Styles}
 import org.scalatest.{FunSuite, Matchers}
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.Callback
+import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils, data}
 import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType
+import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.utils.PaginationUtils
 
 class CallbacksSerializationTests extends FunSuite with Matchers {
@@ -39,7 +40,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   
   test("Callbacks are parsed back and forth.") {
 
-    val menuCallback = PaginationUtils.mkCallbackData(10.some, None)(CallbackType.Menu)
+    val menuCallback = CallbackUtils.mkMenuCallbackData(10.some, newMessage = false)
     Callback.deserialize(menuCallback.getBytes) match {
       case Some(Callback.Menu(page, newMessage)) =>
         page.get should be(10)
@@ -47,21 +48,28 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
       case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
 
-    val stylesCallback = PaginationUtils.mkCallbackData(8.some, None)(CallbackType.Styles)
+    val stylesCallback = CallbackUtils.mkStylesCallbackData(8.some, newMessage = true)
     Callback.deserialize(stylesCallback.getBytes) match {
       case Some(Callback.Menu(_, _)) => fail("This callback should only be parsed as Styles!")
       case Some(Callback.Styles(page, newMessage)) =>
         page.get should be(8)
-        newMessage should be(false)
+        newMessage should be(true)
       case _ => fail(s"Failed to parse callback '$stylesCallback'")
     }
 
-    val itemsByStyleCallback =
-      PaginationUtils.mkCallbackData(15.some, 19.some)(CallbackType.ItemsByStyle)
+    val itemsByStyleCallback = CallbackUtils.mkItemsByStyleCallbackData(15, 19)
     Callback.deserialize(itemsByStyleCallback.getBytes) match {
       case Some(Callback.ItemsByStyle(styleId, page)) =>
-        page.toInt should be(15)
-        styleId should be(19)
+        styleId should be(15)
+        page.toInt should be(19)
+      case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
+    }
+    
+    val itemCallback = CallbackUtils.mkItemCallback(ItemType.Beer, 51)
+    Callback.deserialize(itemCallback.getBytes) match {
+      case Some(Callback.Item(itemType, itemId)) =>
+        itemType should be (data.ItemType.Beer)
+        itemId should be (51)
       case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
     }
 

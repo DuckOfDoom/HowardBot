@@ -7,7 +7,7 @@ import CallbackUtils.CallbackType
 import CallbackUtils.CallbackType.CallbackType
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemsProvider}
 import scalatags.Text.all._
-import org.duckofdoom.howardbot.utils.{Button, PaginationUtils}
+import org.duckofdoom.howardbot.utils.PaginationUtils
 import scalatags.generic
 import scalatags.text.Builder
 import slogging.StrictLogging
@@ -29,24 +29,27 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val items =
       itemsProvider.items.filter(_.breweryInfo.name.isDefined).sortBy(i => i.id)
 
-    mkPaginatedResponse(items, page, None, renderAsButtons = true) { item =>
+    mkPaginatedResponse(items, page, p => CallbackUtils.mkMenuCallbackData(p.some, newMessage = true), renderAsButtons = true) { item =>
       mkBeerButtonInfo(item)
     }(CallbackType.Menu)
   }
 
   override def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup) = {
-    mkPaginatedResponse(itemsProvider.styles.sorted, page, None,  renderAsButtons = true) { style =>
+    mkPaginatedResponse(itemsProvider.styles.sorted, page, p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = true), renderAsButtons = true) { style =>
       val itemsByStyleCount = itemsProvider.findBeersByStyle(style.name).length
-      frag(s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${itemsProvider
-        .getStyleId(style.name)
-        .getOrElse("?")}\n""")
+      frag(
+        s"""$style: $itemsByStyleCount - ${Consts.showStylePrefix}${
+          itemsProvider
+            .getStyleId(style.name)
+            .getOrElse("?")
+        }\n""")
     }(callbackType = CallbackType.Styles)
   }
 
   // Concrete style can be rendered with pagination
   override def mkBeersByStyleResponse(styleId: Int, page: Int): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findBeersByStyle(styleId)
-    mkPaginatedResponse(items, page, styleId.some, renderAsButtons = true) { i =>
+    mkPaginatedResponse(items, page, p => CallbackUtils.mkItemsByStyleCallbackData(styleId, p), renderAsButtons = true) { i =>
       mkBeerButtonInfo(i)
     }(CallbackType.ItemsByStyle)
   }
@@ -56,10 +59,10 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case Some(beer) =>
         // TODO: Separate response for a single beer?
         (mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render,
-         InlineKeyboardMarkup(Seq(PaginationUtils.mkAdditionalButtons(menu = true, styles = true))))
+         InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true))))
       case None =>
         (mkItemNotFoundResponse("Item", itemId),
-         InlineKeyboardMarkup(Seq(PaginationUtils.mkAdditionalButtons(menu = true, styles = true))))
+         InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true))))
     }
   }
 
@@ -68,8 +71,8 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   }
 
   private def mkBeerHtmlInfo(beer: Beer,
-                         verbose: Boolean,
-                         withStyleLink: Boolean): generic.Frag[Builder, String] = {
+                             verbose: Boolean,
+                             withStyleLink: Boolean): generic.Frag[Builder, String] = {
     frag(
       a(href := beer.link.getOrElse("?"))("🍺 " + beer.name.getOrElse("name = ?")),
       beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
@@ -102,11 +105,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     s"""${beer.name}
        |Стиль: ${beer.style}
        |Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
-       |${
-      beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
-        .map { case (c, price) => c + price }
-        .getOrElse("?")
-    },
+       |${beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
+         .map { case (c, price) => c + price }
+         .getOrElse("?")},
       "\n",
      """.stripMargin
   }
@@ -114,9 +115,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
   private def mkPaginatedResponse[A <: Item, TPayload](
       allItems: List[A],
       page: Int,
-      paginationPayload: Option[TPayload],
+      mkCallbackData: Int => String,
       // Try to render allItems as buttons, do not render them into message
-      renderAsButtons:Boolean)(renderItem: A => generic.Frag[Builder, String])(
+      renderAsButtons: Boolean)(renderItem: A => generic.Frag[Builder, String])(
       implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
@@ -133,34 +134,31 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val paginationMarkup = InlineKeyboardMarkup(
       Seq(
         PaginationUtils
-          .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, paginationPayload)
-          .map {
-            case Button(bText, bCallbackData) =>
-              InlineKeyboardButton.callbackData(bText, bCallbackData)
-          },
-        PaginationUtils.mkAdditionalButtons(callbackType != CallbackType.Menu,
-          callbackType != CallbackType.Styles)
+          .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, mkCallbackData),
+        CallbackUtils.mkAdditionalButtons(callbackType != CallbackType.Menu,
+                                            callbackType != CallbackType.Styles)
       )
     )
-    
-    val selectedItems = allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
-    
+
+    val selectedItems =
+      allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
+
     // Instead of rendering allItems into a message, render them as buttons
-    var messageContents: String = "Пожалуйста:"
-    var markup : InlineKeyboardMarkup = paginationMarkup
-    
+    var messageContents: String      = "Пожалуйста:"
+    var markup: InlineKeyboardMarkup = paginationMarkup
+
     if (renderAsButtons) {
       val itemsMarkup = InlineKeyboardMarkup.singleColumn(
         selectedItems.map(i => {
           InlineKeyboardButton(renderItem(i).render, i.id.toString.some)
         })
       )
-      
-      // Merge markup with pagination. 
+
+      // Merge markup with pagination.
       // Layout is as follows: Seq( Row(Column(..), Column(..), ..), Row(Column(..), Column(..), ..), ..)
-      
+
       markup = InlineKeyboardMarkup(itemsMarkup.inlineKeyboard ++ markup.inlineKeyboard)
-      
+
     } else {
       messageContents = frag(
         selectedItems.map(i => {

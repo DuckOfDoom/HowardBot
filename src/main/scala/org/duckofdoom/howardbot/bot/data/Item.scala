@@ -1,14 +1,24 @@
 package org.duckofdoom.howardbot.bot.data
 
+import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
+
+object ItemType extends Enumeration {
+  type ItemType = Value
+  val Beer, Style = Value
+}
+
 trait Item {
   val id: Int
+  val itemType : ItemType
 }
 
 object Style {
   implicit def ordering[A <: Style]: Ordering[A] = Ordering.by(_.name)
 }
 
-case class Style(id: Int, name: String) extends Item {}
+case class Style(id: Int, name: String) extends Item {
+  override val itemType: ItemType = ItemType.Style
+}
 
 case class BreweryInfo(
     name: Option[String],
@@ -31,6 +41,8 @@ case class Beer(
     price: Option[(String, Float)],
     description: Option[String],
 ) extends Item {
+  
+  override val itemType: ItemType = ItemType.Beer
 
   override def toString: String = {
 
@@ -59,4 +71,5 @@ case class Beer(
 
     sb.toString
   }
+
 }
