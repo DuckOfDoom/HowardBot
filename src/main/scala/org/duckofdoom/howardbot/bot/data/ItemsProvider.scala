@@ -27,7 +27,7 @@ trait ItemsProvider {
   /**
     * Get all items available
     */
-  def items: List[Beer]
+  def beers: List[Beer]
 
   /**
     * Get all styles available
@@ -66,47 +66,47 @@ trait ItemsProvider {
 abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def items: List[Beer]                  = _items
+  override def beers: List[Beer]                  = _beers
   override def styles: List[Style]                = _styles
-  override def getBeer(itemId: Int): Option[Beer] = _itemsMap.get(itemId)
+  override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
   override def getStyle(id: Int): Option[Style] = _stylesMap.get(id)
 
   protected var _lastRefreshTime: LocalDateTime           = LocalDateTime.MIN
-  protected var _itemsMap: Map[Int, Beer]                 = Map()
-  protected var _itemsByStyleMap: Map[String, List[Beer]] = Map()
+  protected var _beersMap: Map[Int, Beer]                 = Map()
+  protected var _beersByStyleMap: Map[String, List[Beer]] = Map()
   protected var _stylesMap: Map[Int, Style]               = Map()
-  protected var _items: List[Beer]                        = List()
+  protected var _beers: List[Beer]                        = List()
   protected var _styles: List[Style]                      = List()
 
   /**
     * Get items for specific style
     */
   override def findBeersByStyle(style: String): List[Beer] = {
-    if (_itemsByStyleMap.isEmpty) {
+    if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
     }
 
-    _itemsByStyleMap.getOrElse(
+    _beersByStyleMap.getOrElse(
       style,
-      _itemsByStyleMap.keys
+      _beersByStyleMap.keys
         .filter(_.toLowerCase.contains(style.toLowerCase))
-        .foldLeft(new mutable.MutableList[Beer])((list, style) => list ++= _itemsByStyleMap(style))
+        .foldLeft(new mutable.MutableList[Beer])((list, style) => list ++= _beersByStyleMap(style))
         .toList
     )
   }
 
   override def findBeersByStyle(styleId: Int): List[Beer] = {
-    if (_itemsByStyleMap.isEmpty) {
+    if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
     }
 
     val mBeers = for {
       style <- _stylesMap.get(styleId)
-      items <- _itemsByStyleMap.get(style.name)
+      items <- _beersByStyleMap.get(style.name)
     } yield items
 
     mBeers.getOrElse(List())
@@ -120,7 +120,8 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
     extends ItemsProviderBase {
 
   logger.info(
-    s"ParsedBeersDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds.")
+    s"ParsedBeersDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds."
+  )
 
   override def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
 
@@ -131,13 +132,14 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
       val resultsFuture = for {
         mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
         pages <- Future.sequence(
-          (1 to config.additionalPagesCount)
-            .map(
-              p =>
-                httpService.makeRequestAsync(
-                  config.getAdditionalResultPageUrl(p)
-              ))
-        )
+                  (1 to config.additionalPagesCount)
+                    .map(
+                      p =>
+                        httpService.makeRequestAsync(
+                          config.getAdditionalResultPageUrl(p)
+                        )
+                    )
+                )
       } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
 
       val result = Await.result(resultsFuture, Duration.Inf)
@@ -146,41 +148,43 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
         case (Some(mainOutput), additionalPages) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
 
-          val itemsMap: mutable.Map[Int, Beer]                                = mutable.Map()
+          val beersMap: mutable.Map[Int, Beer]                                = mutable.Map()
           val stylesMap: mutable.Map[Int, Style]                              = mutable.Map()
-          val itemsByStyleMap: mutable.Map[String, mutable.MutableList[Beer]] = mutable.Map()
+          val beersByStyleMap: mutable.Map[String, mutable.MutableList[Beer]] = mutable.Map()
 
           var styleId = 0
 
           for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
+            // Items without breweries are food, we ignore them for now
+            if (item.breweryInfo.name.isDefined) {
+              
+              if (item.style.isDefined) {
+                
+                val style = item.style.get
+                // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
+                if (beersByStyleMap.contains(style))
+                  beersByStyleMap(style) += item
+                else {
+                  styleId += 1
+                  stylesMap(styleId) = Style(styleId, style)
+                  beersByStyleMap(style) = mutable.MutableList[Beer](item)
+                }
 
-            if (item.style.isDefined) {
-
-              val style = item.style.get
-
-              // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
-              if (itemsByStyleMap.contains(style))
-                itemsByStyleMap(style) += item
-              else {
-                styleId += 1
-                stylesMap(styleId) = Style(styleId, style)
-                itemsByStyleMap(style) = mutable.MutableList[Beer](item)
+                beersMap(item.id) = item
               }
+
+              _beersMap = beersMap.toMap
+              _beers = _beersMap.values.toList
+              _beersByStyleMap = beersByStyleMap.map {
+                case (style: String, list: mutable.MutableList[Beer]) => (style, list.toList)
+              }.toMap
+
+              _stylesMap = stylesMap.toMap
+              _styles = stylesMap.values.toList
+
+              _lastRefreshTime = LocalDateTime.now
             }
-
-            itemsMap(item.id) = item
           }
-
-          _itemsMap = itemsMap.toMap
-          _items = _itemsMap.values.toList
-          _itemsByStyleMap = itemsByStyleMap.map {
-            case (style: String, list: mutable.MutableList[Beer]) => (style, list.toList)
-          }.toMap
-
-          _stylesMap = stylesMap.toMap
-          _styles = stylesMap.values.toList
-
-          _lastRefreshTime = LocalDateTime.now
         case _ => logger.error("Refresh failed, got empty results!")
       }
     }
@@ -203,7 +207,7 @@ class FakeBeersProvider extends ItemsProviderBase {
       wrds.head + " / " + wrds(1)
     }
 
-    _itemsMap = (0 to 10)
+    _beersMap = (0 to 10)
       .map(i => {
         val item = Beer(
           i,
@@ -229,7 +233,7 @@ class FakeBeersProvider extends ItemsProviderBase {
       })
       .toMap
 
-    _items = _itemsMap.values.toList
+    _beers = _beersMap.values.toList
     _lastRefreshTime = LocalDateTime.now()
     Future.successful()
   }

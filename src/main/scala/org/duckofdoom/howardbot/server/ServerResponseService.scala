@@ -1,8 +1,9 @@
 package org.duckofdoom.howardbot.server
 
 import cats.syntax.option._
+import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
-import org.duckofdoom.howardbot.bot.{ResponseService, StatusProvider}
+import org.duckofdoom.howardbot.bot.{ResponseFormat, ResponseService, StatusProvider}
 import org.duckofdoom.howardbot.db.DB
 
 trait ServerResponseService {
@@ -20,6 +21,8 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
                                 responseService: ResponseService,
                                 db: DB)
     extends ServerResponseService {
+  
+  implicit val responseFormat : ResponseFormat = ResponseFormat.TextMessage
 
   override def home(): String = {
     statusInfoProvider.getStatusInfoHtml
@@ -36,7 +39,7 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
   override def parse(): String = {
 
     val sb = new StringBuilder()
-    itemDataProvider.items.toList
+    itemDataProvider.beers.toList
       .sortBy(_.id)
       .foreach(i => {
         sb.append(

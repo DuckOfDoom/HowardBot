@@ -9,6 +9,7 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.data.{Beer, ItemType, Style}
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.Extensions._
@@ -34,47 +35,76 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkMenuResponse(
         u.state.menuPage
-      )
+      )(ResponseFormat.TextMessage)
 
-      respond(items, markup.some)
+      respond(items, markup.some)(msg)
     }
   }
 
   onCommand("styles") { implicit msg =>
     withUser(msg.chat) { _ =>
-      val (items, markup) = responseService.mkStylesResponse(1)
-      respond(items, markup.some)
+      val (items, markup) = responseService.mkStylesResponse(1)(ResponseFormat.Buttons)
+      respond(items, markup.some)(msg)
     }
   }
 
+  // When users clicks any of the buttons
   onCallbackQuery { implicit query =>
     logger.info(s"Received callback query: ${query.data}.")
 
     withUser(query.from) { u =>
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
+          implicit val message: Message = msg
+
           Callback.deserialize(data.getBytes) match {
+            // Sent from "Menu" button
             case Some(Callback.Menu(page, newMessage)) =>
-              respondWithCallbackButtons(page.getOrElse(u.state.menuPage), msg, newMessage) {
-                p =>
-                  u.state.menuPage = p
-                  db.updateUser(u)
-                  responseService.mkMenuResponse(p)
-              }.some
+              if (page.isDefined) {
+                u.state.menuPage = page.get
+                db.updateUser(u)
+              }
 
+              respond(
+                responseService.mkMenuResponse(u.state.menuPage)(ResponseFormat.TextMessage),
+                newMessage
+              ).some
+
+            // Sent from "Styles" button
             case Some(Callback.Styles(page, newMessage)) =>
-              respondWithCallbackButtons(page.getOrElse(u.state.stylesPage), msg, newMessage) {
-                p =>
-                  u.state.stylesPage = p
-                  db.updateUser(u)
-                  responseService.mkStylesResponse(p)
-              }.some
+              if (page.isDefined) {
+                u.state.menuPage = page.get
+                db.updateUser(u)
+              }
 
+              respond(
+                responseService.mkStylesResponse(u.state.menuPage)(ResponseFormat.Buttons),
+                newMessage
+              ).some
+
+            // TODO: Add page option for new message
+            // TODO: Right now it always responds as a new message
+            // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
-              respondWithCallbackButtons(page, msg, newMessage = false) { p =>
-                responseService.mkBeersByStyleResponse(style, page)
-              }.some
+              respond(
+                responseService.mkBeersByStyleResponse(style, page)(ResponseFormat.TextMessage),
+                newMessage = false
+              ).some
 
+            // Sent from clicking on a particular item button (either beer or style)
+            case Some(Callback.Item(itemType, itemId)) =>
+              itemType match {
+                case ItemType.Beer =>
+                  respond(
+                    responseService.mkBeerResponse(itemId)(ResponseFormat.TextMessage),
+                    newMessage = true
+                  ).some
+                case ItemType.Style =>
+                  respond(
+                    responseService.mkBeersByStyleResponse(itemId, 1)(ResponseFormat.TextMessage),
+                    newMessage = true
+                  ).some
+              }
             case _ =>
               None
           }
@@ -93,6 +123,8 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   override def receiveMessage(msg: Message): Future[Unit] = {
 
+    implicit val message: Message = msg
+
     if (msg.text.isEmpty) {
       logger.warn("Received empty text message.")
       return super.receiveMessage(msg)
@@ -100,21 +132,24 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
     msg.text.get match {
       case Consts.showItemRegex(Int(id)) =>
-        val (item, markup) = responseService.mkBeerResponse(id)
+        val (item, markup) = responseService.mkBeerResponse(id)(ResponseFormat.TextMessage)
         request(
-          SendMessage(ChatId(msg.source),
-                      item,
-                      ParseMode.HTML.some,
-                      // Only this request should show links
-                      false.some,
-                      None,
-                      None,
-                      markup.some)
+          SendMessage(
+            ChatId(msg.source),
+            item,
+            ParseMode.HTML.some,
+            // Only this request should show links
+            false.some,
+            None,
+            None,
+            markup.some
+          )
         ).void
       case Consts.showItemsByStyleRegex(Int(styleId)) =>
-        respondWithCallbackButtons(1, msg, newMessage = true) { p =>
-          responseService.mkBeersByStyleResponse(styleId, p)
-        }.void
+        respond(
+          responseService.mkBeersByStyleResponse(styleId, 1)(ResponseFormat.TextMessage),
+          newMessage = true
+        ).void
       case _ => super.receiveMessage(msg)
     }
   }
@@ -132,8 +167,11 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
 
     if (tgUser.firstName.isEmpty) {
-      return Future.failed(new Exception(
-        "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."))
+      return Future.failed(
+        new Exception(
+          "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."
+        )
+      )
     }
 
     val user = db.getUserByTelegramId(tgUser.id) match {
@@ -152,14 +190,19 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       case _ =>
         Future.failed(
           new Exception(
-            s"Failed to process action! Could not create user for telegramUser: $tgUser"))
+            s"Failed to process action! Could not create user for telegramUser: $tgUser"
+          )
+        )
     }
   }
 
   private def withUser(chat: Chat)(action: User => Future[Unit]): Future[Unit] = {
     if (chat.firstName.isEmpty) {
-      return Future.failed(new Exception(
-        "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."))
+      return Future.failed(
+        new Exception(
+          "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."
+        )
+      )
     }
 
     val user = db.getUserByTelegramId(chat.id) match {
@@ -177,12 +220,14 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       case Some(u) => action(u)
       case _ =>
         Future.failed(
-          new Exception(s"Failed to process action! Could not create user for chat: $chat"))
+          new Exception(s"Failed to process action! Could not create user for chat: $chat")
+        )
     }
   }
 
   private def respond(text: String, markup: Option[ReplyMarkup] = None)(
-      implicit message: Message) = {
+      implicit message: Message
+  ) = {
 
     reply(
       text,
@@ -190,34 +235,39 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       true.some,
       None,
       None,
-      markup,
+      markup
     ).void
   }
 
-  private def respondWithCallbackButtons(page: Int, msg: Message, newMessage: Boolean)(
-      mkResponse: Int => (String, InlineKeyboardMarkup)) = {
+  private def respond(response: (String, InlineKeyboardMarkup), newMessage: Boolean)(
+      implicit msg: Message
+  ) = {
 
-    val (items, buttons) = mkResponse(page)
+    val (items, buttons) = response
 
     if (newMessage) {
       request(
-        SendMessage(ChatId(msg.source),
-                    items,
-                    ParseMode.HTML.some,
-                    true.some,
-                    None,
-                    None,
-                    buttons.some)
+        SendMessage(
+          ChatId(msg.source),
+          items,
+          ParseMode.HTML.some,
+          true.some,
+          None,
+          None,
+          buttons.some
+        )
       )
     } else {
       request(
-        EditMessageText(ChatId(msg.source).some,
-                        msg.messageId.some,
-                        None,
-                        items,
-                        ParseMode.HTML.some,
-                        true.some,
-                        buttons.some)
+        EditMessageText(
+          ChatId(msg.source).some,
+          msg.messageId.some,
+          None,
+          items,
+          ParseMode.HTML.some,
+          true.some,
+          buttons.some
+        )
       )
     }
   }
