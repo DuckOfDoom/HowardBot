@@ -68,7 +68,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val stylesWithCountsMap = stylesWithCounts.toMap
 
     mkPaginatedResponse(
-      stylesWithCounts.sortBy(_._2).map(_._1),
+      stylesWithCounts.sortBy(_._2).reverse.map(_._1),
       page,
       p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = false),
       renderAsButtons = format == ResponseFormat.Buttons
