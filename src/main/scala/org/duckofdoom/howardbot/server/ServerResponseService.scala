@@ -3,8 +3,9 @@ package org.duckofdoom.howardbot.server
 import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
-import org.duckofdoom.howardbot.bot.{ResponseFormat, ResponseService, StatusProvider}
+import org.duckofdoom.howardbot.bot.{Consts, ResponseFormat, ResponseService, StatusProvider}
 import org.duckofdoom.howardbot.db.DB
+import scalatags.Text.all._
 
 trait ServerResponseService {
   def home(): String
@@ -16,20 +17,48 @@ trait ServerResponseService {
   def parse(): String
 }
 
-class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
-                                itemDataProvider: ItemsProvider,
-                                responseService: ResponseService,
-                                db: DB)
-    extends ServerResponseService {
-  
-  implicit val responseFormat : ResponseFormat = ResponseFormat.TextMessage
+class ServerResponseServiceImpl(
+    implicit statusInfoProvider: StatusProvider,
+    itemDataProvider: ItemsProvider,
+    responseService: ResponseService,
+    db: DB
+) extends ServerResponseService {
+
+  implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
 
   override def home(): String = {
     statusInfoProvider.getStatusInfoHtml
   }
 
   override def menu(): String = {
-    responseService.mkMenuResponse(1)._1
+    val beers = itemDataProvider.beers
+    
+    frag(
+      s"Всего пивасов: ${beers.length}",
+      br(),
+      beers.map { beer =>
+        frag(
+          a(href := beer.link.getOrElse("?"))("🍺 " + beer.name.getOrElse("name = ?")),
+          beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
+          br(),
+          s"Стиль: ${beer.style
+            .map(style => {
+              style.toString
+            })
+            .getOrElse("style = ? ")}",
+          br(),
+          s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
+          br(),
+          beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
+            .map { case (c, price) => c + price }
+            .getOrElse("price = ?"),
+          br(),
+          s"${beer.description.getOrElse("description = ?")}",
+          br(),
+          br()
+        )
+      }
+    ).render
   }
 
   override def show(itemId: Int): String = {
@@ -45,7 +74,8 @@ class ServerResponseServiceImpl(implicit statusInfoProvider: StatusProvider,
         sb.append(
           i.toString
             .replace("\n", "<br>")
-            .replace("\t", "<nbsp>"))
+            .replace("\t", "<nbsp>")
+        )
         sb.append("<br><br>")
       })
 
