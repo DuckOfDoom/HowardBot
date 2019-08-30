@@ -148,6 +148,11 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
       result match {
         case Right((Some(mainOutput), additionalPages)) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
+          
+          if (mainOutput.isEmpty) {
+            logger.error("Main output is empty. Skipping this refresh to no overwrite the menu.")
+            return
+          }
 
           val beersMap: mutable.Map[Int, Beer]                                = mutable.Map()
           val stylesMap: mutable.Map[Int, Style]                              = mutable.Map()
@@ -189,7 +194,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
         case Right(_) =>
           logger.error(s"Refresh failed! Got empty results!")
         case Left(ex) => 
-          logger.error(s"Refresh due to exception:${ex}")
+          logger.error(s"Refresh due to exception:$ex")
       }
     }
 
