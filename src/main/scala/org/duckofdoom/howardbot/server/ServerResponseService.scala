@@ -49,9 +49,12 @@ class ServerResponseServiceImpl(
           br(),
           s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
           br(),
-          beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
-            .map { case (c, price) => c + price }
-            .getOrElse("price = ?"),
+          beer.draftType match {
+            case Some(dr) => dr + " - " + beer.price
+              .map { case (c, price) => c + price }
+              .getOrElse("price = ?")
+            case None => "On Deck"
+          },
           br(),
           s"${beer.description.getOrElse("description = ?")}",
           br(),
