@@ -5,8 +5,8 @@ import cats.syntax.option._
 
 object Consts {
 
-  val showItemPrefix = "/show"
-  val showStylePrefix = "/showStyle"
+  val showItemPrefix = "/beer"
+  val showStylePrefix = "/style"
   
   val showItemRegex: Regex = (showItemPrefix + "(\\d+)").r
   val showItemsByStyleRegex: Regex = (showStylePrefix + "(\\d+)").r
