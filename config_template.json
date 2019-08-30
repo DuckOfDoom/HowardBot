@@ -2,6 +2,7 @@
   "parallelismLevel": 100,
   "startBot": true,
   "startServer": true,
+  "httpRequestTimeout": 30,
   "token": "YOUR_BOT_TOKEN",
   "serverAddress": "localhost",
   "serverPort": 8080,
