@@ -36,7 +36,7 @@ class ResponseHelper(
       withStyleLink: Boolean
   ): generic.Frag[Builder, String] = {
     frag(
-      a(href := beer.link.getOrElse("?"))("🍺 " + beer.name.getOrElse("name = ?")),
+      a(href := beer.link.getOrElse("link = ?"))("🍺 " + beer.name.getOrElse("name = ?")),
       beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
       "\n",
       s"Стиль: ${beer.style
@@ -51,14 +51,17 @@ class ResponseHelper(
       "\n",
       s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
-        .map { case (c, price) => c + price }
-        .getOrElse("?"),
+      beer.draftType match {
+        case Some(dr) => dr + " - " + beer.price
+          .map { case (c, price) => c + price }
+          .getOrElse("price = ?")
+        case None => "On Deck"
+      },
       "\n",
       if (!verbose)
         s"Подробнее: ${Consts.showItemPrefix}${beer.id}"
       else
-        s"\n${beer.description.getOrElse("?")}",
+        s"\n${beer.description.getOrElse("description = ?")}",
       "\n\n"
     )
   }
