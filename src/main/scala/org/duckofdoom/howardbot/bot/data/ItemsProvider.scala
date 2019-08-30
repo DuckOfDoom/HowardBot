@@ -143,7 +143,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
                 )
       } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
 
-      val result = Try(Await.result(resultsFuture, 5.second)).toEither
+      val result = Try(Await.result(resultsFuture, config.httpRequestTimeout seconds)).toEither
 
       result match {
         case Right((Some(mainOutput), additionalPages)) =>
