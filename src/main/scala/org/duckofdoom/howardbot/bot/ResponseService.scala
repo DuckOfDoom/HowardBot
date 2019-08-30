@@ -29,11 +29,21 @@ trait ResponseService {
       styleId: Int,
       page: Int
   )(implicit format: ResponseFormat): (String, InlineKeyboardMarkup)
+
+//  def mkSearchForBeerResponse(query: String, page: Int)(
+//      implicit format: ResponseFormat
+//  ): (String, InlineKeyboardMarkup)
+//
+//  def mkSearchForStyleResponse(query: String, page: Int)(
+//      implicit format: ResponseFormat
+//  ): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     extends ResponseService
     with StrictLogging {
+  
+  val helper = new ResponseHelper()
 
   override def mkMenuResponse(
       page: Int
@@ -41,7 +51,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
     val beers = itemsProvider.beers.sortBy(i => i.id)
 
-    mkPaginatedResponse(
+    helper.mkPaginatedResponse(
       beers,
       page,
       p => CallbackUtils.mkMenuCallbackData(p.some, newMessage = false),
@@ -49,9 +59,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
-          mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+          helper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
         case ResponseFormat.Buttons =>
-          mkBeerButtonInfo(beer)
+          helper.mkBeerButtonInfo(beer)
       }
     }(CallbackType.Menu)
   }
@@ -67,7 +77,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
     val stylesWithCountsMap = stylesWithCounts.toMap
 
-    mkPaginatedResponse(
+    helper.mkPaginatedResponse(
       stylesWithCounts.sortBy(_._2).reverse.map(_._1),
       page,
       p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = false),
@@ -76,9 +86,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       val count = stylesWithCountsMap.getOrElse(style, 0)
       format match {
         case ResponseFormat.TextMessage =>
-          mkStyleHtmlInfo(style, count)
+          helper.mkStyleHtmlInfo(style, count)
         case ResponseFormat.Buttons =>
-          mkStyleButtonInfo(style, count)
+          helper.mkStyleButtonInfo(style, count)
       }
 
     }(callbackType = CallbackType.Styles)
@@ -88,7 +98,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       implicit format: ResponseFormat
   ): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findBeersByStyle(styleId)
-    mkPaginatedResponse(
+    helper.mkPaginatedResponse(
       items,
       page,
       p => CallbackUtils.mkItemsByStyleCallbackData(styleId, p),
@@ -96,9 +106,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
-          mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+          helper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
         case ResponseFormat.Buttons =>
-          mkBeerButtonInfo(beer)
+          helper.mkBeerButtonInfo(beer)
       }
     }(CallbackType.ItemsByStyle)
   }
@@ -110,9 +120,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     (
       format match {
         case ResponseFormat.TextMessage =>
-          mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render
+          helper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render
         case ResponseFormat.Buttons =>
-          mkBeerButtonInfo(beer)
+          helper.mkBeerButtonInfo(beer)
       },
       InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true)))
     )
@@ -125,128 +135,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case Some(beer) => mkBeerResponse(beer)
       case None =>
         (
-          mkItemNotFoundResponse("Item", itemId),
+          helper.mkItemNotFoundResponse("Item", itemId),
           InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true)))
         )
     }
-  }
-
-  private def mkItemNotFoundResponse(
-      itemType: String,
-      itemId: Int
-  ): String = {
-    s"Позиции с ID '$itemId' и типом '$itemType' не существует."
-  }
-
-  // TODO: Move all string-producing stuff to separate class
-  private def mkBeerHtmlInfo(
-      beer: Beer,
-      verbose: Boolean,
-      withStyleLink: Boolean
-  ): generic.Frag[Builder, String] = {
-    frag(
-      a(href := beer.link.getOrElse("?"))("🍺 " + beer.name.getOrElse("name = ?")),
-      beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
-      "\n",
-      s"Стиль: ${beer.style
-      // TODO: Think about error handling here
-        .map(style => {
-          if (withStyleLink)
-            s"$style (${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("BROKEN")})"
-          else
-            style.toString
-        })
-        .getOrElse("style = ? ")}",
-      "\n",
-      s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
-      "\n",
-      beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
-        .map { case (c, price) => c + price }
-        .getOrElse("?"),
-      "\n",
-      if (!verbose)
-        s"Подробнее: ${Consts.showItemPrefix}${beer.id}"
-      else
-        s"\n${beer.description.getOrElse("?")}",
-      "\n\n"
-    )
-  }
-
-  private def mkBeerButtonInfo(beer: Beer): String = {
-    // Multiline strings do not work anyways =(
-    s"${beer.name.getOrElse("name = ?")}"
-  }
-
-  private def mkStyleHtmlInfo(style: Style, itemsCount: Int): String = {
-    s"${style.name}: $itemsCount - ${Consts.showStylePrefix}${style.id}\n"
-  }
-
-  private def mkStyleButtonInfo(style: Style, itemsCount: Int): String = {
-    s"${style.name}: $itemsCount"
-  }
-
-  private def mkPaginatedResponse[A <: Item, TPayload](
-      allItems: List[A],
-      page: Int,
-      mkCallbackData: Int => String,
-      // Try to render allItems as buttons, do not render them into message
-      renderAsButtons: Boolean
-  )(
-      renderItem: A => generic.Frag[Builder, String]
-  )(implicit callbackType: CallbackType): (String, InlineKeyboardMarkup) = {
-
-    val itemsPerPage = callbackType match {
-      case CallbackType.Styles                           => config.stylesPerPage
-      case CallbackType.Menu | CallbackType.ItemsByStyle => config.menuItemsPerPage
-      case _                                             => throw new Exception(s"Unknown callback type '$callbackType'!")
-    }
-
-    var totalPages = allItems.length / itemsPerPage
-    if (allItems.length % itemsPerPage != 0)
-      totalPages += 1
-
-    val p = page.clamp(1, totalPages)
-    val paginationMarkup = InlineKeyboardMarkup(
-      Seq(
-        PaginationUtils
-          .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, mkCallbackData),
-        CallbackUtils.mkAdditionalButtons(
-          callbackType != CallbackType.Menu,
-          callbackType != CallbackType.Styles
-        )
-      )
-    )
-
-    val selectedItems =
-      allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
-
-    // Instead of rendering allItems into a message, render them as buttons
-    var messageContents: String      = "Пожалуйста:"
-    var markup: InlineKeyboardMarkup = paginationMarkup
-
-    if (renderAsButtons) {
-      val itemsMarkup = InlineKeyboardMarkup.singleColumn(
-        selectedItems.map(item => {
-          InlineKeyboardButton(
-            renderItem(item).render,
-            CallbackUtils.mkItemCallback(item)
-          )
-        })
-      )
-
-      // Merge markup with pagination.
-      // Layout is as follows: Seq( Row(Column(..), Column(..), ..), Row(Column(..), Column(..), ..), ..)
-
-      markup = InlineKeyboardMarkup(itemsMarkup.inlineKeyboard ++ markup.inlineKeyboard)
-
-    } else {
-      messageContents = frag(
-        selectedItems.map(i => {
-          renderItem(i)
-        })
-      ).render
-    }
-
-    (messageContents, markup)
   }
 }
