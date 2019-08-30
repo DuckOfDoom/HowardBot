@@ -9,8 +9,9 @@ import org.duckofdoom.howardbot.utils.HttpService
 import slogging.StrictLogging
 
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
 
 trait ItemsProvider {
 
@@ -114,13 +115,13 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 }
 
 /**
-  * Beers provider that can refresh itself via parsing html
+  * Items provider that can refresh itself via parsing html
   */
 class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
     extends ItemsProviderBase {
 
   logger.info(
-    s"ParsedBeersDataProvider created. Refresh period: ${config.menuRefreshPeriod} seconds."
+    s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
   )
 
   override def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
@@ -142,10 +143,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
                 )
       } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
 
-      val result = Await.result(resultsFuture, Duration.Inf)
+      val result = Try(Await.result(resultsFuture, 5.second)).toEither
 
       result match {
-        case (Some(mainOutput), additionalPages) =>
+        case Right((Some(mainOutput), additionalPages)) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
 
           val beersMap: mutable.Map[Int, Beer]                                = mutable.Map()
@@ -157,9 +158,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
           for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
             // Items without breweries are food, we ignore them for now
             if (item.breweryInfo.name.isDefined) {
-              
+
               if (item.style.isDefined) {
-                
+
                 val style = item.style.get
                 // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
                 if (beersByStyleMap.contains(style))
@@ -185,7 +186,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
               _lastRefreshTime = LocalDateTime.now
             }
           }
-        case _ => logger.error("Refresh failed, got empty results!")
+        case Right(_) =>
+          logger.error(s"Refresh failed! Got empty results!")
+        case Left(ex) => 
+          logger.error(s"Refresh due to exception:${ex}")
       }
     }
 

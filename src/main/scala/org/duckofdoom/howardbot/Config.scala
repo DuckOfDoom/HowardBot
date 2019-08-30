@@ -28,6 +28,7 @@ case class Config(
     parallelismLevel: Int,
     startBot: Boolean,
     startServer: Boolean,
+    httpRequestTimeout: Int,
     token: String,
     serverAddress: String,
     serverPort: Int,

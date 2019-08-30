@@ -14,7 +14,8 @@ import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerRes
 import org.duckofdoom.howardbot.utils.{HttpService, ScalajHttpService}
 import slogging.StrictLogging
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class App extends StrictLogging {
 
@@ -27,7 +28,8 @@ class App extends StrictLogging {
   implicit val config: Config = mConfig.get
 
   logger.info(
-    s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}")
+    s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}"
+  )
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
@@ -40,7 +42,10 @@ class App extends StrictLogging {
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 
-  dataProvider.startRefreshLoop
-  server.run
-  bot.run
+  Await.result(
+    Future.sequence(
+      Seq(dataProvider.startRefreshLoop, server.run, bot.run)
+    ),
+    Duration.Inf
+  )
 }

@@ -6,22 +6,25 @@ import slogging.StrictLogging
 
 trait HttpService {
   def makeRequestAsync(url: String)(
-      implicit executionContext: ExecutionContext): Future[Option[String]]
+      implicit executionContext: ExecutionContext
+  ): Future[Option[String]]
 }
 
 class ScalajHttpService extends HttpService with StrictLogging {
   import scalaj.http._
 
-  override def makeRequestAsync(url: String)(
-      implicit executionContext: ExecutionContext): Future[Option[String]] = {
+  override def makeRequestAsync(
+      url: String
+  )(implicit executionContext: ExecutionContext): Future[Option[String]] = {
     Future {
       logger.info(s"Requesting $url...")
+      Thread.sleep(5600000)
       val response: HttpResponse[String] = Http(url).asString
       response.code match {
         case 200 => {
           if (response.body.isEmpty)
             logger.error(s"Got empty string as a response body! Response:\n$response")
-          
+
           response.body.some
         }
         case _ =>
