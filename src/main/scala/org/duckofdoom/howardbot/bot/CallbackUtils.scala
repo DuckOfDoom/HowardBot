@@ -7,20 +7,12 @@ import com.bot4s.telegram.models.InlineKeyboardButton
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemType, Style}
 import org.duckofdoom.howardbot.utils.Extensions.AnyRefExtensions
-import org.duckofdoom.howardbot.utils.Locale
+import org.duckofdoom.howardbot.utils.StaticData
 import slogging.StrictLogging
 
 import scala.collection.mutable
 
 object CallbackUtils extends StrictLogging {
-
-  object CallbackType extends Enumeration {
-    type CallbackType = Value
-    val Menu: CallbackUtils.CallbackType.Value         = Value("Menu")
-    val Styles: CallbackUtils.CallbackType.Value       = Value("Styles")
-    val ItemsByStyle: CallbackUtils.CallbackType.Value = Value("ItemsByStyle")
-    val Item: CallbackUtils.CallbackType.Value         = Value("Item")
-  }
 
   def mkMenuCallbackData(page: Option[Int], newMessage: Boolean): String = {
     serializeCallback(Callback.Menu(page, newMessage))
@@ -46,23 +38,12 @@ object CallbackUtils extends StrictLogging {
     serializeCallback(Callback.Item(itemType, item.id)).some
   }
 
-  def mkAdditionalButtons(menu: Boolean, styles: Boolean): Seq[InlineKeyboardButton] = {
-    var buttonsList = mutable.MutableList[InlineKeyboardButton]()
-    if (menu) {
-      buttonsList += InlineKeyboardButton.callbackData(
-        Locale.menu,
-        mkMenuCallbackData(None, newMessage = false)
-      )
-    }
-
-    if (styles) {
-      buttonsList += InlineKeyboardButton.callbackData(
-        Locale.styles,
-        mkStylesCallbackData(None, newMessage = false)
-      )
-    }
-
-    buttonsList
+  def mkSearchBeerByNameCallback(query: String, page: Int): String = {
+    serializeCallback(Callback.SearchBeerByName(query, page))
+  }
+  
+  def mkSearchBeerByStyleCallback(query: String, page: Int): String = {
+    serializeCallback(Callback.SearchBeerByStyle(query, page))
   }
 
   private def serializeCallback(callbackData: Callback): String = {
@@ -80,12 +61,23 @@ object CallbackUtils extends StrictLogging {
 
 sealed abstract class Callback extends Product with Serializable
 
-object Callback extends StrictLogging {
+object Callback extends Enumeration with StrictLogging {
+
+  object Type extends Enumeration {
+    val Menu: Type.Value              = Value("Menu")
+    val Styles: Type.Value            = Value("Styles")
+    val ItemsByStyle: Type.Value      = Value("ItemsByStyle")
+    val Item: Type.Value              = Value("Item")
+    val SearchBeerByName: Type.Value  = Value("SearchBeerByName")
+    val SearchBeerByStyle: Type.Value = Value("SearchBeerByStyle")
+  }
 
   final case class Menu(page: Option[Int], newMessage: Boolean)   extends Callback
   final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
   final case class ItemsByStyle(styleId: Int, page: Int)          extends Callback
   final case class Item(itemType: ItemType, itemId: Int)          extends Callback
+  final case class SearchBeerByName(query: String, page: Int)     extends Callback
+  final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
 
   implicit class SerializableCallback(c: Callback) {
 
@@ -109,6 +101,14 @@ object Callback extends StrictLogging {
           stream.writeShort(4)
           stream.writeShort(itemType.id)
           stream.writeShort(itemId)
+        case SearchBeerByName(query, page) =>
+          stream.writeShort(5)
+          stream.writeUTF(query)
+          stream.writeShort(page)
+        case SearchBeerByStyle(query, page) =>
+          stream.writeShort(6)
+          stream.writeUTF(query)
+          stream.writeShort(page)
       }
 
       byteArrayInputStream.toByteArray
@@ -139,6 +139,14 @@ object Callback extends StrictLogging {
           val itemType = ItemType(stream.readShort())
           val itemId   = stream.readShort()
           Item(itemType, itemId)
+        case 5 =>
+          val query = stream.readUTF()
+          val page  = stream.readShort()
+          SearchBeerByName(query, page)
+        case 6 =>
+          val query = stream.readUTF()
+          val page  = stream.readShort()
+          SearchBeerByStyle(query, page)
       }
 
       result.some

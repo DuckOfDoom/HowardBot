@@ -1,12 +1,11 @@
 import cats.syntax.option._
 import com.bot4s.telegram.models.InlineKeyboardButton
-import org.duckofdoom.howardbot.bot.CallbackUtils
-import org.duckofdoom.howardbot.bot.CallbackUtils.CallbackType
+import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils}
 import org.duckofdoom.howardbot.utils.PaginationUtils
 import org.scalatest.{FunSuite, Matchers}
 
 class PaginationUtilsTests extends FunSuite with Matchers {
-  implicit val callbackType: CallbackUtils.CallbackType.Value = CallbackType.Menu
+  implicit val callbackType: Callback.Type.Value = Callback.Type.Menu
 
   private def result(currentPage: Int, itemsCount: Int)(implicit itemsPerPage: Int) = {
     PaginationUtils.mkButtonsForPaginatedQuery(currentPage, itemsPerPage, itemsCount, page => CallbackUtils.mkMenuCallbackData(page.some, newMessage = false))

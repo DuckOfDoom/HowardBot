@@ -1,18 +1,12 @@
 package org.duckofdoom.howardbot.bot
 
-import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
-import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.utils.Extensions._
-import CallbackUtils.CallbackType
-import CallbackUtils.CallbackType.CallbackType
-import org.duckofdoom.howardbot.bot.data.{Beer, Item, Style, ItemsProvider}
-import scalatags.Text.all._
-import org.duckofdoom.howardbot.utils.PaginationUtils
-import scalatags.generic
-import scalatags.text.Builder
-import slogging.StrictLogging
 import cats.syntax.option._
+import com.bot4s.telegram.models.InlineKeyboardMarkup
+import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
+import scalatags.Text.all._
+import slogging.StrictLogging
 
 object ResponseFormat extends Enumeration {
   type ResponseFormat = Value
@@ -30,20 +24,21 @@ trait ResponseService {
       page: Int
   )(implicit format: ResponseFormat): (String, InlineKeyboardMarkup)
 
-//  def mkSearchForBeerResponse(query: String, page: Int)(
-//      implicit format: ResponseFormat
-//  ): (String, InlineKeyboardMarkup)
-//
-//  def mkSearchForStyleResponse(query: String, page: Int)(
-//      implicit format: ResponseFormat
-//  ): (String, InlineKeyboardMarkup)
+  def mkSearchBeerByNameResponse(query: String, page: Int)(
+      implicit format: ResponseFormat
+  ): (String, InlineKeyboardMarkup)
+
+  def mkSearchBeerByStyleResponse(query: String, page: Int)(
+      implicit format: ResponseFormat
+  ): (String, InlineKeyboardMarkup)
 }
 
 class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     extends ResponseService
     with StrictLogging {
-  
-  val helper = new ResponseHelper()
+
+  implicit val keyboardHelper: KeyboardHelper = new KeyboardHelper()
+  val responseHelper                          = new ResponseHelper()
 
   override def mkMenuResponse(
       page: Int
@@ -51,19 +46,19 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
     val beers = itemsProvider.beers.sortBy(i => i.id)
 
-    helper.mkPaginatedResponse(
+    responseHelper.mkPaginatedResponse(
       beers,
       page,
-      p => CallbackUtils.mkMenuCallbackData(p.some, newMessage = false),
-      renderAsButtons = format == ResponseFormat.Buttons
+      Callback.Type.Menu,
+      p => CallbackUtils.mkMenuCallbackData(p.some, newMessage = false)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
-          helper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+          responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
         case ResponseFormat.Buttons =>
-          helper.mkBeerButtonInfo(beer)
+          responseHelper.mkBeerButtonInfo(beer)
       }
-    }(CallbackType.Menu)
+    }
   }
 
   override def mkStylesResponse(
@@ -77,40 +72,39 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
     val stylesWithCountsMap = stylesWithCounts.toMap
 
-    helper.mkPaginatedResponse(
+    responseHelper.mkPaginatedResponse(
       stylesWithCounts.sortBy(_._2).reverse.map(_._1),
       page,
-      p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = false),
-      renderAsButtons = format == ResponseFormat.Buttons
+      Callback.Type.Styles,
+      p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = false)
     ) { style =>
       val count = stylesWithCountsMap.getOrElse(style, 0)
       format match {
         case ResponseFormat.TextMessage =>
-          helper.mkStyleHtmlInfo(style, count)
+          responseHelper.mkStyleHtmlInfo(style, count)
         case ResponseFormat.Buttons =>
-          helper.mkStyleButtonInfo(style, count)
+          responseHelper.mkStyleButtonInfo(style, count)
       }
-
-    }(callbackType = CallbackType.Styles)
+    }
   }
 
   override def mkBeersByStyleResponse(styleId: Int, page: Int)(
       implicit format: ResponseFormat
   ): (String, InlineKeyboardMarkup) = {
     val items = itemsProvider.findBeersByStyle(styleId)
-    helper.mkPaginatedResponse(
+    responseHelper.mkPaginatedResponse(
       items,
       page,
-      p => CallbackUtils.mkItemsByStyleCallbackData(styleId, p),
-      renderAsButtons = format == ResponseFormat.Buttons
+      Callback.Type.ItemsByStyle,
+      p => CallbackUtils.mkItemsByStyleCallbackData(styleId, p)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
-          helper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+          responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
         case ResponseFormat.Buttons =>
-          helper.mkBeerButtonInfo(beer)
+          responseHelper.mkBeerButtonInfo(beer)
       }
-    }(CallbackType.ItemsByStyle)
+    }
   }
 
   override def mkBeerResponse(
@@ -120,11 +114,11 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     (
       format match {
         case ResponseFormat.TextMessage =>
-          helper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render
+          responseHelper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render
         case ResponseFormat.Buttons =>
-          helper.mkBeerButtonInfo(beer)
+          responseHelper.mkBeerButtonInfo(beer)
       },
-      InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true)))
+      keyboardHelper.mkDefaultButtons()
     )
   }
 
@@ -135,9 +129,61 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case Some(beer) => mkBeerResponse(beer)
       case None =>
         (
-          helper.mkItemNotFoundResponse("Item", itemId),
-          InlineKeyboardMarkup(Seq(CallbackUtils.mkAdditionalButtons(menu = true, styles = true)))
+          responseHelper.mkItemNotFoundResponse("Item", itemId),
+          keyboardHelper.mkDefaultButtons()
         )
+    }
+  }
+
+  override def mkSearchBeerByNameResponse(query: String, page: Int)(
+      implicit format: ResponseFormat
+  ): (String, InlineKeyboardMarkup) = {
+    val searchResults = itemsProvider.beers
+      .withFilter(b => b.name.isDefined)
+      .withFilter(b => b.name.get.toLowerCase.contains(query.toLowerCase))
+      .map(identity)
+
+    if (searchResults.isEmpty)
+      return (responseHelper.mkEmptySeachResultsResponse(query), keyboardHelper.mkDefaultButtons())
+
+    responseHelper.mkPaginatedResponse(
+      searchResults,
+      page,
+      Callback.Type.SearchBeerByName,
+      p => CallbackUtils.mkSearchBeerByNameCallback(query, p)
+    ) { beer =>
+      format match {
+        case ResponseFormat.TextMessage =>
+          responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+        case ResponseFormat.Buttons =>
+          responseHelper.mkBeerButtonInfo(beer)
+      }
+    }
+  }
+
+  override def mkSearchBeerByStyleResponse(query: String, page: Int)(
+      implicit format: ResponseFormat
+  ): (String, InlineKeyboardMarkup) = {
+    val searchResults = itemsProvider.beers
+      .withFilter(b => b.style.isDefined)
+      .withFilter(b => b.style.get.toLowerCase.contains(query.toLowerCase))
+      .map(identity)
+
+    if (searchResults.isEmpty)
+      return (responseHelper.mkEmptySeachResultsResponse(query), keyboardHelper.mkDefaultButtons())
+
+    responseHelper.mkPaginatedResponse(
+      searchResults,
+      page,
+      Callback.Type.SearchBeerByStyle,
+      p => CallbackUtils.mkSearchBeerByStyleCallback(query, p)
+    ) { beer =>
+      format match {
+        case ResponseFormat.TextMessage =>
+          responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
+        case ResponseFormat.Buttons =>
+          responseHelper.mkBeerButtonInfo(beer)
+      }
     }
   }
 }

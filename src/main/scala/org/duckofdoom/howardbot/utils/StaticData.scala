@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot.utils
 
-object Locale {
+object StaticData {
   val menu = "Меню"
   val styles = "Стили"
 }

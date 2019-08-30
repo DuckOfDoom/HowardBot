@@ -9,7 +9,7 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.data.{Beer, ItemType, Style}
+import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.Extensions._
@@ -105,6 +105,16 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                     newMessage = true
                   ).some
               }
+            case Some(Callback.SearchBeerByName(searchQuery, page)) =>
+              respond(
+                responseService.mkSearchBeerByNameResponse(searchQuery, page)(ResponseFormat.TextMessage),
+                newMessage = false
+              ).some
+            case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
+              respond(
+                responseService.mkSearchBeerByStyleResponse(searchQuery, page)(ResponseFormat.TextMessage),
+                newMessage = false
+              ).some
             case _ =>
               None
           }
@@ -148,6 +158,16 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       case Consts.showItemsByStyleRegex(Int(styleId)) =>
         respond(
           responseService.mkBeersByStyleResponse(styleId, 1)(ResponseFormat.TextMessage),
+          newMessage = true
+        ).void
+      case Consts.SearchBeerByNameQuery(query) =>
+        respond(
+          responseService.mkSearchBeerByNameResponse(query, 1)(ResponseFormat.TextMessage),
+          newMessage = true
+        ).void
+      case Consts.SearchBeerByStyleQuery(query) =>
+        respond(
+          responseService.mkSearchBeerByStyleResponse(query, 1)(ResponseFormat.TextMessage),
           newMessage = true
         ).void
       case _ => super.receiveMessage(msg)
