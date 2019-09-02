@@ -89,8 +89,8 @@ class ResponseHelper(
   )(
       renderItem: A => generic.Frag[Builder, String]
   )(implicit responseFormat: ResponseFormat): (String, InlineKeyboardMarkup) = {
-
-    val itemsPerPage = Callback.Type match {
+    
+    val itemsPerPage = callbackType match {
       case Callback.Type.Styles => config.stylesPerPage
       case _                    => config.menuItemsPerPage
     }
