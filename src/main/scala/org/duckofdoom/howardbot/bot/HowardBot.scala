@@ -8,7 +8,6 @@ import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
-import doobie.util.query
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.db.DB
@@ -60,7 +59,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from "Menu" button
             case Some(Callback.Menu(page, newMessage)) =>
               
-              logger.info(s"Received 'Menu' callback from user ${u.username}. Page: $page, newMessage: $newMessage")
+              logger.info(s"Received 'Menu' callback from user @${u.username}. Page: $page, newMessage: $newMessage")
               
               if (page.isDefined) {
                 u.state.menuPage = page.get
@@ -75,7 +74,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from "Styles" button
             case Some(Callback.Styles(page, newMessage)) =>
               
-              logger.info(s"Received 'Styles' callback from user ${u.username}. Page: $page, newMessage: $newMessage")
+              logger.info(s"Received 'Styles' callback from user @${u.username}. Page: $page, newMessage: $newMessage")
               
               if (page.isDefined) {
                 u.state.menuPage = page.get
@@ -92,7 +91,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
               
-              logger.info(s"Received 'ItemsByStyle' callback from user ${u.username}. Style: $style, page: $page")
+              logger.info(s"Received 'ItemsByStyle' callback from user @${u.username}. Style: $style, page: $page")
               
               respond(
                 responseService.mkBeersByStyleResponse(style, page)(ResponseFormat.TextMessage),
@@ -102,7 +101,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from clicking on a particular item button (either beer or style)
             case Some(Callback.Item(itemType, itemId)) =>
               
-              logger.info(s"Received 'Item' callback from user ${u.username}. ItemType: $itemType, itemId: $itemId")
+              logger.info(s"Received 'Item' callback from user @${u.username}. ItemType: $itemType, itemId: $itemId")
               
               itemType match {
                 case ItemType.Beer =>
@@ -118,7 +117,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               }
             case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
               
-              logger.info(s"Received 'SearchBeerByStyle' callback from user ${u.username}. Query: '$searchQuery', page: $page")
+              logger.info(s"Received 'SearchBeerByStyle' callback from user @${u.username}. Query: '$searchQuery', page: $page")
               
               respond(
                 responseService.mkSearchBeerByStyleResponse(searchQuery, page)(ResponseFormat.TextMessage),
@@ -126,7 +125,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               ).some
             case Some(Callback.SearchBeerByName(searchQuery, page)) =>
               
-              logger.info(s"Received 'SearchBeerByName' callback from user ${u.username}. Query: '$searchQuery', page: $page")
+              logger.info(s"Received 'SearchBeerByName' callback from user @${u.username}. Query: '$searchQuery', page: $page")
               
               respond(
                 responseService.mkSearchBeerByNameResponse(searchQuery, page)(ResponseFormat.TextMessage),

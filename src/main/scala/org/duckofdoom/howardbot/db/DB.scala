@@ -67,10 +67,10 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
     sql"""
     CREATE TABLE IF NOT EXISTS users (  
       id SERIAL UNIQUE,
-      userId INTEGER,
+      userid INTEGER NOT NULL,
+      firstname VARCHAR NOT NULL,
+      lastname VARCHAR,
       username VARCHAR,
-      firstName VARCHAR,
-      lastName VARCHAR,
       state VARCHAR DEFAULT '{}' 
     )""".update.run
       .transact(transactor)
@@ -106,12 +106,12 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
               firstName: String,
               lastName: Option[String],
               username: Option[String]): Option[User] = {
-    logger.info(s"Creating new user: $userId / $username / $firstName / $lastName")
+    logger.info(s"Creating new user: $userId / $firstName / $lastName / $username")
 
     val conn = for {
       _ <- sql"""
-            insert into users (userId, username, firstName, lastName) 
-            values ($userId, $username, $firstName, $lastName)""".update.run
+            insert into users (userId, firstName, lastName, username) 
+            values ($userId, $firstName, $lastName, $username)""".update.run
 
       id <- sql"select lastval()".query[Long].unique
       p  <- selectUserQuery(id)
