@@ -24,13 +24,11 @@ class SortingTests extends FunSuite with Matchers {
   }
 
   def mkBeers(): Seq[Beer] = {
-    scala.util.Random.shuffle(
-      Seq(
-        mkBeer(1, "Z", (5f, 4f), "B", "J", "300ml", 300),
-        mkBeer(2, "F", (4f, 4f), "T", "X", "50cl", 5000),
-        mkBeer(3, "O", (1f, 4f), "M","R", "400 ml", 200),
-        mkBeer(4, "K", (4f, 4f), "M","J", "50cl", 5000)
-      )
+    Seq(
+      mkBeer(1, "Z", (5f, 4f), "B", "J", "300ml", 300),
+      mkBeer(2, "F", (4f, 4f), "T", "X", "50cl", 5000),
+      mkBeer(3, "O", (1f, 4f), "M", "R", "400 ml", 200),
+      mkBeer(4, "K", (4f, 4f), "M", "J", "50cl", 5000)
     )
   }
 
@@ -39,7 +37,7 @@ class SortingTests extends FunSuite with Matchers {
   }
   
   test("Sort by style") {
-    Sorting.sort(mkBeers(), Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(1, 4, 3, 2)
+    Sorting.sort(mkBeers(), Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(1, 3, 4, 2)
   }
   
   test("Sort by rating") {
@@ -48,5 +46,17 @@ class SortingTests extends FunSuite with Matchers {
   
   test("Sort by price per ml") {
     Sorting.sort(mkBeers(), Sorting.byPriceForMl).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 2, 4)
+  }
+  
+  test("Sort by style and name") {
+    Sorting.sort(mkBeers(), Sorting.byStyle, Sorting.byName).map(_.id) should contain theSameElementsInOrderAs Seq(1, 4, 3, 2)
+  }
+  
+  test("Sort by rating and style") {
+    Sorting.sort(mkBeers(), Sorting.byRating, Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(3, 4, 2, 1)
+  }
+  
+  test("Sort by price and brewery") {
+    Sorting.sort(mkBeers(), Sorting.byPriceForMl, Sorting.byBrewery).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 4, 2)
   }
 }
