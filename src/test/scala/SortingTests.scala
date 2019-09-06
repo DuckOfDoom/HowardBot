@@ -4,55 +4,31 @@ import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.Sorting
 
 class SortingTests extends FunSuite with Matchers {
+  
+  private def mkBeer(id:Int, name:String, rating:(Float, Float), style:String, breweryName: String, draftType : String, price:Float) : Beer = {
+    Beer(
+      id,
+      None,
+      name.some,
+      rating.some,
+      None,
+      None,
+      None,
+      None,
+      BreweryInfo(breweryName.some, None, None),
+      style.some,
+      draftType.some,
+      ("", price).some,
+      None
+    )
+  }
 
   private def mkBeers(): Seq[Beer] = {
     scala.util.Random.shuffle(
       Seq(
-        Beer(
-          1,
-          None,
-          "Z".some,      // name
-          (5f, 4f).some, // rating
-          None,
-          None,
-          None,
-          None,
-          BreweryInfo("B".some, None, None),
-          "J".some,
-          "300ml".some,
-          ("", 300f).some, // 300/500 = 1
-          None
-        ),
-        Beer(
-          2,
-          None,
-          "F".some,      // name
-          (4f, 4f).some, // rating
-          None,
-          None,
-          None,
-          None,
-          BreweryInfo("T".some, None, None),
-          "X".some,
-          "50cl".some,
-          ("", 5000f).some, // 5000/500 = 10 
-          None
-        ),
-        Beer(
-          3,
-          None,
-          "O".some,      // name
-          (1f, 4f).some, // rating
-          None,
-          None,
-          None,
-          None,
-          BreweryInfo("M".some, None, None),
-          "R".some,
-          "400 ml".some,
-          ("", 200f).some, // 200/400 = 0.5 
-          None
-        )
+        mkBeer(1, "Z", (5f, 4f), "B", "J", "300ml", 300),
+        mkBeer(2, "F", (4f, 4f), "T", "X", "50cl", 5000),
+        mkBeer(3, "O", (1f, 4f), "M","R", "400 ml", 200)
       )
     )
   }
