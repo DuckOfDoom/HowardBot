@@ -58,19 +58,22 @@ class SortingTests extends FunSuite with Matchers {
   }
 
   test("Sort by name") {
-   Sorting.sort(mkBeers(), Seq(Sorting.byName)).map(_.id) should contain theSameElementsInOrderAs Seq(2, 3, 1)
+   Sorting.sort(mkBeers(), Sorting.byName).map(_.id) should contain theSameElementsInOrderAs Seq(2, 3, 1)
+  }
+  
+  test("Sort by name and style") {
+    Sorting.sort(mkBeers(), Sorting.byName, Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(2, 3, 1)
   }
   
   test("Sort by style") {
-    Sorting.sort(mkBeers(), Seq(Sorting.byStyle)).map(_.id) should contain theSameElementsInOrderAs Seq(1, 3, 2)
+    Sorting.sort(mkBeers(), Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(1, 3, 2)
   }
   
   test("Sort by rating") {
-    Sorting.sort(mkBeers(), Seq(Sorting.byRating)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 2, 1)
+    Sorting.sort(mkBeers(), Sorting.byRating).map(_.id) should contain theSameElementsInOrderAs Seq(3, 2, 1)
   }
   
   test("Sort by price per ml") {
-    Sorting.sort(mkBeers(), Seq(Sorting.byPriceForMl)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 2)
+    Sorting.sort(mkBeers(), Sorting.byPriceForMl).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 2)
   }
-
 }

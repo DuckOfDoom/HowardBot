@@ -44,7 +44,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       page: Int
   )(implicit format: ResponseFormat): (String, InlineKeyboardMarkup) = {
 
-    val beers = itemsProvider.beers.sortBy(i => i.id)
+    val beers = Sorting.sort(itemsProvider.beers, Sorting.byStyle, Sorting.byName).toList
 
     responseHelper.mkPaginatedResponse(
       beers,
