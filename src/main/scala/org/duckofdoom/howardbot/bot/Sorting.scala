@@ -61,9 +61,9 @@ object Sorting extends Enumeration {
   }
 
   @inline
-  private def compareOption[A](a: Option[A], b: Option[A])(implicit ord: Ordering[A]): Int = {
-    (a, b) match {
-      case (Some(a1), Some(a2)) => ord.compare(a1, a2)
+  private def compareOption[A](x: Option[A], y: Option[A])(implicit ord: Ordering[A]): Int = {
+    (x, y) match {
+      case (Some(a), Some(b)) => ord.compare(a, b)
       case (Some(_), None)      => -1
       case (None, Some(_))      => 1
     }
