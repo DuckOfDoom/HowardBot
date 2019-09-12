@@ -99,7 +99,7 @@ object Sorting extends Enumeration {
         case Sorting.byRatingDec => "v Рейтинг v"
 
         case Sorting.byPriceForMl    => "^ Цена ^"
-        case Sorting.byPriceForMlDec => "^ Цена ^"
+        case Sorting.byPriceForMlDec => "v Цена v"
 
         case Sorting.byBrewery    => "^ Пивоварня ^"
         case Sorting.byBreweryDec => "v Пивоварня v"

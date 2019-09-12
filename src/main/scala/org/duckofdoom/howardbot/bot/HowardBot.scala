@@ -158,7 +158,9 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                 ).some
               } else {
                 
-                u.state.sorting :+ mSorting.get
+                u.state.sorting = u.state.sorting :+ mSorting.get
+                
+                logger.info("updated sorting: " + u.state.sorting)
                 
                 respond(
                   responseService.mkChangeSortingResponse(u.state.sorting),
