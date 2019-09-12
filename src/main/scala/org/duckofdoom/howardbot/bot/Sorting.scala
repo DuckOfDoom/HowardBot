@@ -10,11 +10,20 @@ object Sorting extends Enumeration {
 
   type Sorting = Value
 
-  val byName: bot.Sorting.Value       = Value("n")
-  val byStyle: bot.Sorting.Value      = Value("s")
-  val byRating: bot.Sorting.Value     = Value("r")
-  val byPriceForMl: bot.Sorting.Value = Value("p")
+  val byName: bot.Sorting.Value    = Value("n")
+  val byNameDec: bot.Sorting.Value = Value("nd")
+
+  val byStyle: bot.Sorting.Value    = Value("sd")
+  val byStyleDec: bot.Sorting.Value = Value("sd")
+
+  val byRating: bot.Sorting.Value    = Value("r")
+  val byRatingDec: bot.Sorting.Value = Value("rd")
+
+  val byPriceForMl: bot.Sorting.Value    = Value("p")
+  val byPriceForMlDec: bot.Sorting.Value = Value("pd")
+
   val byBrewery: bot.Sorting.Value    = Value("b")
+  val byBreweryDec: bot.Sorting.Value = Value("bd")
 
   val mlRegex: Regex = "(\\d+)\\s*ml".r
   val clRegex: Regex = "(\\d+)\\s*cl".r
@@ -33,26 +42,23 @@ object Sorting extends Enumeration {
             break
 
           s match {
-            case Sorting.byName   => value = compareOption(x.name, y.name)
-            case Sorting.byStyle  => value = compareOption(x.style, y.style)
+            case Sorting.byName    => value = compareOption(x.name, y.name)
+            case Sorting.byNameDec => value = compareOption(y.name, x.name)
+
+            case Sorting.byStyle    => value = compareOption(x.style, y.style)
+            case Sorting.byStyleDec => value = compareOption(y.style, x.style)
+
             case Sorting.byRating => value = compareOption(x.rating.map(_._1), y.rating.map(_._1))
-            case Sorting.byPriceForMl =>
-              def getPriceForMl(b: Beer) = {
-                val priceForMl = for {
-                  price <- b.price.map(_._2)
-                  volume <- b.draftType.flatMap {
-                             case Sorting.mlRegex(ml) => Try(ml.toFloat).toOption
-                             case Sorting.clRegex(cl) => Try(cl.toFloat * 10).toOption
-                             case _                   => Option.empty[Float]
-                           }
-                } yield price / volume
+            case Sorting.byRatingDec =>
+              value = compareOption(y.rating.map(_._1), x.rating.map(_._1))
 
-                priceForMl
-              }
-
-              value = compareOption(getPriceForMl(x), getPriceForMl(y));
+            case Sorting.byPriceForMl => value = compareOption(getPriceForMl(x), getPriceForMl(y));
+            case Sorting.byPriceForMlDec =>
+              value = compareOption(getPriceForMl(y), getPriceForMl(x));
 
             case Sorting.byBrewery => value = compareOption(x.breweryInfo.name, y.breweryInfo.name)
+            case Sorting.byBreweryDec =>
+              value = compareOption(y.breweryInfo.name, x.breweryInfo.name)
           }
         }
       }
@@ -60,6 +66,10 @@ object Sorting extends Enumeration {
     }
   }
 
+  def sort(seq: Seq[Beer], sortings: Sorting*): Seq[Beer] = {
+    seq.sortBy(identity)(new BeerOrdering(sortings: _*))
+  }
+    
   @inline
   private def compareOption[A](x: Option[A], y: Option[A])(implicit ord: Ordering[A]): Int = {
     (x, y) match {
@@ -70,50 +80,18 @@ object Sorting extends Enumeration {
     }
   }
 
-  def sort(seq: Seq[Beer], sortings: Sorting*): Seq[Beer] = {
-    seq.sortBy(identity)(new BeerOrdering(sortings: _*))
+  @inline
+  private def getPriceForMl(b: Beer) = {
+    val priceForMl = for {
+      price <- b.price.map(_._2)
+      volume <- b.draftType.flatMap {
+                 case Sorting.mlRegex(ml) => Try(ml.toFloat).toOption
+                 case Sorting.clRegex(cl) => Try(cl.toFloat * 10).toOption
+                 case _                   => Option.empty[Float]
+               }
+    } yield price / volume
 
-//    @inline
-//    def compareOption[A](a: Option[A], b: Option[A])(implicit ord: Ordering[A]): Boolean = {
-//      (a, b) match {
-//        case (Some(a1), Some(a2)) => ord.lt(a1, a2)
-//        case (Some(_), None) => false
-//        case (None, Some(_)) => true
-//      }
-//    }
-//
-//    val sortingFunc: (Beer, Beer) => Boolean = (b1, b2) => {
-//      var lt = true
-//
-//      for (s <- sortings) {
-//
-//        s match {
-//          case Sorting.byName => lt = lt & compareOption(b1.name, b2.name)
-//          case Sorting.byStyle => lt = lt &  compareOption(b1.style, b2.style)
-//          case Sorting.byRating => lt = lt & compareOption(b1.rating.map(_._1), b2.rating.map(_._1))
-//          case Sorting.byPriceForMl =>
-//            def getPriceForMl(b:Beer) = {
-//              val priceForMl = for {
-//                price <- b.price.map(_._2)
-//                volume <- b.draftType.flatMap {
-//                  case Sorting.mlRegex(ml) => Try(ml.toFloat).toOption
-//                  case Sorting.clRegex(cl) => Try(cl.toFloat * 10).toOption
-//                  case _ => Option.empty[Float]
-//                }
-//              } yield price / volume
-//
-//              priceForMl
-//            }
-//
-//            lt = lt & compareOption(getPriceForMl(b1), getPriceForMl(b2));
-//
-//          case Sorting.byBrewery => lt = lt & compareOption(b1.breweryInfo.name, b2.breweryInfo.name)
-//        }
-//      }
-//
-//      lt
-//    }
-//
-//    seq.sortWith(sortingFunc)
+    priceForMl
   }
+
 }
