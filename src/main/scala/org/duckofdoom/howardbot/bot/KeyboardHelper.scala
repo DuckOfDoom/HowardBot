@@ -1,8 +1,10 @@
 package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
-import org.duckofdoom.howardbot.bot.CallbackUtils.{mkMenuCallbackData, mkStylesCallbackData}
+import org.duckofdoom.howardbot.bot.CallbackUtils.{mkMenuCallbackData, mkStylesCallbackData,mkChangeSortingCallback}
+import org.duckofdoom.howardbot.bot.Sorting.Sorting
 import org.duckofdoom.howardbot.utils.StaticData
+import cats.syntax.option._
 
 import scala.collection.mutable
 
@@ -23,6 +25,26 @@ class KeyboardHelper {
         mkAdditionalButtons(menuButton, stylesButton)
       )
     )
+  }
+  
+  def mkChangeSortingButtons(currentSorting: Seq[Sorting]): InlineKeyboardMarkup = {
+    var buttonsList = mutable.MutableList[InlineKeyboardButton]()
+    
+    for (s <- Sorting.all){
+      if (!currentSorting.contains(s)){
+        buttonsList += InlineKeyboardButton.callbackData(
+          s.toHumanReadable,
+          mkChangeSortingCallback(s.some)
+        )
+      }
+    }
+    
+    buttonsList += InlineKeyboardButton.callbackData(
+      "Закончить",
+      mkChangeSortingCallback(Option.empty[Sorting])
+    )
+    
+    InlineKeyboardMarkup(buttonsList.map(b => Seq(b)))
   }
 
   private def mkAdditionalButtons(menu: Boolean, styles: Boolean): Seq[InlineKeyboardButton] = {

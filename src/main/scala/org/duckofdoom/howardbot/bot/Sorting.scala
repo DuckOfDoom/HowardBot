@@ -6,6 +6,8 @@ import org.duckofdoom.howardbot.bot.data.Beer
 import scala.util.Try
 import scala.util.matching.Regex
 
+import util.control.Breaks._
+
 object Sorting extends Enumeration {
 
   type Sorting = Value
@@ -28,9 +30,22 @@ object Sorting extends Enumeration {
   val mlRegex: Regex = "(\\d+)\\s*ml".r
   val clRegex: Regex = "(\\d+)\\s*cl".r
 
-  import util.control.Breaks._
+  val all: Seq[Sorting] = {
+    Seq(
+      byName,
+      byNameDec,
+      byStyle,
+      byStyleDec,
+      byRating,
+      byRatingDec,
+      byPriceForMl,
+      byPriceForMlDec,
+      byBrewery,
+      byBreweryDec
+    )
+  }
 
-  class BeerOrdering(sortings: Sorting*) extends Ordering[Beer] {
+  class BeerOrdering(sortings: Seq[Sorting]) extends Ordering[Beer] {
 
     override def compare(x: Beer, y: Beer): Int = {
       var value = 0
@@ -66,10 +81,31 @@ object Sorting extends Enumeration {
     }
   }
 
-  def sort(seq: Seq[Beer], sortings: Sorting*): Seq[Beer] = {
-    seq.sortBy(identity)(new BeerOrdering(sortings: _*))
+  def sort(seq: Seq[Beer], sortings: Seq[Sorting]): Seq[Beer] = {
+    seq.sortBy(identity)(new BeerOrdering(sortings))
   }
-    
+
+  implicit class SortingExtensions(s: Sorting) {
+
+    def toHumanReadable: String = {
+      s match {
+        case Sorting.byName    => "^ Название ^"
+        case Sorting.byNameDec => "v Название v"
+
+        case Sorting.byStyle    => "^ Стиль ^"
+        case Sorting.byStyleDec => "v Стиль v"
+
+        case Sorting.byRating    => "^ Рейтинг ^"
+        case Sorting.byRatingDec => "v Рейтинг v"
+
+        case Sorting.byPriceForMl    => "^ Цена ^"
+        case Sorting.byPriceForMlDec => "^ Цена ^"
+
+        case Sorting.byBrewery    => "^ Пивоварня ^"
+        case Sorting.byBreweryDec => "v Пивоварня v"
+      }
+    }
+  }
   @inline
   private def compareOption[A](x: Option[A], y: Option[A])(implicit ord: Ordering[A]): Int = {
     (x, y) match {

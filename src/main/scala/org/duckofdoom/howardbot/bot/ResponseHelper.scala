@@ -3,6 +3,7 @@ package org.duckofdoom.howardbot.bot
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.bot.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemsProvider, Style}
 import org.duckofdoom.howardbot.utils.PaginationUtils
 import org.duckofdoom.howardbot.utils.Extensions._
@@ -52,9 +53,10 @@ class ResponseHelper(
       s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
       beer.draftType match {
-        case Some(dr) => dr + " - " + beer.price
-          .map { case (c, price) => c + price }
-          .getOrElse("price = ?")
+        case Some(dr) =>
+          dr + " - " + beer.price
+            .map { case (c, price) => c + price }
+            .getOrElse("price = ?")
         case None => "On Deck"
       },
       "\n",
@@ -89,7 +91,7 @@ class ResponseHelper(
   )(
       renderItem: A => generic.Frag[Builder, String]
   )(implicit responseFormat: ResponseFormat): (String, InlineKeyboardMarkup) = {
-    
+
     val itemsPerPage = callbackType match {
       case Callback.Type.Styles => config.stylesPerPage
       case _                    => config.menuItemsPerPage
@@ -140,4 +142,5 @@ class ResponseHelper(
 
     (messageContents, markup)
   }
+
 }

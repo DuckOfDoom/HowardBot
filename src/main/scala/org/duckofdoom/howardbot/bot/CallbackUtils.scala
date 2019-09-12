@@ -3,14 +3,11 @@ package org.duckofdoom.howardbot.bot
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 
 import cats.syntax.option._
-import com.bot4s.telegram.models.InlineKeyboardButton
+import org.duckofdoom.howardbot.bot.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemType, Style}
 import org.duckofdoom.howardbot.utils.Extensions.AnyRefExtensions
-import org.duckofdoom.howardbot.utils.StaticData
 import slogging.StrictLogging
-
-import scala.collection.mutable
 
 object CallbackUtils extends StrictLogging {
 
@@ -24,6 +21,10 @@ object CallbackUtils extends StrictLogging {
 
   def mkItemsByStyleCallbackData(styleId: Int, page: Int): String = {
     serializeCallback(Callback.ItemsByStyle(styleId, page))
+  }
+
+  def mkChangeSortingCallback(sorting: Option[Sorting]): String = {
+    serializeCallback(Callback.ChangeSorting(sorting))
   }
 
   def mkItemCallback[A <: Item](item: A): Option[String] = {
@@ -41,7 +42,7 @@ object CallbackUtils extends StrictLogging {
   def mkSearchBeerByNameCallback(query: String, page: Int): String = {
     serializeCallback(Callback.SearchBeerByName(query, page))
   }
-  
+
   def mkSearchBeerByStyleCallback(query: String, page: Int): String = {
     serializeCallback(Callback.SearchBeerByStyle(query, page))
   }
@@ -70,6 +71,7 @@ object Callback extends Enumeration with StrictLogging {
     val Item: Type.Value              = Value("Item")
     val SearchBeerByName: Type.Value  = Value("SearchBeerByName")
     val SearchBeerByStyle: Type.Value = Value("SearchBeerByStyle")
+    val ChangeSorting: Type.Value     = Value("ChangeSorting")
   }
 
   final case class Menu(page: Option[Int], newMessage: Boolean)   extends Callback
@@ -78,6 +80,7 @@ object Callback extends Enumeration with StrictLogging {
   final case class Item(itemType: ItemType, itemId: Int)          extends Callback
   final case class SearchBeerByName(query: String, page: Int)     extends Callback
   final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
+  final case class ChangeSorting(sorting: Option[Sorting])        extends Callback
 
   implicit class SerializableCallback(c: Callback) {
 
@@ -109,6 +112,9 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(6)
           stream.writeUTF(query)
           stream.writeShort(page)
+        case ChangeSorting(maybeSorting) =>
+          stream.writeShort(7)
+          stream.writeUTF(maybeSorting.map(_.toString).getOrElse(""))
       }
 
       byteArrayInputStream.toByteArray
@@ -147,6 +153,9 @@ object Callback extends Enumeration with StrictLogging {
           val query = stream.readUTF()
           val page  = stream.readShort()
           SearchBeerByStyle(query, page)
+        case 7 =>
+          val sorting = stream.readUTF()
+          ChangeSorting(Sorting.all.find(s => s.toString == sorting));
       }
 
       result.some

@@ -1,6 +1,7 @@
 import cats.syntax.option._
+import org.duckofdoom.howardbot.bot
 import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
-import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils, data}
+import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils, Sorting, data}
 import org.scalatest.{FunSuite, Matchers}
 
 class CallbacksSerializationTests extends FunSuite with Matchers {
@@ -79,7 +80,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
       case Some(Callback.SearchBeerByName(query, page)) =>
         query should be("tehbeer")
         page should be(5)
-      case _ => fail(s"Failed to parse callback '$beersByNameCallback")
+      case _ => fail(s"Failed to parse callback '$beersByNameCallback'")
     }
   }
 
@@ -90,7 +91,17 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
       case Some(Callback.SearchBeerByStyle(query, page)) =>
         query should be("tehStyle")
         page should be(3)
-      case _ => fail(s"Failed to parse callback '$beersByStyleCallback")
+      case _ => fail(s"Failed to parse callback '$beersByStyleCallback'")
+    }
+  }
+  
+  test("Change sorting") {
+    // Search beers by style
+    val changeSortingCallback = CallbackUtils.mkChangeSortingCallback(Sorting.byPriceForMlDec.some)
+    Callback.deserialize(changeSortingCallback.getBytes) match {
+      case Some(Callback.ChangeSorting(Some(sorting))) => 
+        sorting should be (Sorting.byPriceForMlDec)
+      case _ => fail(s"Failed to parse callback '$changeSortingCallback'")
     }
   }
 }

@@ -3,6 +3,7 @@ import org.scalatest.{FunSuite, Matchers}
 import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.Sorting
 
+// TODO: Rewrite tests as specs
 class SortingTests extends FunSuite with Matchers {
 
   private def mkBeer(id:Int, name:String, rating:(Float, Float), style:String, breweryName: String, draftType : String, price:Float) : Beer = {
@@ -33,30 +34,30 @@ class SortingTests extends FunSuite with Matchers {
   }
 
   test("Sort by name") {
-   Sorting.sort(mkBeers(), Sorting.byName).map(_.id) should contain theSameElementsInOrderAs Seq(2, 4, 3, 1)
+   Sorting.sort(mkBeers(), Seq(Sorting.byName)).map(_.id) should contain theSameElementsInOrderAs Seq(2, 4, 3, 1)
   }
   
   test("Sort by style") {
-    Sorting.sort(mkBeers(), Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(1, 3, 4, 2)
+    Sorting.sort(mkBeers(), Seq(Sorting.byStyle)).map(_.id) should contain theSameElementsInOrderAs Seq(1, 3, 4, 2)
   }
   
   test("Sort by rating") {
-    Sorting.sort(mkBeers(), Sorting.byRating).map(_.id) should contain theSameElementsInOrderAs Seq(3, 2, 4, 1)
+    Sorting.sort(mkBeers(), Seq(Sorting.byRating)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 2, 4, 1)
   }
   
   test("Sort by price per ml") {
-    Sorting.sort(mkBeers(), Sorting.byPriceForMl).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 2, 4)
+    Sorting.sort(mkBeers(), Seq(Sorting.byPriceForMl)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 2, 4)
   }
   
   test("Sort by style and name") {
-    Sorting.sort(mkBeers(), Sorting.byStyle, Sorting.byName).map(_.id) should contain theSameElementsInOrderAs Seq(1, 4, 3, 2)
+    Sorting.sort(mkBeers(), Seq(Sorting.byStyle, Sorting.byName)).map(_.id) should contain theSameElementsInOrderAs Seq(1, 4, 3, 2)
   }
   
   test("Sort by rating and style") {
-    Sorting.sort(mkBeers(), Sorting.byRating, Sorting.byStyle).map(_.id) should contain theSameElementsInOrderAs Seq(3, 4, 2, 1)
+    Sorting.sort(mkBeers(), Seq(Sorting.byRating, Sorting.byStyle)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 4, 2, 1)
   }
   
   test("Sort by price and brewery") {
-    Sorting.sort(mkBeers(), Sorting.byPriceForMl, Sorting.byBrewery).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 4, 2)
+    Sorting.sort(mkBeers(), Seq(Sorting.byPriceForMl, Sorting.byBrewery)).map(_.id) should contain theSameElementsInOrderAs Seq(3, 1, 4, 2)
   }
 }

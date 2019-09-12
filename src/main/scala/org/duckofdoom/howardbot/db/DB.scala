@@ -1,7 +1,6 @@
 package org.duckofdoom.howardbot.db
 
 import cats.effect.{ContextShift, IO}
-import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
 import doobie._
@@ -121,7 +120,7 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
   }
 
   def updateUser(user: User): Unit = {
-    implicit val stateEncoder: Encoder[UserState] = UserState.encoder
+    implicit val encoder: Encoder[UserState] = UserState.encoder
 
     sql"""UPDATE users  
     SET 
