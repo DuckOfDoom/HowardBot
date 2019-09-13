@@ -57,23 +57,26 @@ object Sorting extends Enumeration {
             break
 
           s match {
-            case Sorting.byName    => value = compareOption(x.name, y.name)
-            case Sorting.byNameDec => value = compareOption(y.name, x.name)
+            case Sorting.byName    => value = compareOption(x.name, y.name, reversed = false)
+            case Sorting.byNameDec => value = compareOption(x.name, y.name, reversed = true)
 
-            case Sorting.byStyle    => value = compareOption(x.style, y.style)
-            case Sorting.byStyleDec => value = compareOption(y.style, x.style)
+            case Sorting.byStyle    => value = compareOption(x.style, y.style, reversed = false)
+            case Sorting.byStyleDec => value = compareOption(x.style, y.style, reversed = true)
 
-            case Sorting.byRating => value = compareOption(x.rating.map(_._1), y.rating.map(_._1))
+            case Sorting.byRating =>
+              value = compareOption(x.rating.map(_._1), y.rating.map(_._1), reversed = false)
             case Sorting.byRatingDec =>
-              value = compareOption(y.rating.map(_._1), x.rating.map(_._1))
+              value = compareOption(x.rating.map(_._1), y.rating.map(_._1), reversed = true)
 
-            case Sorting.byPriceForMl => value = compareOption(getPriceForMl(x), getPriceForMl(y));
+            case Sorting.byPriceForMl =>
+              value = compareOption(getPriceForMl(x), getPriceForMl(y), reversed = false)
             case Sorting.byPriceForMlDec =>
-              value = compareOption(getPriceForMl(y), getPriceForMl(x));
+              value = compareOption(getPriceForMl(x), getPriceForMl(y), reversed = true)
 
-            case Sorting.byBrewery => value = compareOption(x.breweryInfo.name, y.breweryInfo.name)
+            case Sorting.byBrewery =>
+              value = compareOption(x.breweryInfo.name, y.breweryInfo.name, reversed = false)
             case Sorting.byBreweryDec =>
-              value = compareOption(y.breweryInfo.name, x.breweryInfo.name)
+              value = compareOption(x.breweryInfo.name, y.breweryInfo.name, reversed = true)
           }
         }
       }
@@ -112,19 +115,21 @@ object Sorting extends Enumeration {
     val priceForMl = for {
       price <- b.price.map(_._2)
       volume <- b.draftType.flatMap {
-        case Sorting.mlRegex(ml, _) => Try(ml.toFloat).toOption
-        case Sorting.clRegex(cl, _) => Try(cl.toFloat * 10).toOption
-        case _                   => Option.empty[Float]
-      }
+                 case Sorting.mlRegex(ml, _) => Try(ml.toFloat).toOption
+                 case Sorting.clRegex(cl, _) => Try(cl.toFloat * 10).toOption
+                 case _                      => Option.empty[Float]
+               }
     } yield price / volume
 
     priceForMl
   }
 
   @inline
-  private def compareOption[A](x: Option[A], y: Option[A])(implicit ord: Ordering[A]): Int = {
+  private def compareOption[A](x: Option[A], y: Option[A], reversed: Boolean)(
+      implicit ord: Ordering[A]
+  ): Int = {
     (x, y) match {
-      case (Some(a), Some(b)) => ord.compare(a, b)
+      case (Some(a), Some(b)) => ord.compare(a, b) * (if (reversed) -1 else 1)
       case (Some(_), None)    => -1
       case (None, Some(_))    => 1
       case _                  => 0
