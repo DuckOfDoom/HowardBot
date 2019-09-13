@@ -27,8 +27,8 @@ object Sorting extends Enumeration {
   val byBrewery: bot.Sorting.Value    = Value("b")
   val byBreweryDec: bot.Sorting.Value = Value("bd")
 
-  val mlRegex: Regex = "(\\d+)\\s*ml".r
-  val clRegex: Regex = "(\\d+)\\s*cl".r
+  val mlRegex: Regex = """(\d+)\s*(ml|ML).*""".r
+  val clRegex: Regex = """(\d+)\s*(cl|CL).*""".r
 
   val all: Seq[Sorting] = {
     Seq(
@@ -106,6 +106,21 @@ object Sorting extends Enumeration {
       }
     }
   }
+
+  @inline
+  def getPriceForMl(b: Beer): Option[Float] = {
+    val priceForMl = for {
+      price <- b.price.map(_._2)
+      volume <- b.draftType.flatMap {
+        case Sorting.mlRegex(ml, _) => Try(ml.toFloat).toOption
+        case Sorting.clRegex(cl, _) => Try(cl.toFloat * 10).toOption
+        case _                   => Option.empty[Float]
+      }
+    } yield price / volume
+
+    priceForMl
+  }
+
   @inline
   private def compareOption[A](x: Option[A], y: Option[A])(implicit ord: Ordering[A]): Int = {
     (x, y) match {
@@ -114,20 +129,6 @@ object Sorting extends Enumeration {
       case (None, Some(_))    => 1
       case _                  => 0
     }
-  }
-
-  @inline
-  private def getPriceForMl(b: Beer) = {
-    val priceForMl = for {
-      price <- b.price.map(_._2)
-      volume <- b.draftType.flatMap {
-                 case Sorting.mlRegex(ml) => Try(ml.toFloat).toOption
-                 case Sorting.clRegex(cl) => Try(cl.toFloat * 10).toOption
-                 case _                   => Option.empty[Float]
-               }
-    } yield price / volume
-
-    priceForMl
   }
 
 }
