@@ -114,7 +114,7 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(page)
         case ChangeSorting(maybeSorting) =>
           stream.writeShort(7)
-          stream.writeUTF(maybeSorting.map(_.toString).getOrElse(""))
+          stream.writeShort(maybeSorting.map(_.id).getOrElse(-1))
       }
 
       byteArrayInputStream.toByteArray
@@ -154,8 +154,8 @@ object Callback extends Enumeration with StrictLogging {
           val page  = stream.readShort()
           SearchBeerByStyle(query, page)
         case 7 =>
-          val sorting = stream.readUTF()
-          ChangeSorting(Sorting.all.find(s => s.toString == sorting));
+          val sorting = stream.readShort()
+          ChangeSorting(Sorting.all.find(s => s.id == sorting));
       }
 
       result.some

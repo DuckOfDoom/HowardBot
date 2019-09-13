@@ -153,20 +153,15 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               )
 
               if (mSorting.isEmpty) {
-                respond(
-                  responseService
-                    .mkMenuResponse(1, user.state.sorting), // Reset page because sorting was changed
-                  newMessage = true
-                ).some
+                user = user.withEmptySorting()
               } else {
-
                 user = user.withAddedSorting(mSorting.get)
-
-                respond(
-                  responseService.mkChangeSortingResponse(user.state.sorting),
-                  newMessage = false
-                ).some
               }
+              
+              respond(
+                responseService.mkChangeSortingResponse(user.state.sorting),
+                newMessage = false
+              ).some
             case _ =>
               None
           }

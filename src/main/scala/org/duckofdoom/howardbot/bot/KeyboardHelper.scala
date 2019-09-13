@@ -1,8 +1,24 @@
 package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
-import org.duckofdoom.howardbot.bot.CallbackUtils.{mkMenuCallbackData, mkStylesCallbackData,mkChangeSortingCallback}
-import org.duckofdoom.howardbot.bot.Sorting.Sorting
+import org.duckofdoom.howardbot.bot.CallbackUtils.{
+  mkChangeSortingCallback,
+  mkMenuCallbackData,
+  mkStylesCallbackData
+}
+import org.duckofdoom.howardbot.bot.Sorting.{
+  Sorting,
+  byBrewery,
+  byBreweryDec,
+  byName,
+  byNameDec,
+  byPriceForMl,
+  byPriceForMlDec,
+  byRating,
+  byRatingDec,
+  byStyle,
+  byStyleDec
+}
 import org.duckofdoom.howardbot.utils.StaticData
 import cats.syntax.option._
 
@@ -26,25 +42,27 @@ class KeyboardHelper {
       )
     )
   }
-  
+
   def mkChangeSortingButtons(currentSorting: Seq[Sorting]): InlineKeyboardMarkup = {
-    var buttonsList = mutable.MutableList[InlineKeyboardButton]()
-    
-    for (s <- Sorting.all){
-      if (!currentSorting.contains(s)){
-        buttonsList += InlineKeyboardButton.callbackData(
-          s.toHumanReadable,
-          mkChangeSortingCallback(s.some)
-        )
-      }
-    }
-    
-    buttonsList += InlineKeyboardButton.callbackData(
-      "Закончить",
-      mkChangeSortingCallback(Option.empty[Sorting])
+    var buttonsList = Seq(
+      Seq(byName, byNameDec),
+      Seq(byStyle, byStyleDec),
+      Seq(byRating, byRatingDec),
+      Seq(byPriceForMl, byPriceForMlDec),
+      Seq(byBrewery, byBreweryDec)
+    ).filter(s => {!currentSorting.exists(srt => srt.toString == s.head.toString)})
+      .map(s => s.map(srt => InlineKeyboardButton.callbackData(srt.toHumanReadable, mkChangeSortingCallback(srt.some))))
+
+    buttonsList :+= Seq(
+      InlineKeyboardButton.callbackData(
+        "Сбросить",
+        mkChangeSortingCallback(Option.empty[Sorting])
+      )
     )
     
-    InlineKeyboardMarkup(buttonsList.map(b => Seq(b)))
+    buttonsList ++= mkDefaultButtons().inlineKeyboard
+
+    InlineKeyboardMarkup(buttonsList)
   }
 
   private def mkAdditionalButtons(menu: Boolean, styles: Boolean): Seq[InlineKeyboardButton] = {
