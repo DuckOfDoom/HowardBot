@@ -5,7 +5,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.duckofdoom.howardbot.bot.Sorting
 import org.duckofdoom.howardbot.bot.Sorting.Sorting
  
-case class UserState(var menuPage: Int = 1, var stylesPage: Int = 1, var sorting: List[Sorting] = List())
+case class UserState(menuPage: Int = 1, stylesPage: Int = 1, sorting: Seq[Sorting] = Seq())
 
 object UserState {
 
@@ -37,4 +37,21 @@ case class User(id: Long,
                 firstName: String,
                 lastName: String,
                 username: String,
-                state: UserState)
+                state: UserState) {
+  
+  def withMenuPage(page: Int): User = { 
+    copy(state = state.copy(menuPage = page))
+  }
+  
+  def withStylesPage(page: Int): User = {
+    copy(state = state.copy(stylesPage = page))
+  }
+  
+  def withAddedSorting(sorting: Sorting): User = {
+    copy(state = state.copy(sorting = state.sorting :+ sorting))
+  }
+  
+  def withEmptySorting(): User = {
+    copy(state = state.copy(sorting = Seq()))
+  }
+}

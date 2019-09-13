@@ -38,28 +38,29 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
         u.state.sorting
       )(ResponseFormat.TextMessage)
 
-      respond(items, markup.some)(msg)
+      (respond(items, markup.some)(msg), u)
     }
   }
 
   onCommand("styles") { implicit msg =>
-    withUser(msg.chat) { _ =>
+    withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkStylesResponse(1)(ResponseFormat.Buttons)
-      respond(items, markup.some)(msg)
+      (respond(items, markup.some)(msg), u)
     }
   }
 
   onCommand("sort") { implicit msg =>
     withUser(msg.chat) { u =>
-      u.state.sorting = List()
+      val modifiedUser    = u.withEmptySorting()
       val (items, markup) = responseService.mkChangeSortingResponse(u.state.sorting)
-      respond(items, markup.some)(msg)
+      (respond(items, markup.some)(msg), modifiedUser)
     }
   }
 
   // When users clicks any of the buttons
   onCallbackQuery { implicit query =>
     withUser(query.from) { u =>
+      var user = u
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
           implicit val message: Message       = msg
@@ -69,30 +70,30 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from "Menu" button
             case Some(Callback.Menu(page, newMessage)) =>
               logger.info(
-                s"Received 'Menu' callback from user @${u.username}, page: $page, newMessage: $newMessage"
+                s"Received 'Menu' callback from user @${user.username}, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
-                u.state.menuPage = page.get
+                user = user.withMenuPage(page.get)
               }
 
               respond(
-                responseService.mkMenuResponse(u.state.menuPage, u.state.sorting),
+                responseService.mkMenuResponse(user.state.menuPage, user.state.sorting),
                 newMessage
               ).some
 
             // Sent from "Styles" button
             case Some(Callback.Styles(page, newMessage)) =>
               logger.info(
-                s"Received 'Styles' callback from user @${u.username}, page: $page, newMessage: $newMessage"
+                s"Received 'Styles' callback from user @${user.username}, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
-                u.state.menuPage = page.get
+                user = user.withMenuPage(page.get)
               }
 
               respond(
-                responseService.mkStylesResponse(u.state.menuPage)(ResponseFormat.Buttons),
+                responseService.mkStylesResponse(user.state.menuPage)(ResponseFormat.Buttons),
                 newMessage
               ).some
 
@@ -101,18 +102,18 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
               logger.info(
-                s"Received 'ItemsByStyle' callback from user @${u.username}, style: $style, page: $page"
+                s"Received 'ItemsByStyle' callback from user @${user.username}, style: $style, page: $page"
               )
 
               respond(
-                responseService.mkBeersByStyleResponse(style, page, u.state.sorting),
+                responseService.mkBeersByStyleResponse(style, page, user.state.sorting),
                 newMessage = false
               ).some
 
             // Sent from clicking on a particular item button (either beer or style)
             case Some(Callback.Item(itemType, itemId)) =>
               logger.info(
-                s"Received 'Item' callback from user @${u.username}, itemType: $itemType, itemId: $itemId"
+                s"Received 'Item' callback from user @${user.username}, itemType: $itemType, itemId: $itemId"
               )
 
               itemType match {
@@ -123,47 +124,46 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                   ).some
                 case ItemType.Style =>
                   respond(
-                    responseService.mkBeersByStyleResponse(itemId, 1, u.state.sorting),
+                    responseService.mkBeersByStyleResponse(itemId, 1, user.state.sorting),
                     newMessage = true
                   ).some
               }
             case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByStyle' callback from user @${u.username}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByStyle' callback from user @${user.username}, query: '$searchQuery', page: $page"
               )
 
               respond(
-                responseService.mkSearchBeerByStyleResponse(searchQuery, page, u.state.sorting),
+                responseService.mkSearchBeerByStyleResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
             case Some(Callback.SearchBeerByName(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByName' callback from user @${u.username}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByName' callback from user @${user.username}, query: '$searchQuery', page: $page"
               )
 
               respond(
-                responseService.mkSearchBeerByNameResponse(searchQuery, page, u.state.sorting),
+                responseService.mkSearchBeerByNameResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
 
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(
-                s"Received 'ChangeSorting' callback from user @${u.username}, sorting: $mSorting"
+                s"Received 'ChangeSorting' callback from user @${user.username}, sorting: $mSorting"
               )
-              
+
               if (mSorting.isEmpty) {
                 respond(
-                  responseService.mkMenuResponse(1, u.state.sorting), // Reset page because sorting was changed
+                  responseService
+                    .mkMenuResponse(1, user.state.sorting), // Reset page because sorting was changed
                   newMessage = true
                 ).some
               } else {
-                
-                u.state.sorting = u.state.sorting :+ mSorting.get
-                
-                logger.info("updated sorting: " + u.state.sorting)
-                
+
+                user = user.withAddedSorting(mSorting.get)
+
                 respond(
-                  responseService.mkChangeSortingResponse(u.state.sorting),
+                  responseService.mkChangeSortingResponse(user.state.sorting),
                   newMessage = false
                 ).some
               }
@@ -176,17 +176,19 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       if (responseFuture.isEmpty)
         logger.error(s"Failed to construct response for callback query: ${query.data}")
 
-      for {
+      // Combine our response with ACK since we shoudl always acknowledge callback query
+      val responseFutureWithAck: Future[Unit] = for {
         ack    <- ackCallback()
         answer <- responseFuture.getOrElse(Future.successful())
       } yield (ack, answer)
+
+      (responseFutureWithAck, user)
     }
   }
 
   override def receiveMessage(msg: Message): Future[Unit] = {
 
     implicit val message: Message = msg
-    
 
     if (msg.text.isEmpty) {
       logger.warn("Received empty text message.")
@@ -196,9 +198,9 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     if (msg.text.get.startsWith("/")) {
       return super.receiveMessage(msg)
     }
-    
-    withUser(msg.chat) { u =>
-      msg.text.get match {
+
+    withUser(msg.chat) { user =>
+      val responseFuture = msg.text.get match {
         case Consts.showItemRegex(Int(id)) =>
           val (item, markup) = responseService.mkBeerResponse(id)(ResponseFormat.TextMessage)
           request(
@@ -215,26 +217,36 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           ).void
         case Consts.showItemsByStyleRegex(Int(styleId)) =>
           respond(
-            responseService.mkBeersByStyleResponse(styleId, 1, u.state.sorting)(ResponseFormat.TextMessage),
+            responseService.mkBeersByStyleResponse(styleId, 1, user.state.sorting)(
+              ResponseFormat.TextMessage
+            ),
             newMessage = true
           ).void
         case Consts.SearchBeerByStyleQuery(query) =>
           respond(
-            responseService.mkSearchBeerByStyleResponse(query, 1, u.state.sorting)(ResponseFormat.TextMessage),
+            responseService.mkSearchBeerByStyleResponse(query, 1, user.state.sorting)(
+              ResponseFormat.TextMessage
+            ),
             newMessage = true
           ).void
         case Consts.SearchBeerByNameQuery(query) =>
           respond(
-            responseService.mkSearchBeerByNameResponse(query, 1, u.state.sorting)(ResponseFormat.TextMessage),
+            responseService.mkSearchBeerByNameResponse(query, 1, user.state.sorting)(
+              ResponseFormat.TextMessage
+            ),
             newMessage = true
           ).void
         // Treat simple text as beer-by-name search
         case _ =>
           respond(
-            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, u.state.sorting)(ResponseFormat.TextMessage),
+            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting)(
+              ResponseFormat.TextMessage
+            ),
             newMessage = true
           ).void
       }
+
+      (responseFuture, user)
     }
   }
 
@@ -248,7 +260,12 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  private def withUser(tgUser: TelegramUser)(action: User => Future[Unit]): Future[Unit] = {
+  /**
+   * Allows to pull user that sent a message from DB when processing queries.
+   * 'action' should always return either a supplied User or modified User if we need to modify it.
+   * If returned user does not equal the provided one, said user is updated in database.
+   */
+  private def withUser(tgUser: TelegramUser)(action: User => (Future[Unit], User)): Future[Unit] = {
 
     if (tgUser.firstName.isEmpty) {
       return Future.failed(
@@ -271,10 +288,9 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
     user match {
       case Some(u) =>
-        val prevUser = u.copy()
-        val future   = action(u)
-        if (u != prevUser)
-          db.updateUser(u)
+        val (future, modifiedUser) = action(u)
+        if (modifiedUser != u)
+          db.updateUser(modifiedUser)
         future
       case _ =>
         Future.failed(
@@ -285,7 +301,12 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
   }
 
-  private def withUser(chat: Chat)(action: User => Future[Unit]): Future[Unit] = {
+  /**
+    * Allows to pull user that sent a message from DB when processing queries.
+    * 'action' should always return either a supplied User or modified User if we need to modify it.
+    * If returned user does not equal the provided one, said user is updated in database.
+    */
+  private def withUser(chat: Chat)(action: User => (Future[Unit], User)): Future[Unit] = {
     if (chat.firstName.isEmpty) {
       return Future.failed(
         new Exception(
@@ -306,7 +327,11 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
 
     user match {
-      case Some(u) => action(u)
+      case Some(u) =>
+        val (future, modifiedUser) = action(u)
+        if (modifiedUser != u)
+          db.updateUser(modifiedUser)
+        future
       case _ =>
         Future.failed(
           new Exception(s"Failed to process action! Could not create user for chat: $chat")
