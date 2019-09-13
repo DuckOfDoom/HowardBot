@@ -8,7 +8,7 @@ import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
-import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.{Config, bot}
 import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.db.DB
@@ -195,14 +195,12 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       return super.receiveMessage(msg)
     }
 
-    if (msg.text.get.startsWith("/")) {
-      return super.receiveMessage(msg)
-    }
-
     withUser(msg.chat) { user =>
+      implicit val format: bot.ResponseFormat.Value = ResponseFormat.TextMessage
+    
       val responseFuture = msg.text.get match {
         case Consts.showItemRegex(Int(id)) =>
-          val (item, markup) = responseService.mkBeerResponse(id)(ResponseFormat.TextMessage)
+          val (item, markup) = responseService.mkBeerResponse(id)
           request(
             SendMessage(
               ChatId(msg.source),
@@ -217,31 +215,27 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           ).void
         case Consts.showItemsByStyleRegex(Int(styleId)) =>
           respond(
-            responseService.mkBeersByStyleResponse(styleId, 1, user.state.sorting)(
-              ResponseFormat.TextMessage
-            ),
+            responseService.mkBeersByStyleResponse(styleId, 1, user.state.sorting),
             newMessage = true
           ).void
         case Consts.SearchBeerByStyleQuery(query) =>
           respond(
-            responseService.mkSearchBeerByStyleResponse(query, 1, user.state.sorting)(
-              ResponseFormat.TextMessage
-            ),
+            responseService.mkSearchBeerByStyleResponse(query, 1, user.state.sorting),
             newMessage = true
           ).void
         case Consts.SearchBeerByNameQuery(query) =>
           respond(
-            responseService.mkSearchBeerByNameResponse(query, 1, user.state.sorting)(
-              ResponseFormat.TextMessage
-            ),
+            responseService.mkSearchBeerByNameResponse(query, 1, user.state.sorting),
             newMessage = true
           ).void
         // Treat simple text as beer-by-name search
         case _ =>
+          if (msg.text.get.startsWith("/")) {
+            return super.receiveMessage(msg)
+          }
+          
           respond(
-            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting)(
-              ResponseFormat.TextMessage
-            ),
+            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting),
             newMessage = true
           ).void
       }
