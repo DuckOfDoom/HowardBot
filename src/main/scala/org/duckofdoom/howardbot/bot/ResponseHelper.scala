@@ -107,6 +107,7 @@ class ResponseHelper(
         PaginationUtils
           .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, mkCallbackData),
         callbackType != Callback.Type.Menu,
+        callbackType != Callback.Type.Styles,
         callbackType != Callback.Type.Styles
       )
 

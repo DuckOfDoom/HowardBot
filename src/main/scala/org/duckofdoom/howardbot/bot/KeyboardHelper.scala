@@ -27,18 +27,19 @@ import scala.collection.mutable
 class KeyboardHelper {
 
   def mkDefaultButtons(): InlineKeyboardMarkup = {
-    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true)))
+    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = true)))
   }
 
   def mkPaginationButtons(
       paginationButtons: Seq[InlineKeyboardButton],
       menuButton: Boolean,
-      stylesButton: Boolean
+      stylesButton: Boolean,
+      sortingButton: Boolean
   ): InlineKeyboardMarkup = {
     InlineKeyboardMarkup(
       Seq(
         paginationButtons,
-        mkAdditionalButtons(menuButton, stylesButton)
+        mkAdditionalButtons(menuButton, stylesButton, sortingButton)
       )
     )
   }
@@ -60,12 +61,12 @@ class KeyboardHelper {
       )
     )
     
-    buttonsList ++= mkDefaultButtons().inlineKeyboard
+    buttonsList ++= mkAdditionalButtons(menu = true, styles = true, sorting = false))
 
     InlineKeyboardMarkup(buttonsList)
   }
 
-  private def mkAdditionalButtons(menu: Boolean, styles: Boolean): Seq[InlineKeyboardButton] = {
+  private def mkAdditionalButtons(menu: Boolean, styles: Boolean, sorting: Boolean): Seq[InlineKeyboardButton] = {
     var buttonsList = mutable.MutableList[InlineKeyboardButton]()
     if (menu) {
       buttonsList += InlineKeyboardButton.callbackData(
@@ -78,6 +79,13 @@ class KeyboardHelper {
       buttonsList += InlineKeyboardButton.callbackData(
         StaticData.styles,
         mkStylesCallbackData(None, newMessage = false)
+      )
+    }
+    
+    if (sorting) {
+      buttonsList += InlineKeyboardButton.callbackData(
+        StaticData.styles,
+        mkChangeSortingCallback(None)
       )
     }
 
