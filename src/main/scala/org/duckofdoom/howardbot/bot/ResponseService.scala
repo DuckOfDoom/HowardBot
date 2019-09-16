@@ -98,7 +98,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
     val message =
       s"""Текущая сортировка: ${
         if (selectedSorting.isEmpty) "Нет"
-        else selectedSorting.map(_.toHumanReadable).mkString(", ")
+        else selectedSorting.map(s => s"|${s.toHumanReadable}|").mkString(", ")
       }
       """
 

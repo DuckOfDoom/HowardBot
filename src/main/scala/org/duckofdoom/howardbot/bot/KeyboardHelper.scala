@@ -61,7 +61,7 @@ class KeyboardHelper {
       )
     )
     
-    buttonsList ++= mkAdditionalButtons(menu = true, styles = true, sorting = false))
+    buttonsList :+= mkAdditionalButtons(menu = true, styles = true, sorting = false)
 
     InlineKeyboardMarkup(buttonsList)
   }
