@@ -6,20 +6,7 @@ import org.duckofdoom.howardbot.bot.CallbackUtils.{
   mkMenuCallbackData,
   mkStylesCallbackData
 }
-import org.duckofdoom.howardbot.bot.Sorting.{
-  Sorting,
-  byBrewery,
-  byBreweryDec,
-  byName,
-  byNameDec,
-  byPriceForMl,
-  byPriceForMlDec,
-  byRating,
-  byRatingDec,
-  byStyle,
-  byStyleDec
-}
-import org.duckofdoom.howardbot.utils.StaticData
+import org.duckofdoom.howardbot.bot.Sorting._
 import cats.syntax.option._
 
 import scala.collection.mutable
@@ -51,41 +38,52 @@ class KeyboardHelper {
       Seq(byRating, byRatingDec),
       Seq(byPriceForMl, byPriceForMlDec),
       Seq(byBrewery, byBreweryDec)
-    ).filter(s => {!currentSorting.exists(srt => srt.toString == s.head.toString)})
-      .map(s => s.map(srt => InlineKeyboardButton.callbackData(srt.toHumanReadable, mkChangeSortingCallback(srt.some))))
+    ).filter(s => { !currentSorting.exists(srt => srt.toString == s.head.toString) })
+      .map(
+        s =>
+          s.map(
+            srt =>
+              InlineKeyboardButton
+                .callbackData(srt.toHumanReadable, mkChangeSortingCallback(Right(srt.some)))
+          )
+      )
 
     buttonsList :+= Seq(
       InlineKeyboardButton.callbackData(
         "Сбросить",
-        mkChangeSortingCallback(Option.empty[Sorting])
+        mkChangeSortingCallback(Right(Option.empty[Sorting]))
       )
     )
-    
+
     buttonsList :+= mkAdditionalButtons(menu = true, styles = true, sorting = false)
 
     InlineKeyboardMarkup(buttonsList)
   }
 
-  private def mkAdditionalButtons(menu: Boolean, styles: Boolean, sorting: Boolean): Seq[InlineKeyboardButton] = {
+  private def mkAdditionalButtons(
+      menu: Boolean,
+      styles: Boolean,
+      sorting: Boolean
+  ): Seq[InlineKeyboardButton] = {
     var buttonsList = mutable.MutableList[InlineKeyboardButton]()
     if (menu) {
       buttonsList += InlineKeyboardButton.callbackData(
-        StaticData.menu,
+        "Меню",
         mkMenuCallbackData(None, newMessage = false)
       )
     }
 
     if (styles) {
       buttonsList += InlineKeyboardButton.callbackData(
-        StaticData.styles,
+        "Стили",
         mkStylesCallbackData(None, newMessage = false)
       )
     }
-    
+
     if (sorting) {
       buttonsList += InlineKeyboardButton.callbackData(
-        StaticData.styles,
-        mkChangeSortingCallback(None)
+        "Сортировка",
+        mkChangeSortingCallback(Left(Unit))
       )
     }
 

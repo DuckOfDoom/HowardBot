@@ -152,15 +152,18 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                 s"Received 'ChangeSorting' callback from user @${user.username}, sorting: $mSorting"
               )
 
-              if (mSorting.isEmpty) {
-                user = user.withEmptySorting()
-              } else {
-                user = user.withAddedSorting(mSorting.get)
+              if (mSorting.isRight) {
+                val sorting = mSorting.right.get
+                if (sorting.isEmpty) {
+                  user = user.withEmptySorting()
+                } else {
+                  user = user.withAddedSorting(sorting.get)
+                }
               }
               
               respond(
                 responseService.mkChangeSortingResponse(user.state.sorting),
-                newMessage = false
+                newMessage = mSorting.isLeft
               ).some
             case _ =>
               None

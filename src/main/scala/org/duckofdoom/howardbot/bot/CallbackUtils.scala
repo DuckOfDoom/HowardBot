@@ -3,6 +3,7 @@ package org.duckofdoom.howardbot.bot
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 
 import cats.syntax.option._
+import cats.syntax.either._
 import org.duckofdoom.howardbot.bot.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemType, Style}
@@ -23,7 +24,7 @@ object CallbackUtils extends StrictLogging {
     serializeCallback(Callback.ItemsByStyle(styleId, page))
   }
 
-  def mkChangeSortingCallback(sorting: Option[Sorting]): String = {
+  def mkChangeSortingCallback(sorting: Either[Unit, Option[Sorting]]): String = {
     serializeCallback(Callback.ChangeSorting(sorting))
   }
 
@@ -80,7 +81,12 @@ object Callback extends Enumeration with StrictLogging {
   final case class Item(itemType: ItemType, itemId: Int)          extends Callback
   final case class SearchBeerByName(query: String, page: Int)     extends Callback
   final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
-  final case class ChangeSorting(sorting: Option[Sorting])        extends Callback
+
+  // TODO: Either[Unit, Option[Sorting]] is not a good type. Need to rewrite this using ADT.
+  final case class ChangeSorting(sorting: Either[Unit, Option[Sorting]]) extends Callback
+
+  private final val DoNothingWithSortingValue = -10
+  private final val ResetSortingValue         = -1
 
   implicit class SerializableCallback(c: Callback) {
 
@@ -112,9 +118,14 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(6)
           stream.writeUTF(query)
           stream.writeShort(page)
-        case ChangeSorting(maybeSorting) =>
+        case ChangeSorting(eitherSortingOrNothing) =>
           stream.writeShort(7)
-          stream.writeShort(maybeSorting.map(_.id).getOrElse(-1))
+          stream.writeBoolean(eitherSortingOrNothing.isLeft)
+          
+          if (eitherSortingOrNothing.isRight)
+            stream.writeShort(
+              eitherSortingOrNothing.right.get.map(_.id).getOrElse(ResetSortingValue)
+            )
       }
 
       byteArrayInputStream.toByteArray
@@ -154,12 +165,16 @@ object Callback extends Enumeration with StrictLogging {
           val page  = stream.readShort()
           SearchBeerByStyle(query, page)
         case 7 =>
-          val sorting = stream.readShort()
-          ChangeSorting(Sorting.all.find(s => s.id == sorting));
+          val hasSorting = !stream.readBoolean()
+          if (!hasSorting) {
+            ChangeSorting(().asLeft)
+          } else {
+            val sorting = stream.readShort()
+            ChangeSorting(Sorting.all.find(s => s.id == sorting).asRight)
+          }
       }
 
       result.some
-
     } catch {
       case e: Throwable =>
         logger.error("Failed to deserialize callback", e)

@@ -1,5 +1,5 @@
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot
+import cats.syntax.either._
 import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
 import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils, Sorting, data}
 import org.scalatest.{FunSuite, Matchers}
@@ -96,11 +96,18 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   }
   
   test("Change sorting") {
-    // Search beers by style
-    val changeSortingCallback = CallbackUtils.mkChangeSortingCallback(Sorting.byPriceForMlDec.some)
+    
+    var changeSortingCallback = CallbackUtils.mkChangeSortingCallback(Sorting.byPriceForMlDec.some.asRight)
     Callback.deserialize(changeSortingCallback.getBytes) match {
-      case Some(Callback.ChangeSorting(Some(sorting))) => 
+      case Some(Callback.ChangeSorting(Right(Some(sorting)))) => 
         sorting should be (Sorting.byPriceForMlDec)
+      case _ => fail(s"Failed to parse callback '$changeSortingCallback'")
+    }
+    
+    // Case with no sorting
+    changeSortingCallback = CallbackUtils.mkChangeSortingCallback(().asLeft)
+    Callback.deserialize(changeSortingCallback.getBytes) match {
+      case Some(Callback.ChangeSorting(Left(_))) => succeed
       case _ => fail(s"Failed to parse callback '$changeSortingCallback'")
     }
   }
