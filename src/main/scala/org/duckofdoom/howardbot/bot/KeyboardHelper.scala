@@ -13,8 +13,8 @@ import scala.collection.mutable
 
 class KeyboardHelper {
 
-  def mkDefaultButtons(): InlineKeyboardMarkup = {
-    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = true)))
+  def mkDefaultButtons(sorting : Boolean = true): InlineKeyboardMarkup = {
+    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = sorting)))
   }
 
   def mkPaginationButtons(

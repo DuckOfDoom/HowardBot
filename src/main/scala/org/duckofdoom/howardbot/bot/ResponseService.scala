@@ -137,7 +137,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
         case ResponseFormat.Buttons =>
           responseHelper.mkBeerButtonInfo(beer)
       },
-      keyboardHelper.mkDefaultButtons()
+      keyboardHelper.mkDefaultButtons(sorting = false)
     )
   }
 
@@ -149,7 +149,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       case None =>
         (
           responseHelper.mkItemNotFoundResponse("Item", itemId),
-          keyboardHelper.mkDefaultButtons()
+          keyboardHelper.mkDefaultButtons(sorting = false)
         )
     }
   }
