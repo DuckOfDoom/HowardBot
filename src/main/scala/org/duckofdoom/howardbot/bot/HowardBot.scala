@@ -153,6 +153,10 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               )
 
               if (mSorting.isRight) {
+                
+                // Reset menu page because we're going to change sorting and it wont make any sense.
+                user = user.withMenuPage(1)
+                
                 val sorting = mSorting.right.get
                 if (sorting.isEmpty) {
                   user = user.withEmptySorting()

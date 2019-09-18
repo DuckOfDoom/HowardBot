@@ -40,11 +40,11 @@ case class User(id: Long,
                 state: UserState) {
   
   def withMenuPage(page: Int): User = { 
-    copy(state = state.copy(menuPage = page))
+    copy(state = state.copy(menuPage = Math.max(1, page)))
   }
   
   def withStylesPage(page: Int): User = {
-    copy(state = state.copy(stylesPage = page))
+    copy(state = state.copy(stylesPage = Math.max(1, page)))
   }
   
   def withAddedSorting(sorting: Sorting): User = {
