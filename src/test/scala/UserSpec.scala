@@ -1,9 +1,9 @@
-import org.duckofdoom.howardbot.bot.Sorting
 import org.duckofdoom.howardbot.db.dto.{User, UserState}
 import org.scalatest.{FlatSpec, Matchers}
 import io.circe.syntax._
 import io.circe.parser.decode
 import io.circe.{Decoder, Encoder}
+import org.duckofdoom.howardbot.bot.utils.Sorting
 
 class UserSpec extends FlatSpec with Matchers {
   

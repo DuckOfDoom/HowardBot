@@ -1,6 +1,6 @@
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.Sorting
 import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
+import org.duckofdoom.howardbot.bot.utils.Sorting
 import org.scalatest.{FlatSpec, Matchers}
 
 class SortingSpec extends FlatSpec with Matchers {

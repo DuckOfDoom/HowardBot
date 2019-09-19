@@ -5,6 +5,7 @@ import java.time.{Duration, LocalDateTime}
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.services.ResponseService
 import org.duckofdoom.howardbot.db.DB
 import slogging.StrictLogging
 

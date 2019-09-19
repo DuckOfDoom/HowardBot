@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.parser.MenuParser
-import org.duckofdoom.howardbot.utils.HttpService
+import org.duckofdoom.howardbot.services.HttpService
 import slogging.StrictLogging
 
 import scala.collection.mutable

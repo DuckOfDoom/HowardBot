@@ -1,14 +1,15 @@
 import cats.syntax.option._
 import cats.syntax.either._
 import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
-import org.duckofdoom.howardbot.bot.{Callback, CallbackUtils, Sorting, data}
+import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
+import org.duckofdoom.howardbot.bot.data
 import org.scalatest.{FunSuite, Matchers}
 
 class CallbacksSerializationTests extends FunSuite with Matchers {
 
   test("Menu") {
     // Menu
-    val menuCallback = CallbackUtils.mkMenuCallbackData(10.some, newMessage = false)
+    val menuCallback = Callback.mkMenuCallbackData(10.some, newMessage = false)
     Callback.deserialize(menuCallback.getBytes) match {
       case Some(Callback.Menu(page, newMessage)) =>
         page.get should be(10)
@@ -19,7 +20,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
 
   test("Styles") {
     // Styles
-    val stylesCallback = CallbackUtils.mkStylesCallbackData(8.some, newMessage = true)
+    val stylesCallback = Callback.mkStylesCallbackData(8.some, newMessage = true)
     Callback.deserialize(stylesCallback.getBytes) match {
       case Some(Callback.Menu(_, _)) => fail("This callback should only be parsed as Styles!")
       case Some(Callback.Styles(page, newMessage)) =>
@@ -32,7 +33,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   test("ItemsByStyle") {
 
     // Items by style
-    val itemsByStyleCallback = CallbackUtils.mkItemsByStyleCallbackData(15, 19)
+    val itemsByStyleCallback = Callback.mkItemsByStyleCallbackData(15, 19)
     Callback.deserialize(itemsByStyleCallback.getBytes) match {
       case Some(Callback.ItemsByStyle(styleId, page)) =>
         styleId should be(15)
@@ -44,7 +45,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   test("Item") {
 
     // Item
-    val itemCallback = CallbackUtils.mkItemCallback(
+    val itemCallback = Callback.mkItemCallback(
       Beer(
         51,
         None,
@@ -65,7 +66,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
     itemCallback should be some
 
     Callback.deserialize(itemCallback.get.getBytes) match {
-      case Some(Callback.Item(itemType, itemId)) =>
+      case Some(Callback.SingleBeer(itemType, itemId)) =>
         itemType should be(data.ItemType.Beer)
         itemId should be(51)
       case _ => fail(s"Failed to parse callback '$itemCallback'")
@@ -75,7 +76,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   test("Search beer by name") {
 
     // Search beers by name
-    val beersByNameCallback = CallbackUtils.mkSearchBeerByNameCallback("tehbeer", 5)
+    val beersByNameCallback = Callback.mkSearchBeerByNameCallback("tehbeer", 5)
     Callback.deserialize(beersByNameCallback.getBytes) match {
       case Some(Callback.SearchBeerByName(query, page)) =>
         query should be("tehbeer")
@@ -86,7 +87,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
 
   test("Search beer by style") {
     // Search beers by style
-    val beersByStyleCallback = CallbackUtils.mkSearchBeerByStyleCallback("tehStyle", 3)
+    val beersByStyleCallback = Callback.mkSearchBeerByStyleCallback("tehStyle", 3)
     Callback.deserialize(beersByStyleCallback.getBytes) match {
       case Some(Callback.SearchBeerByStyle(query, page)) =>
         query should be("tehStyle")
@@ -97,7 +98,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
   
   test("Change sorting") {
     
-    var changeSortingCallback = CallbackUtils.mkChangeSortingCallback(Sorting.byPriceForMlDec.some.asRight)
+    var changeSortingCallback = Callback.mkChangeSortingCallback(Sorting.byPriceForMlDec.some.asRight)
     Callback.deserialize(changeSortingCallback.getBytes) match {
       case Some(Callback.ChangeSorting(Right(Some(sorting)))) => 
         sorting should be (Sorting.byPriceForMlDec)
@@ -105,7 +106,7 @@ class CallbacksSerializationTests extends FunSuite with Matchers {
     }
     
     // Case with no sorting
-    changeSortingCallback = CallbackUtils.mkChangeSortingCallback(().asLeft)
+    changeSortingCallback = Callback.mkChangeSortingCallback(().asLeft)
     Callback.deserialize(changeSortingCallback.getBytes) match {
       case Some(Callback.ChangeSorting(Left(_))) => succeed
       case _ => fail(s"Failed to parse callback '$changeSortingCallback'")

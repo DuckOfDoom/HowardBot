@@ -1,12 +1,13 @@
-package org.duckofdoom.howardbot.bot
+package org.duckofdoom.howardbot.bot.services
 
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
-import org.duckofdoom.howardbot.bot.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, ItemsProvider, Style}
-import org.duckofdoom.howardbot.utils.PaginationUtils
+import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.bot.Consts
+import org.duckofdoom.howardbot.bot.utils.Callback
 import org.duckofdoom.howardbot.utils.Extensions._
+import org.duckofdoom.howardbot.utils.PaginationUtils
 import scalatags.Text.all._
 import scalatags.generic
 import scalatags.text.Builder
@@ -17,6 +18,8 @@ class ResponseHelper(
     keyboardHelper: KeyboardHelper
 ) {
 
+  type HtmlFragment = generic.Frag[Builder, String]
+  
   def mkItemNotFoundResponse(
       itemType: String,
       itemId: Int
@@ -35,7 +38,7 @@ class ResponseHelper(
       beer: Beer,
       verbose: Boolean,
       withStyleLink: Boolean
-  ): generic.Frag[Builder, String] = {
+  ): HtmlFragment = {
     frag(
       a(href := beer.link.getOrElse("link = ?"))("🍺 " + beer.name.getOrElse("name = ?")),
       beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
@@ -68,16 +71,16 @@ class ResponseHelper(
     )
   }
 
-  def mkBeerButtonInfo(beer: Beer): String = {
+  def mkBeerButtonInfo(beer: Beer): HtmlFragment = {
     // Multiline strings do not work anyways =(
     s"${beer.name.getOrElse("name = ?")}"
   }
 
-  def mkStyleHtmlInfo(style: Style, itemsCount: Int): String = {
+  def mkStyleHtmlInfo(style: Style, itemsCount: Int): HtmlFragment = {
     s"${style.name}: $itemsCount - ${Consts.showStylePrefix}${style.id}\n"
   }
 
-  def mkStyleButtonInfo(style: Style, itemsCount: Int): String = {
+  def mkStyleButtonInfo(style: Style, itemsCount: Int): HtmlFragment = {
     s"${style.name}: $itemsCount"
   }
 
@@ -89,7 +92,7 @@ class ResponseHelper(
       // A function to make callback data for each 'page' button.
       mkCallbackData: Int => String
   )(
-      renderItem: A => generic.Frag[Builder, String]
+      renderItem: A => HtmlFragment
   )(implicit responseFormat: ResponseFormat): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
@@ -123,7 +126,7 @@ class ResponseHelper(
         selectedItems.map(item => {
           InlineKeyboardButton(
             renderItem(item).render,
-            CallbackUtils.mkItemCallback(item)
+            Callback.mkItemCallback(item)
           )
         })
       )

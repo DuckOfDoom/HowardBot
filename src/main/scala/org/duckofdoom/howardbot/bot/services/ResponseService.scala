@@ -1,12 +1,13 @@
-package org.duckofdoom.howardbot.bot
+package org.duckofdoom.howardbot.bot.services
 
-import cats.syntax.option._
 import com.bot4s.telegram.models.InlineKeyboardMarkup
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
-import org.duckofdoom.howardbot.bot.Sorting.Sorting
+import cats.syntax.option._
+import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
+import org.duckofdoom.howardbot.bot._
 import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
-import scalatags.Text.all._
+import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import slogging.StrictLogging
 
 object ResponseFormat extends Enumeration {
@@ -56,7 +57,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       beers,
       page,
       Callback.Type.Menu,
-      p => CallbackUtils.mkMenuCallbackData(p.some, newMessage = false)
+      p => Callback.mkMenuCallbackData(p.some, newMessage = false)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
@@ -82,7 +83,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       stylesWithCounts.sortBy(_._2).reverse.map(_._1),
       page,
       Callback.Type.Styles,
-      p => CallbackUtils.mkStylesCallbackData(p.some, newMessage = false)
+      p => Callback.mkStylesCallbackData(p.some, newMessage = false)
     ) { style =>
       val count = stylesWithCountsMap.getOrElse(style, 0)
       format match {
@@ -115,7 +116,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       items,
       page,
       Callback.Type.ItemsByStyle,
-      p => CallbackUtils.mkItemsByStyleCallbackData(styleId, p)
+      p => Callback.mkItemsByStyleCallbackData(styleId, p)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
@@ -135,7 +136,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
         case ResponseFormat.TextMessage =>
           responseHelper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render
         case ResponseFormat.Buttons =>
-          responseHelper.mkBeerButtonInfo(beer)
+          responseHelper.mkBeerButtonInfo(beer).render
       },
       keyboardHelper.mkDefaultButtons(sorting = false)
     )
@@ -169,7 +170,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       searchResults,
       page,
       Callback.Type.SearchBeerByName,
-      p => CallbackUtils.mkSearchBeerByNameCallback(query, p)
+      p => Callback.mkSearchBeerByNameCallback(query, p)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>
@@ -195,7 +196,7 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
       searchResults,
       page,
       Callback.Type.SearchBeerByStyle,
-      p => CallbackUtils.mkSearchBeerByStyleCallback(query, p)
+      p => Callback.mkSearchBeerByStyleCallback(query, p)
     ) { beer =>
       format match {
         case ResponseFormat.TextMessage =>

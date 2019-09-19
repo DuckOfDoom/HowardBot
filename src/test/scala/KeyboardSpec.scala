@@ -1,7 +1,8 @@
 import com.bot4s.telegram.models.InlineKeyboardButton
-import org.duckofdoom.howardbot.bot.Callback.{ChangeSorting, Menu, Styles}
-import org.duckofdoom.howardbot.bot.Sorting.Sorting
-import org.duckofdoom.howardbot.bot.{Callback, KeyboardHelper, Sorting}
+import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
+import org.duckofdoom.howardbot.bot.services.KeyboardHelper
+import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, Styles}
+import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import org.scalatest.{FlatSpec, Matchers}
 
 class KeyboardSpec extends FlatSpec with Matchers {

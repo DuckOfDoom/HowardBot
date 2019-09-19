@@ -1,19 +1,15 @@
-package org.duckofdoom.howardbot.bot
+package org.duckofdoom.howardbot.bot.services
 
-import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
-import org.duckofdoom.howardbot.bot.CallbackUtils.{
-  mkChangeSortingCallback,
-  mkMenuCallbackData,
-  mkStylesCallbackData
-}
-import org.duckofdoom.howardbot.bot.Sorting._
 import cats.syntax.option._
+import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
+import org.duckofdoom.howardbot.bot.utils.Callback
+import org.duckofdoom.howardbot.bot.utils.Sorting._
 
 import scala.collection.mutable
 
 class KeyboardHelper {
 
-  def mkDefaultButtons(sorting : Boolean = true): InlineKeyboardMarkup = {
+  def mkDefaultButtons(sorting: Boolean = true): InlineKeyboardMarkup = {
     InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = sorting)))
   }
 
@@ -44,14 +40,17 @@ class KeyboardHelper {
           s.map(
             srt =>
               InlineKeyboardButton
-                .callbackData(srt.toHumanReadable, mkChangeSortingCallback(Right(srt.some)))
+                .callbackData(
+                  srt.toHumanReadable,
+                  Callback.mkChangeSortingCallback(Right(srt.some))
+                )
           )
       )
 
     buttonsList :+= Seq(
       InlineKeyboardButton.callbackData(
         "Сбросить",
-        mkChangeSortingCallback(Right(Option.empty[Sorting]))
+        Callback.mkChangeSortingCallback(Right(Option.empty[Sorting]))
       )
     )
 
@@ -69,21 +68,21 @@ class KeyboardHelper {
     if (menu) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Меню",
-        mkMenuCallbackData(None, newMessage = false)
+        Callback.mkMenuCallbackData(None, newMessage = false)
       )
     }
 
     if (styles) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Стили",
-        mkStylesCallbackData(None, newMessage = false)
+        Callback.mkStylesCallbackData(None, newMessage = false)
       )
     }
 
     if (sorting) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Сортировка",
-        mkChangeSortingCallback(Left(Unit))
+        Callback.mkChangeSortingCallback(Left(Unit))
       )
     }
 

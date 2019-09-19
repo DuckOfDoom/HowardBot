@@ -1,8 +1,9 @@
-package org.duckofdoom.howardbot.utils
+package org.duckofdoom.howardbot.services
 
-import scala.concurrent.{ExecutionContext, Future}
 import cats.syntax.option._
 import slogging.StrictLogging
+
+import scala.concurrent.{ExecutionContext, Future}
 
 trait HttpService {
   def makeRequestAsync(url: String)(

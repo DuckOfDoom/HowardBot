@@ -2,8 +2,8 @@ package org.duckofdoom.howardbot.db.dto
 
 import cats.syntax.either._
 import io.circe.{Decoder, Encoder, HCursor, Json}
-import org.duckofdoom.howardbot.bot.Sorting
-import org.duckofdoom.howardbot.bot.Sorting.Sorting
+import org.duckofdoom.howardbot.bot.utils.Sorting
+import org.duckofdoom.howardbot.bot.utils.Sorting._
  
 case class UserState(menuPage: Int = 1, stylesPage: Int = 1, sorting: Seq[Sorting] = Seq())
 

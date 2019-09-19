@@ -1,31 +1,30 @@
-package org.duckofdoom.howardbot.bot
+package org.duckofdoom.howardbot.bot.utils
 
 import org.duckofdoom.howardbot.bot
 import org.duckofdoom.howardbot.bot.data.Beer
 
 import scala.util.Try
+import scala.util.control.Breaks.{break, breakable}
 import scala.util.matching.Regex
-
-import util.control.Breaks._
 
 object Sorting extends Enumeration {
 
   type Sorting = Value
 
-  val byName: bot.Sorting.Value    = Value("n")
-  val byNameDec: bot.Sorting.Value = Value("n")
+  val byName: Sorting.Value    = Value("n")
+  val byNameDec: Sorting.Value = Value("n")
 
-  val byStyle: bot.Sorting.Value    = Value("s")
-  val byStyleDec: bot.Sorting.Value = Value("s")
+  val byStyle: Sorting.Value    = Value("s")
+  val byStyleDec: Sorting.Value = Value("s")
 
-  val byRating: bot.Sorting.Value    = Value("r")
-  val byRatingDec: bot.Sorting.Value = Value("r")
+  val byRating: Sorting.Value    = Value("r")
+  val byRatingDec: Sorting.Value = Value("r")
 
-  val byPriceForMl: bot.Sorting.Value    = Value("p")
-  val byPriceForMlDec: bot.Sorting.Value = Value("p")
+  val byPriceForMl: Sorting.Value    = Value("p")
+  val byPriceForMlDec: Sorting.Value = Value("p")
 
-  val byBrewery: bot.Sorting.Value    = Value("b")
-  val byBreweryDec: bot.Sorting.Value = Value("b")
+  val byBrewery: Sorting.Value    = Value("b")
+  val byBreweryDec: Sorting.Value = Value("b")
 
   val mlRegex: Regex = """(\d+)\s*(ml|ML).*""".r
   val clRegex: Regex = """(\d+)\s*(cl|CL).*""".r

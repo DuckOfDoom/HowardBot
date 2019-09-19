@@ -1,9 +1,9 @@
 package org.duckofdoom.howardbot.server
 
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
-import org.duckofdoom.howardbot.bot.{Consts, ResponseFormat, ResponseService, StatusProvider}
+import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, StatusService}
 import org.duckofdoom.howardbot.db.DB
 import scalatags.Text.all._
 
@@ -18,10 +18,10 @@ trait ServerResponseService {
 }
 
 class ServerResponseServiceImpl(
-    implicit statusInfoProvider: StatusProvider,
-    itemDataProvider: ItemsProvider,
-    responseService: ResponseService,
-    db: DB
+                                 implicit statusInfoProvider: StatusService,
+                                 itemDataProvider: ItemsProvider,
+                                 responseService: ResponseService,
+                                 db: DB
 ) extends ServerResponseService {
 
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage

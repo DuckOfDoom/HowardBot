@@ -8,9 +8,11 @@ import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
-import org.duckofdoom.howardbot.{Config, bot}
-import org.duckofdoom.howardbot.bot.ResponseFormat.ResponseFormat
+import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemType
+import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService}
+import org.duckofdoom.howardbot.bot.utils.Callback
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.Extensions._
@@ -111,7 +113,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               ).some
 
             // Sent from clicking on a particular item button (either beer or style)
-            case Some(Callback.Item(itemType, itemId)) =>
+            case Some(Callback.SingleBeer(itemType, itemId)) =>
               logger.info(
                 s"Received 'Item' callback from user @${user.username}, itemType: $itemType, itemId: $itemId"
               )
@@ -198,7 +200,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     }
 
     withUser(msg.chat) { user =>
-      implicit val format: bot.ResponseFormat.Value = ResponseFormat.TextMessage
+      implicit val format: ResponseFormat.Value = ResponseFormat.TextMessage
     
       val responseFuture = msg.text.get match {
         case Consts.showItemRegex(Int(id)) =>

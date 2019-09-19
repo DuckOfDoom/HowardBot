@@ -1,15 +1,16 @@
-package org.duckofdoom.howardbot.bot
+package org.duckofdoom.howardbot.bot.services
 
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, LocalDateTime}
 
-import scalatags.Text.all._
+import org.duckofdoom.howardbot.bot.BotStarter
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
+import scalatags.Text.all._
 
 /**
   * Provides info about running services
   */
-class StatusProvider(implicit bot: BotStarter, itemProvider: ItemsProvider) {
+class StatusService(implicit bot: BotStarter, itemProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 

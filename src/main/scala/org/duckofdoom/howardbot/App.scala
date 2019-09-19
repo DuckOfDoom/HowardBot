@@ -3,15 +3,11 @@ package org.duckofdoom.howardbot
 import java.util.concurrent.Executors
 
 import org.duckofdoom.howardbot.bot.data.{ItemsProvider, ParsedItemsProvider}
-import org.duckofdoom.howardbot.bot.{
-  BotStarter,
-  ResponseService,
-  ResponseServiceImpl,
-  StatusProvider
-}
+import org.duckofdoom.howardbot.bot.services.{ResponseService, ResponseServiceImpl, StatusService}
+import org.duckofdoom.howardbot.bot.BotStarter
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
-import org.duckofdoom.howardbot.utils.{HttpService, ScalajHttpService}
+import org.duckofdoom.howardbot.services.{HttpService, ScalajHttpService}
 import slogging.StrictLogging
 
 import scala.concurrent.duration.Duration
@@ -38,7 +34,7 @@ class App extends StrictLogging {
   implicit val db: DB                                       = new DoobieDB(config.postgres)
   implicit val responseService: ResponseService             = new ResponseServiceImpl
   implicit val bot: BotStarter                              = new BotStarter()
-  implicit val statusProvider: StatusProvider               = new StatusProvider()
+  implicit val statusProvider: StatusService               = new StatusService()
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
   val server                                                = new Server()
 
