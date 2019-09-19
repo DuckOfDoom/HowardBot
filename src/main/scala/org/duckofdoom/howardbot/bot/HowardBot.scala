@@ -178,7 +178,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       if (responseFuture.isEmpty)
         logger.error(s"Failed to construct response for callback query: ${query.data}")
 
-      // Combine our response with ACK since we shoudl always acknowledge callback query
+      // Combine our response with ACK since we should always acknowledge callback query
       val responseFutureWithAck: Future[Unit] = for {
         ack    <- ackCallback()
         answer <- responseFuture.getOrElse(Future.successful())

@@ -96,9 +96,9 @@ class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
 
   override def mkChangeSortingResponse(selectedSorting: Seq[Sorting]): (String, InlineKeyboardMarkup) = {
     val message =
-      s"""Текущая сортировка: ${
+      s"""Текущая сортировка:\n${
         if (selectedSorting.isEmpty) "Нет"
-        else selectedSorting.map(s => s"|${s.toHumanReadable}|").mkString(", ")
+        else selectedSorting.map(s => s"|${s.toHumanReadable}|").mkString("\n")
       }
       """
 
