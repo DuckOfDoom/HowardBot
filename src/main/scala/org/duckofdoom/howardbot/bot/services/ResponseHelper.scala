@@ -71,15 +71,6 @@ class ResponseHelper(
     )
   }
 
-  def mkBeerButtonInfo(beer: Beer): HtmlFragment = {
-    // Multiline strings do not work anyways =(
-    s"${beer.name.getOrElse("name = ?")}"
-  }
-
-  def mkStyleHtmlInfo(style: Style, itemsCount: Int): HtmlFragment = {
-    s"${style.name}: $itemsCount - ${Consts.showStylePrefix}${style.id}\n"
-  }
-
   def mkStyleButtonInfo(style: Style, itemsCount: Int): HtmlFragment = {
     s"${style.name}: $itemsCount"
   }
@@ -93,7 +84,7 @@ class ResponseHelper(
       mkCallbackData: Int => String
   )(
       renderItem: A => HtmlFragment
-  )(implicit responseFormat: ResponseFormat): (String, InlineKeyboardMarkup) = {
+  )(implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
       case Callback.Type.Styles => config.stylesPerPage

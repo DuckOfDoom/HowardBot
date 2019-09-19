@@ -38,7 +38,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       val (items, markup) = responseService.mkMenuResponse(
         u.state.menuPage,
         u.state.sorting
-      )(ResponseFormat.TextMessage)
+      )
 
       (respond(items, markup.some)(msg), u)
     }
@@ -46,7 +46,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   onCommand("styles") { implicit msg =>
     withUser(msg.chat) { u =>
-      val (items, markup) = responseService.mkStylesResponse(1)(ResponseFormat.Buttons)
+      val (items, markup) = responseService.mkStylesResponse(1)
       (respond(items, markup.some)(msg), u)
     }
   }
@@ -66,7 +66,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
           implicit val message: Message       = msg
-          implicit val format: ResponseFormat = ResponseFormat.TextMessage
 
           Callback.deserialize(data.getBytes) match {
             // Sent from "Menu" button
@@ -95,7 +94,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               }
 
               respond(
-                responseService.mkStylesResponse(user.state.menuPage)(ResponseFormat.Buttons),
+                responseService.mkStylesResponse(user.state.menuPage),
                 newMessage
               ).some
 
