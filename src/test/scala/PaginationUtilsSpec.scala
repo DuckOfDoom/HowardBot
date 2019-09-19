@@ -2,9 +2,9 @@ import cats.syntax.option._
 import com.bot4s.telegram.models.InlineKeyboardButton
 import org.duckofdoom.howardbot.bot.utils.Callback
 import org.duckofdoom.howardbot.utils.PaginationUtils
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 
-class PaginationUtilsTests extends FunSuite with Matchers {
+class PaginationUtilsSpec extends FlatSpec with Matchers {
   implicit val callbackType: Callback.Type.Value = Callback.Type.Menu
 
   private def result(currentPage: Int, itemsCount: Int)(implicit itemsPerPage: Int) = {
@@ -14,7 +14,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
   implicit val itemsPerPage: Int = 8
   implicit val payload: String   = ""
 
-  test("Buttons generation. More pages than buttons.") {
+  "Pagination Utils" should "generate buttons correctly when there are more pages than buttons." in {
 
     val itemsCount      = 50
     val totalPages: Int = (itemsCount / itemsPerPage) + 1
@@ -122,7 +122,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
     )
   }
 
-  test("Buttons generation. Less than 5 pages.") {
+  it should "generate buttons correctly when there are less than 5 pages" in {
 
     var itemsCount = 14
 
@@ -148,7 +148,7 @@ class PaginationUtilsTests extends FunSuite with Matchers {
     )
   }
 
-  test("Buttons generation. No pages.") {
+  it should "generate buttons correctly when there are no pages" in {
 
     val itemsCount = 8
 
