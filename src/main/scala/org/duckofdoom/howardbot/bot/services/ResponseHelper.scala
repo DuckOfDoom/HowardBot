@@ -117,7 +117,7 @@ class ResponseHelper(
         selectedItems.map(item => {
           InlineKeyboardButton(
             renderItem(item).render,
-            Callback.mkItemCallback(item)
+            Callback.mkSingleBeerCallback(item)
           )
         })
       )

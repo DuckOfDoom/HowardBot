@@ -44,7 +44,7 @@ class UserSpec extends FlatSpec with Matchers {
   implicit val decoder: Decoder[UserState] = UserState.decoder
   implicit val encoder: Encoder[UserState] = UserState.encoder
 
-  "UserState" should "be serialized and deserialized correctly" in {
+  it should "be serialized and deserialized correctly" in {
 
     val state        = UserState(5, 7, List(Sorting.byBrewery, Sorting.byPriceForMlDec))
     val serialized   = state.asJson
