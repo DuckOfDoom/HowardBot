@@ -9,17 +9,49 @@ import org.duckofdoom.howardbot.bot.utils.Callback
 import org.duckofdoom.howardbot.utils.Extensions._
 import org.duckofdoom.howardbot.utils.PaginationUtils
 import scalatags.Text.all._
-import scalatags.generic
 import scalatags.text.Builder
 
-class ResponseHelper(
+trait ResponseHelper {
+
+  type HtmlFragment = scalatags.generic.Frag[Builder, String]
+
+  def mkItemNotFoundResponse(
+      itemType: String,
+      itemId: Int
+  ): String
+
+  def mkEmptySeachResultsResponse(
+      query: String
+  ): String
+
+  def mkBeerHtmlInfo(
+      beer: Beer,
+      verbose: Boolean,
+      withStyleLink: Boolean
+  ): HtmlFragment
+
+  def mkStyleButtonInfo(style: Style, itemsCount: Int): HtmlFragment
+
+  def mkPaginatedResponse[A <: Item, TPayload](
+      allItems: List[A],
+      page: Int,
+      // Type of callback data to attach to buttons
+      callbackType: Callback.Type.Value,
+      // A function to make callback data for each 'page' button.
+      mkCallbackData: Int => String
+  )(
+      renderItem: A => HtmlFragment
+  )(
+      implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage
+  ): (String, InlineKeyboardMarkup)
+}
+
+class ResponseHelperImpl(
     implicit config: Config,
     itemsProvider: ItemsProvider,
     keyboardHelper: KeyboardHelper
-) {
+) extends ResponseHelper {
 
-  type HtmlFragment = generic.Frag[Builder, String]
-  
   def mkItemNotFoundResponse(
       itemType: String,
       itemId: Int
@@ -84,7 +116,9 @@ class ResponseHelper(
       mkCallbackData: Int => String
   )(
       renderItem: A => HtmlFragment
-  )(implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage): (String, InlineKeyboardMarkup) = {
+  )(
+      implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage
+  ): (String, InlineKeyboardMarkup) = {
 
     val itemsPerPage = callbackType match {
       case Callback.Type.Styles => config.stylesPerPage
@@ -109,7 +143,7 @@ class ResponseHelper(
       allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
 
     // Instead of rendering allItems into a message, render them as buttons
-    var messageContents: String      = "Пожалуйста:"
+    var messageContents: String = "Пожалуйста:"
     var markup: InlineKeyboardMarkup = paginationMarkup
 
     if (responseFormat == ResponseFormat.Buttons) {

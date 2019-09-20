@@ -36,12 +36,13 @@ trait ResponseService {
   ): (String, InlineKeyboardMarkup)
 }
 
-class ResponseServiceImpl(implicit itemsProvider: ItemsProvider, config: Config)
-    extends ResponseService
+class ResponseServiceImpl(
+    implicit itemsProvider: ItemsProvider,
+    responseHelper: ResponseHelper,
+    keyboardHelper: KeyboardHelper,
+    config: Config
+) extends ResponseService
     with StrictLogging {
-
-  implicit val keyboardHelper: KeyboardHelper = new KeyboardHelper()
-  val responseHelper                          = new ResponseHelper()
 
   override def mkMenuResponse(
       page: Int,

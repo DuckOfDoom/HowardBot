@@ -7,7 +7,20 @@ import org.duckofdoom.howardbot.bot.utils.Sorting._
 
 import scala.collection.mutable
 
-class KeyboardHelper {
+trait KeyboardHelper {
+  def mkDefaultButtons(sorting: Boolean = true): InlineKeyboardMarkup
+ 
+  def mkPaginationButtons(
+      paginationButtons: Seq[InlineKeyboardButton],
+      menuButton: Boolean,
+      stylesButton: Boolean,
+      sortingButton: Boolean
+  ): InlineKeyboardMarkup
+
+  def mkChangeSortingButtons(currentSorting: Seq[Sorting]): InlineKeyboardMarkup
+}
+
+class KeyboardHelperImpl extends KeyboardHelper {
 
   def mkDefaultButtons(sorting: Boolean = true): InlineKeyboardMarkup = {
     InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = sorting)))

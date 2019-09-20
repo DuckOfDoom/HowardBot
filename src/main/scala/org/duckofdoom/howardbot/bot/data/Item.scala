@@ -9,7 +9,7 @@ object ItemType extends Enumeration {
 
 trait Item {
   val id: Int
-  val itemType : ItemType
+  val itemType: ItemType
 }
 
 object Style {
@@ -21,27 +21,27 @@ case class Style(id: Int, name: String) extends Item {
 }
 
 case class BreweryInfo(
-    name: Option[String],
-    link: Option[String],
-    location: Option[String]
+    name: Option[String] = None,
+    link: Option[String] = None,
+    location: Option[String] = None
 )
 
 case class Beer(
     id: Int,
-    menuOrder: Option[Int],
-    name: Option[String],
-    rating: Option[(Float, Float)],
-    link: Option[String],
-    pictureLink: Option[String],
-    abv: Option[Float],
-    ibu: Option[Float],
-    breweryInfo: BreweryInfo,
-    style: Option[String],
-    draftType: Option[String],
-    price: Option[(String, Float)],
-    description: Option[String],
+    menuOrder: Option[Int] = None, // TODO: Make NAME second parameter!
+    name: Option[String] = None,
+    rating: Option[(Float, Float)] = None,
+    link: Option[String] = None,
+    pictureLink: Option[String] = None,
+    abv: Option[Float] = None,
+    ibu: Option[Float] = None,
+    breweryInfo: BreweryInfo = BreweryInfo(),
+    style: Option[String] = None,
+    draftType: Option[String] = None,
+    price: Option[(String, Float)] = None,
+    description: Option[String] = None
 ) extends Item {
-  
+
   override val itemType: ItemType = ItemType.Beer
 
   override def toString: String = {

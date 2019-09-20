@@ -1,13 +1,14 @@
 import com.bot4s.telegram.models.InlineKeyboardButton
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
-import org.duckofdoom.howardbot.bot.services.KeyboardHelper
+import org.duckofdoom.howardbot.bot.services.{KeyboardHelper, KeyboardHelperImpl}
 import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, Styles}
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
-class KeyboardSpec extends FlatSpec with Matchers {
+class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
 
-  val helper = new KeyboardHelper()
+  val helper = new KeyboardHelperImpl()
 
   private def getCallback[T <: Callback](i: Int, j: Int)(
       implicit kb: Seq[Seq[InlineKeyboardButton]]
