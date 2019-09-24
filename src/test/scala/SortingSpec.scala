@@ -1,3 +1,5 @@
+import java.time.LocalDateTime
+
 import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
 import org.duckofdoom.howardbot.bot.utils.Sorting
@@ -114,8 +116,9 @@ class SortingSpec extends FlatSpec with Matchers {
   ): Beer = {
     Beer(
       id,
-      None,
+      LocalDateTime.MIN,
       name.some,
+      None,
       rating.some,
       None,
       None,
@@ -140,6 +143,7 @@ class SortingSpec extends FlatSpec with Matchers {
   private def mkBeer(id: Int, draftType: Option[String], price: Option[Float]): Beer = {
     Beer(
       id,
+      LocalDateTime.MIN,
       None,
       None,
       None,

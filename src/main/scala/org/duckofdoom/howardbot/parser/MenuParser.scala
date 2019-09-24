@@ -1,5 +1,7 @@
 package org.duckofdoom.howardbot.parser
 
+import java.time.LocalDateTime
+
 import cats.syntax.option._
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
@@ -156,6 +158,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     Beer(
       id,
+      LocalDateTime.now(),
       name,
       menuOrder,
       rating,

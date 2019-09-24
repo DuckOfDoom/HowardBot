@@ -220,6 +220,7 @@ class FakeBeersProvider extends ItemsProviderBase {
       .map(i => {
         val item = Beer(
           i,
+          LocalDateTime.now(),
           faker.Lorem.words(2).head.capitalize.some,
           i.some,
           (scala.util.Random.nextFloat() * 5f, 5f).some,

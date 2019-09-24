@@ -1,3 +1,5 @@
+import java.time.LocalDateTime
+
 import cats.syntax.either._
 import cats.syntax.option._
 import org.duckofdoom.howardbot.bot.data
@@ -48,6 +50,7 @@ class CallbacksSpec extends FlatSpec with Matchers {
     val itemCallback = Callback.mkSingleBeerCallback(
       Beer(
         51,
+        LocalDateTime.MIN,
         None,
         None,
         None,

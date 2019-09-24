@@ -1,6 +1,9 @@
 package org.duckofdoom.howardbot.bot.data
 
+import java.time.LocalDateTime
+
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
+import org.duckofdoom.howardbot.utils.TimeUtils
 
 object ItemType extends Enumeration {
   type ItemType = Value
@@ -28,6 +31,7 @@ case class BreweryInfo(
 
 case class Beer(
     id: Int,
+    dateAdded: LocalDateTime = LocalDateTime.MIN,
     name: Option[String] = None,
     menuOrder: Option[Int] = None, 
     rating: Option[(Float, Float)] = None,
@@ -51,9 +55,10 @@ case class Beer(
     }
 
     val sb = new StringBuilder()
-    sb.append(s"Id = $id\n")
-    sb.append(toString("menuOrder", menuOrder))
+    sb.append(s"id = $id\n")
+    sb.append(s"dateAdded = ${TimeUtils.formatDateTime(dateAdded)}")
     sb.append(toString("name", name))
+    sb.append(toString("menuOrder", menuOrder))
     sb.append(toString("rating", rating))
     sb.append(toString("style", style))
     sb.append(toString("link", link))

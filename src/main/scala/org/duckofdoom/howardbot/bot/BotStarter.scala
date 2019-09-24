@@ -11,6 +11,7 @@ import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
 
+// TODO: Get rid of this =_=
 class BotStarter(implicit responseService: ResponseService) extends StrictLogging {
 
   def runningTime: Duration         = Duration.between(startupTime, LocalDateTime.now())
