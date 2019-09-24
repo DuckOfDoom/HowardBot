@@ -73,6 +73,26 @@ object Beer {
       info.description
     )
   }
+
+  def fromAnotherBeer(isInStock: Boolean, dateAdded: LocalDateTime, beer: Beer): Beer = {
+    Beer(
+      beer.id,
+      isInStock,
+      dateAdded,
+      beer.name,
+      beer.menuOrder,
+      beer.rating,
+      beer.link,
+      beer.pictureLink,
+      beer.abv,
+      beer.ibu,
+      beer.breweryInfo,
+      beer.style,
+      beer.draftType,
+      beer.price,
+      beer.description
+    )
+  }
 }
 
 case class Beer private (
