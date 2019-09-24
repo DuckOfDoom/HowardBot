@@ -2,41 +2,40 @@ import com.bot4s.telegram.models.InlineKeyboardMarkup
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
-import org.duckofdoom.howardbot.bot.services.{KeyboardHelper, ResponseHelper, ResponseServiceImpl}
-import org.scalatest.{FlatSpec, Matchers}
+import org.duckofdoom.howardbot.bot.services.{KeyboardHelper, ResponseHelper, ResponseService, ResponseServiceImpl}
+import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
 import org.scalamock.scalatest.MockFactory
 
-class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory {
+// TODO: Finish these tests =_=
+class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory with BeforeAndAfter {
 
-  implicit val itemsProvider: ItemsProvider   = createItemsProvider()
-  implicit val config: Config                 = createConfig()
-  implicit val responseHelper: ResponseHelper = createResponseHelper()
-  implicit val keyboardHelper: KeyboardHelper = createKeyboardHelper()
+  def fixture = new {
+
+    implicit val itemsProvider: ItemsProvider   = createItemsProvider()
+    implicit val config: Config                 = createConfig()
+    implicit val responseHelper: ResponseHelper = createResponseHelper()
+    implicit val keyboardHelper: KeyboardHelper = createKeyboardHelper()
+
+    var service : ResponseService = new ResponseServiceImpl()
+  }
   
   val defaultKeyboard = InlineKeyboardMarkup(Seq())
 
-  val service = new ResponseServiceImpl()
-
   "ResponseService" should "return correct response for empty search results" in {
+    val service = fixture.service
     service.mkSearchBeerByNameResponse("NON-EXISTENT BEER", 0, Seq()) should be (("NON-EXISTENT BEER is missing", defaultKeyboard))
     service.mkSearchBeerByStyleResponse("NON-EXISTENT STYLE", 0, Seq()) should be (("NON-EXISTENT STYLE is missing", defaultKeyboard))
-    itemsProvider.beers should have length (3)
   }
-  
-  it should "return correct response for non-empty search results" in {
-//    service.mkSearchBeerByNameResponse("sd", 0, Seq()) should be (("NON-EXISTENT BEER is missing", defaultKeyboard))
-//    service.mkSearchBeerByStyleResponse("NON-EXISTENT STYLE", 0, Seq()) should be (("NON-EXISTENT STYLE is missing", defaultKeyboard))
-    
-    itemsProvider.beers should have length (3)
-    itemsProvider.beers should have length (3)
-  }
+//  
+//  it should "return correct response for non-empty search results" in {
+//    val service = fixture.service
+//    service.mkSearchBeerByNameResponse("beer3", 0, Seq()) should be (("this is beer3 response", defaultKeyboard))
+//  }
 
   private def createItemsProvider(): ItemsProvider = {
     val m = mock[ItemsProvider]
-    
-    println("as")
 
-    (m.beers _) expects () anyNumberOfTimes() onCall { () =>
+    m.beers _ expects () anyNumberOfTimes() onCall { () =>
       List(
         Beer(1, name = "beer1".some, style = "style1".some),
         Beer(2, name = "beer2".some, style = "style1".some),
@@ -49,9 +48,9 @@ class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory {
 
   private def createResponseHelper(): ResponseHelper = {
     val m = mock[ResponseHelper]
-    
     m.mkEmptySeachResultsResponse _ expects * anyNumberOfTimes() onCall { arg : String => arg + " is missing"}
     
+//    (m.mkPaginatedResponse _ _ _ _) expects (* * * * *) anyNumberOfTimes() onCall { arg : String => s"this is $arg response"}
     m
   }
 
