@@ -6,6 +6,7 @@ import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.services.HttpService
+import org.duckofdoom.howardbot.utils.FileUtils
 import slogging.StrictLogging
 
 import scala.collection.mutable
@@ -119,6 +120,11 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   */
 class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
     extends ItemsProviderBase {
+  
+  import io.circe.syntax._
+  import io.circe.parser._
+
+  private final val savedMenuFilePath = "menu.json"
 
   logger.info(
     s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
@@ -160,7 +166,13 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
 
           var styleId = 0
 
-          for (item <- new MenuParser(mainOutput, additionalPages).parse()) {
+          val savedMenu = loadSavedMenu()
+          val parsedMenu = new MenuParser(mainOutput, additionalPages).parse()
+          val mergedMenu = mergeMenus(savedMenu.getOrElse(List()), parsedMenu)
+          
+          saveMenu(mergedMenu)
+
+          for (item <- mergedMenu) {
             // Items without breweries are food, we ignore them for now
             if (item.breweryInfo.name.isDefined) {
 
@@ -203,6 +215,24 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
         refreshSync()
         Thread.sleep((config.menuRefreshPeriod * 1000).toInt)
       }
+    }
+  }
+
+  private def mergeMenus(oldMenu: List[Beer], newMenu: List[Beer]): List[Beer] = {
+    newMenu
+  }
+
+  private def saveMenu(menu: List[Beer]): Unit = {
+    val menuJson = menu.asJson.toString
+    FileUtils.writeFile(savedMenuFilePath, menuJson)
+  }
+
+  private def loadSavedMenu(): Option[List[Beer]] = {
+    FileUtils.readFile(savedMenuFilePath).map(decode[List[Beer]]) match {
+      case Some(Right(beers)) => beers.some
+      case _ =>
+        logger.info(s"Can't decode saved menu from '$savedMenuFilePath'.")
+        None
     }
   }
 }

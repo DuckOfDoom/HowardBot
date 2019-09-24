@@ -4,5 +4,6 @@ target/*
 project/target/*
 .idea
 config.json
+menu.json
 out/
 project/project/*
