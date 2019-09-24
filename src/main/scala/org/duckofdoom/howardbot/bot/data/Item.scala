@@ -37,9 +37,45 @@ object Beer {
 
   implicit val bDecoder: Decoder[BreweryInfo] = deriveDecoder[BreweryInfo]
   implicit val decoder: Decoder[Beer]         = deriveDecoder[Beer]
+
+  case class ParsedInfo(
+      dateAdded: LocalDateTime = LocalDateTime.MIN,
+      name: Option[String] = None,
+      menuOrder: Option[Int] = None,
+      rating: Option[(Float, Float)] = None,
+      link: Option[String] = None,
+      pictureLink: Option[String] = None,
+      abv: Option[Float] = None,
+      ibu: Option[Float] = None,
+      breweryInfo: BreweryInfo = BreweryInfo(),
+      style: Option[String] = None,
+      draftType: Option[String] = None,
+      price: Option[(String, Float)] = None,
+      description: Option[String] = None
+  )
+
+  def fromParsedInfo(id: Int, isInStock: Boolean, dateAdded: LocalDateTime, info: ParsedInfo): Beer = {
+    Beer(
+      id,
+      isInStock,
+      dateAdded,
+      info.name,
+      info.menuOrder,
+      info.rating,
+      info.link,
+      info.pictureLink,
+      info.abv,
+      info.ibu,
+      info.breweryInfo,
+      info.style,
+      info.draftType,
+      info.price,
+      info.description
+    )
+  }
 }
 
-case class Beer(
+case class Beer private (
     id: Int,
     isInStock: Boolean,
     dateAdded: LocalDateTime = LocalDateTime.MIN,

@@ -1,15 +1,17 @@
 package org.duckofdoom.howardbot.server
 
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, StatusService}
 import org.duckofdoom.howardbot.db.DB
+import org.duckofdoom.howardbot.utils.FileUtils
+import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import scalatags.Text.all._
 
 trait ServerResponseService {
   def home(): String
   def menu(): String
+  def menuJson(): String
   def getUsers(): String
   def getUser(userId: Int): String
   def putRandomUser(): String
@@ -18,10 +20,10 @@ trait ServerResponseService {
 }
 
 class ServerResponseServiceImpl(
-                                 implicit statusInfoProvider: StatusService,
-                                 itemDataProvider: ItemsProvider,
-                                 responseService: ResponseService,
-                                 db: DB
+    implicit statusInfoProvider: StatusService,
+    itemDataProvider: ItemsProvider,
+    responseService: ResponseService,
+    db: DB
 ) extends ServerResponseService {
 
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
@@ -32,7 +34,7 @@ class ServerResponseServiceImpl(
 
   override def menu(): String = {
     val beers = itemDataProvider.beers
-    
+
     frag(
       s"Всего пивасов: ${beers.length}",
       br(),
@@ -50,9 +52,10 @@ class ServerResponseServiceImpl(
           s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
           br(),
           beer.draftType match {
-            case Some(dr) => dr + " - " + beer.price
-              .map { case (c, price) => c + price }
-              .getOrElse("price = ?")
+            case Some(dr) =>
+              dr + " - " + beer.price
+                .map { case (c, price) => c + price }
+                .getOrElse("price = ?")
             case None => "On Deck"
           },
           br(),
@@ -64,6 +67,12 @@ class ServerResponseServiceImpl(
     ).render
   }
 
+  override def menuJson(): String = {
+    s"<pre>${FileUtils
+      .readFile(ItemsProvider.savedMenuFilePath)
+      .getOrElse(s"Can't read file '${ItemsProvider.savedMenuFilePath}'")}</pre>"
+  }
+
   override def show(itemId: Int): String = {
     responseService.mkBeerResponse(itemId)._1
   }
@@ -71,7 +80,7 @@ class ServerResponseServiceImpl(
   override def parse(): String = {
 
     val sb = new StringBuilder()
-    itemDataProvider.beers.toList
+    itemDataProvider.beers
       .sortBy(_.id)
       .foreach(i => {
         sb.append(

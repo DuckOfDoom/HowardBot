@@ -11,13 +11,14 @@ import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo}
 import slogging.StrictLogging
 
 import scala.util.Try
+import scala.util.matching.Regex
 
 class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extends StrictLogging {
 
-  private val parsedBeersByName = scala.collection.mutable.Map[String, Beer]()
+  private val parsedBeersByName = scala.collection.mutable.Map[String, Beer.ParsedInfo]()
   private val browser           = JsoupBrowser()
 
-  def parse(): List[Beer] = {
+  def parse(): List[Beer.ParsedInfo] = {
     parseScriptOutput(scriptOutput)
     logger.info(s"Parsed ${parsedBeersByName.count(_ => true)} items from main script output.")
     val parsedBeersCount = parsedBeersByName.count(_ => true)
@@ -51,7 +52,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     elements.zipWithIndex
       .map { case (el: Element, i: Int) => parseBeer(i, el) }
-      .foreach(addBeer)
+      .foreach(addParsedInfo)
   }
 
   private def parseAdditionalPages(pages: List[String], startingId: Int): Unit = {
@@ -73,11 +74,11 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
             id += 1
             item
           })
-          .foreach(addBeer)
+          .foreach(addParsedInfo)
       })
   }
 
-  private def addBeer(item: Beer): Unit = {
+  private def addParsedInfo(item: Beer.ParsedInfo): Unit = {
     if (item.name.isEmpty) {
       logger.trace(s"Can't add parsed item because name is not defined:\n$item")
       return
@@ -99,9 +100,9 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .replace("\\\"", "\"")
   }
 
-  val ratingRegex = "rating small r(\\d{3})".r
+  val ratingRegex: Regex = "rating small r(\\d{3})".r
 
-  private def parseBeer(id: Int, el: Element): Beer = {
+  private def parseBeer(id: Int, el: Element): Beer.ParsedInfo = {
     val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
 
     // beerName
@@ -155,10 +156,8 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .map(_.dropWhile(!_.isDigit))
       .map(_.replace(",", "")) // 1,700.00 rubley bldjad
       .flatMap(i => Try(i.toFloat).toOption)
-
-    Beer(
-      id,
-      true,
+    
+    Beer.ParsedInfo(
       LocalDateTime.now(),
       name,
       menuOrder,

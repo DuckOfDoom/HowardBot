@@ -14,7 +14,12 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
 
+object ItemsProvider {
+  val savedMenuFilePath = "menu.json"
+}
+
 trait ItemsProvider {
+
 
   /**
     * Time since last refresh
@@ -29,6 +34,7 @@ trait ItemsProvider {
   /**
     * Get all items available
     */
+  // TODO: List to Seqs
   def beers: List[Beer]
 
   /**
@@ -118,13 +124,11 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 /**
   * Items provider that can refresh itself via parsing html
   */
-class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
-    extends ItemsProviderBase {
-  
+class ParsedItemsProvider(implicit httpService: HttpService, config: Config) extends ItemsProviderBase {
+
   import io.circe.syntax._
   import io.circe.parser._
 
-  private final val savedMenuFilePath = "menu.json"
 
   logger.info(
     s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
@@ -154,7 +158,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
       result match {
         case Right((Some(mainOutput), additionalPages)) =>
           logger.info(s"Got main output and ${additionalPages.length} additional pages.")
-          
+
           if (mainOutput.isEmpty) {
             logger.error("Main output is empty. Skipping this refresh to no overwrite the menu.")
             return
@@ -166,10 +170,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
 
           var styleId = 0
 
-          val savedMenu = loadSavedMenu()
+          val savedMenu  = loadSavedMenu()
           val parsedMenu = new MenuParser(mainOutput, additionalPages).parse()
-          val mergedMenu = mergeMenus(savedMenu.getOrElse(List()), parsedMenu)
-          
+          val mergedMenu = mergeMenus(savedMenu.getOrElse(Seq()), parsedMenu)
+
           saveMenu(mergedMenu)
 
           for (item <- mergedMenu) {
@@ -205,7 +209,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
           }
         case Right(_) =>
           logger.error(s"Refresh failed! Got empty results!")
-        case Left(ex) => 
+        case Left(ex) =>
           logger.error(s"Refresh due to exception:$ex")
       }
     }
@@ -218,20 +222,21 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config)
     }
   }
 
-  private def mergeMenus(oldMenu: List[Beer], newMenu: List[Beer]): List[Beer] = {
-    newMenu
+  private def mergeMenus(oldMenu: Seq[Beer], newMenu: Seq[Beer.ParsedInfo]): Seq[Beer] = {
+    for ((info, index) <- newMenu.zipWithIndex)
+      yield Beer.fromParsedInfo(index, isInStock = true, LocalDateTime.now, info)
   }
 
-  private def saveMenu(menu: List[Beer]): Unit = {
+  private def saveMenu(menu: Seq[Beer]): Unit = {
     val menuJson = menu.asJson.toString
-    FileUtils.writeFile(savedMenuFilePath, menuJson)
+    FileUtils.writeFile(ItemsProvider.savedMenuFilePath, menuJson)
   }
 
-  private def loadSavedMenu(): Option[List[Beer]] = {
-    FileUtils.readFile(savedMenuFilePath).map(decode[List[Beer]]) match {
+  private def loadSavedMenu(): Option[Seq[Beer]] = {
+    FileUtils.readFile(ItemsProvider.savedMenuFilePath).map(decode[Seq[Beer]]) match {
       case Some(Right(beers)) => beers.some
       case _ =>
-        logger.info(s"Can't decode saved menu from '$savedMenuFilePath'.")
+        logger.info(s"Can't decode saved menu from '${ItemsProvider.savedMenuFilePath}'.")
         None
     }
   }

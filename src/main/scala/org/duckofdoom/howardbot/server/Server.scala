@@ -38,8 +38,15 @@ class Server(implicit responseService: ServerResponseService)
           pathSingleSlash {
             respond(responseService.home())
           },
-          path("menu") {
-            respond(responseService.menu())
+          pathPrefix("menu") {
+            concat(
+              pathEnd {
+                respond(responseService.menu())
+              },
+              path("json") {
+                respond(responseService.menuJson())
+              }
+            )
           },
           path("parse") {
             respond(responseService.parse())
@@ -71,7 +78,7 @@ class Server(implicit responseService: ServerResponseService)
     logger.info(
       s"""Starting server at http://$address:$port
             http://$address:$port/menu
-            http://$address:$port/parse
+            http://$address:$port/menu/json
             http://$address:$port/users
             http://$address:$port/users/new
         """
