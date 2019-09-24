@@ -33,17 +33,18 @@ case class BreweryInfo(
 
 object Beer {
   implicit val bEncoder: Encoder[BreweryInfo] = deriveEncoder[BreweryInfo]
-  implicit val encoder: Encoder[Beer] = deriveEncoder[Beer]
-  
+  implicit val encoder: Encoder[Beer]         = deriveEncoder[Beer]
+
   implicit val bDecoder: Decoder[BreweryInfo] = deriveDecoder[BreweryInfo]
-  implicit val decoder: Decoder[Beer] = deriveDecoder[Beer]
+  implicit val decoder: Decoder[Beer]         = deriveDecoder[Beer]
 }
 
 case class Beer(
     id: Int,
+    isInStock: Boolean,
     dateAdded: LocalDateTime = LocalDateTime.MIN,
     name: Option[String] = None,
-    menuOrder: Option[Int] = None, 
+    menuOrder: Option[Int] = None,
     rating: Option[(Float, Float)] = None,
     link: Option[String] = None,
     pictureLink: Option[String] = None,
@@ -55,7 +56,7 @@ case class Beer(
     price: Option[(String, Float)] = None,
     description: Option[String] = None
 ) extends Item {
-  
+
   override val itemType: ItemType = ItemType.Beer
 
   override def toString: String = {

@@ -158,6 +158,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     Beer(
       id,
+      true,
       LocalDateTime.now(),
       name,
       menuOrder,

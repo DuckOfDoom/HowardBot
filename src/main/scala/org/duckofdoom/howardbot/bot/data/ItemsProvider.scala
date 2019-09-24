@@ -250,6 +250,7 @@ class FakeBeersProvider extends ItemsProviderBase {
       .map(i => {
         val item = Beer(
           i,
+          isInStock = true,
           LocalDateTime.now(),
           faker.Lorem.words(2).head.capitalize.some,
           i.some,

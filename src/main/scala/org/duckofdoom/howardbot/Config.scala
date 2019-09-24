@@ -38,6 +38,7 @@ case class Config(
     menuRefreshPeriod: Float,
     menuItemsPerPage: Int,
     stylesPerPage: Int,
+    newItemsDurationInHours: Int,
     postgres: PostgresConfig
 ) extends StrictLogging {
 

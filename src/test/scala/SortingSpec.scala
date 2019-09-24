@@ -116,6 +116,7 @@ class SortingSpec extends FlatSpec with Matchers {
   ): Beer = {
     Beer(
       id,
+      isInStock = true,
       LocalDateTime.MIN,
       name.some,
       None,
@@ -143,6 +144,7 @@ class SortingSpec extends FlatSpec with Matchers {
   private def mkBeer(id: Int, draftType: Option[String], price: Option[Float]): Beer = {
     Beer(
       id,
+      isInStock = true,
       LocalDateTime.MIN,
       None,
       None,

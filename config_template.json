@@ -12,6 +12,7 @@
   "menuItemsPerPage": 5,
   "stylesPerPage": 5,
   "menuRefreshPeriod": 600,
+  "newItemsDurationInHours" : 24,
   "postgres": {
     "database": "DB",
     "user": "USER",

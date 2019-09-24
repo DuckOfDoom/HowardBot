@@ -37,9 +37,9 @@ class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory with B
 
     m.beers _ expects () anyNumberOfTimes() onCall { () =>
       List(
-        Beer(1, name = "beer1".some, style = "style1".some),
-        Beer(2, name = "beer2".some, style = "style1".some),
-        Beer(3, name = "beer3".some, style = "style2".some),
+        Beer(1, isInStock = true, name = "beer1".some, style = "style1".some),
+        Beer(2, isInStock = true, name = "beer2".some, style = "style1".some),
+        Beer(3, isInStock = true, name = "beer3".some, style = "style2".some),
       )
     }  
     
