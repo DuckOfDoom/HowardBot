@@ -112,7 +112,6 @@ class ResponseServiceImpl(
   }
 
   override def mkBeerResponse(beer: Beer): (String, InlineKeyboardMarkup) = {
-    // TODO: Separate response for a single beer?
     (
       responseHelper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render,
       keyboardHelper.mkDefaultButtons(sorting = false)

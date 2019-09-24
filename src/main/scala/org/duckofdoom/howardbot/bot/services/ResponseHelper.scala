@@ -65,7 +65,6 @@ class ResponseHelperImpl(
     s"Ничего не найдено по запросу '$query'. :("
   }
 
-  // TODO: Move all string-producing stuff to separate class
   def mkBeerHtmlInfo(
       beer: Beer,
       verbose: Boolean,
@@ -76,7 +75,6 @@ class ResponseHelperImpl(
       beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
       "\n",
       s"Стиль: ${beer.style
-      // TODO: Think about error handling here
         .map(style => {
           if (withStyleLink)
             s"$style (${Consts.showStylePrefix}${itemsProvider.getStyleId(style).getOrElse("BROKEN")})"

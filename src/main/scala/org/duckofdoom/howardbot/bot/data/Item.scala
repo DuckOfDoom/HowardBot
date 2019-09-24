@@ -28,8 +28,8 @@ case class BreweryInfo(
 
 case class Beer(
     id: Int,
-    menuOrder: Option[Int] = None, // TODO: Make NAME second parameter!
     name: Option[String] = None,
+    menuOrder: Option[Int] = None, 
     rating: Option[(Float, Float)] = None,
     link: Option[String] = None,
     pictureLink: Option[String] = None,

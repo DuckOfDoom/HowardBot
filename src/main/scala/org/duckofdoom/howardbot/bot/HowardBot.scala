@@ -32,7 +32,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
 
-  // TODO: Move command literals to separate file
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
       val (items, markup) = responseService.mkMenuResponse(
@@ -98,8 +97,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                 newMessage
               ).some
 
-            // TODO: Add page option for new message
-            // TODO: Right now it always responds as a new message
             // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
               logger.info(

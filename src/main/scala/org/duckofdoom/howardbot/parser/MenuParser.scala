@@ -156,8 +156,8 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
 
     Beer(
       id,
-      menuOrder,
       name,
+      menuOrder,
       rating,
       link,
       picLink,
