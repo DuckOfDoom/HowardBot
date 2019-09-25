@@ -230,7 +230,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
     val currentChangelogStr = {
       if (changelog.nonEmpty)
-        TimeUtils.formatDateTime(LocalDateTime.now) + ":\n" + changelog.mkString("\n") + "\n\n"
+        s"""${TimeUtils.formatDateTime(LocalDateTime.now)}
+           |  ${changelog.length} change(s):
+           |${changelog.mkString("\n")}\n\n""".stripMargin
       else
         ""
     }
@@ -243,7 +245,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
       mergedChangelog = currentChangelogStr
     }
 
-    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog)
+    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog.replaceAll("\\r$", ""))
   }
 
   private def loadSavedMenu(): Option[Seq[Beer]] = {
