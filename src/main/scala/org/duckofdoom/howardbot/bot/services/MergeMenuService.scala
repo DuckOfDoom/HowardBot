@@ -68,13 +68,11 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
         addToChangelog(itemWithoutAName.format("a new", sItem), error = true)
       } else {
         val itemName = sItem.name.get
-        // Went out of stocks
-        if (!newItemsNames.contains(itemName)) {
+        // Went out of stock
+        if (!newItemsNames.contains(itemName) && sItem.isInStock) {
           addToChangelog(wentOutOfStock.format(itemName))
-          result :+ Beer.fromAnotherBeer(isInStock = false, sItem)
-        } else {
-          result :+ Beer.fromAnotherBeer(isInStock = true, sItem)
-        }
+          result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, sItem)
+        } 
       }
     }
 
