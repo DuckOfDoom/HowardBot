@@ -72,7 +72,7 @@ class ResponseHelperImpl(
   ): HtmlFragment = {
     frag(
       a(href := beer.link.getOrElse("link = ?"))("🍺 " + beer.name.getOrElse("name = ?")),
-      beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" rating = ?").toString,
+      beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" N/A").toString,
       "\n",
       s"Стиль: ${beer.style
         .map(style => {
@@ -96,7 +96,7 @@ class ResponseHelperImpl(
       if (!verbose)
         s"Подробнее: ${Consts.showItemPrefix}${beer.id}"
       else
-        s"\n${beer.description.getOrElse("description = ?")}",
+        s"\n${beer.description.getOrElse("")}",
       "\n\n"
     )
   }
