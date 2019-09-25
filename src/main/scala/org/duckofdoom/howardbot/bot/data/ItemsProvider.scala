@@ -9,6 +9,7 @@ import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.services.HttpService
 import org.duckofdoom.howardbot.utils.{FileUtils, TimeUtils}
 import slogging.StrictLogging
+import org.duckofdoom.howardbot.utils.Extensions._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -232,20 +233,15 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
       if (changelog.nonEmpty)
         s"""${TimeUtils.formatDateTime(LocalDateTime.now)}
            |  ${changelog.length} change(s):
-           |${changelog.mkString("\n")}\n\n""".stripMargin
+           |${changelog.mkString("\n")}\n\n""".stripMargin.normalizeNewlines
       else
         ""
     }
 
     val previousChangelog = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
-    var mergedChangelog   = ""
-    if (previousChangelog.isDefined) {
-      mergedChangelog = currentChangelogStr + previousChangelog.get
-    } else {
-      mergedChangelog = currentChangelogStr
-    }
+    val mergedChangelog = currentChangelogStr + previousChangelog.getOrElse("")
 
-    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog.replaceAll("\\r$", ""))
+    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog)
   }
 
   private def loadSavedMenu(): Option[Seq[Beer]] = {

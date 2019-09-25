@@ -3,6 +3,7 @@ package org.duckofdoom.howardbot.utils
 import java.io.{PrintWriter, StringWriter}
 
 object Extensions {
+
   implicit class AnyRefExtensions[A](val o: A) extends AnyVal {
 
     def check(condition: A => Boolean, action: A => Unit): A = {
@@ -44,6 +45,16 @@ object Extensions {
       }
 
       i
+    }
+  }
+
+  implicit class StringExtensions(val s: String) extends AnyVal {
+
+    /**
+      * Replaces windows newline characters
+      */
+    def normalizeNewlines: String = {
+      s.replace("\r\n", "\n")
     }
   }
 }
