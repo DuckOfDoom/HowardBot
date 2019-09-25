@@ -7,7 +7,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.services.MergeMenuServiceImpl
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.services.HttpService
-import org.duckofdoom.howardbot.utils.FileUtils
+import org.duckofdoom.howardbot.utils.{FileUtils, TimeUtils}
 import slogging.StrictLogging
 
 import scala.collection.mutable
@@ -230,15 +230,15 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
     val currentChangelogStr = {
       if (changelog.nonEmpty)
-        LocalDateTime.now + ":\n" + changelog.mkString("\n") + "\n\n"
-      else 
+        TimeUtils.formatDateTime(LocalDateTime.now) + ":\n" + changelog.mkString("\n") + "\n\n"
+      else
         ""
     }
-    
-    val previousChangelog       = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
-    var mergedChangelog: String = ""
+
+    val previousChangelog = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
+    var mergedChangelog   = ""
     if (previousChangelog.isDefined) {
-      mergedChangelog = currentChangelogStr + previousChangelog
+      mergedChangelog = currentChangelogStr + previousChangelog.get
     } else {
       mergedChangelog = currentChangelogStr
     }
@@ -270,6 +270,7 @@ class FakeBeersProvider extends ItemsProviderBase {
         val item = Beer(
           i,
           isInStock = true,
+          LocalDateTime.now(),
           LocalDateTime.now(),
           faker.Lorem.words(2).head.capitalize.some,
           i.some,

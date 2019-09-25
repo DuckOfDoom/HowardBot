@@ -118,6 +118,7 @@ class SortingSpec extends FlatSpec with Matchers {
       id,
       isInStock = true,
       LocalDateTime.MIN,
+      LocalDateTime.MIN,
       name.some,
       None,
       rating.some,
@@ -145,6 +146,7 @@ class SortingSpec extends FlatSpec with Matchers {
     Beer(
       id,
       isInStock = true,
+      LocalDateTime.MIN,
       LocalDateTime.MIN,
       None,
       None,

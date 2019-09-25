@@ -54,11 +54,12 @@ object Beer {
       description: Option[String] = None
   )
 
-  def fromParsedInfo(id: Int, isInStock: Boolean, dateAdded: LocalDateTime, info: ParsedInfo): Beer = {
+  def fromParsedInfo(id: Int, isInStock: Boolean, dateAdded: LocalDateTime, dateUpdated: LocalDateTime, info: ParsedInfo): Beer = {
     Beer(
       id,
       isInStock,
       dateAdded,
+      dateUpdated,
       info.name,
       info.menuOrder,
       info.rating,
@@ -73,12 +74,16 @@ object Beer {
       info.description
     )
   }
+  def fromAnotherBeer(isInStock: Boolean, beer: Beer): Beer = {
+    fromAnotherBeerWithUpdatedTime(isInStock, beer.dateUpdated, beer)
+  }
 
-  def fromAnotherBeer(isInStock: Boolean, dateAdded: LocalDateTime, beer: Beer): Beer = {
+  def fromAnotherBeerWithUpdatedTime(isInStock: Boolean, dateUpdated: LocalDateTime, beer: Beer): Beer = {
     Beer(
       beer.id,
       isInStock,
-      dateAdded,
+      beer.dateAdded,
+      dateUpdated,
       beer.name,
       beer.menuOrder,
       beer.rating,
@@ -99,6 +104,7 @@ case class Beer private (
     id: Int,
     isInStock: Boolean,
     dateAdded: LocalDateTime = LocalDateTime.MIN,
+    dateUpdated: LocalDateTime = LocalDateTime.MIN,
     name: Option[String] = None,
     menuOrder: Option[Int] = None,
     rating: Option[(Float, Float)] = None,

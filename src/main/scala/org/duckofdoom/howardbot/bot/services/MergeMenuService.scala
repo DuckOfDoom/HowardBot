@@ -6,6 +6,7 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.Beer
 import slogging.StrictLogging
 
+// TODO: TESTS
 trait MergeMenuService {}
 
 class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService with StrictLogging {
@@ -26,6 +27,8 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
     val savedItemsByName = savedItems.map(i => i.name.getOrElse("")).zip(savedItems).toMap
     val newItemsNames    = newItems.filter(_.name.isDefined).map(_.name.get).toSet
 
+    var newId = if (savedItemsById.nonEmpty) savedItemsById.keys.max + 1 else 1
+
     var result: Seq[Beer]      = Seq()
     var changeLog: Seq[String] = Seq()
 
@@ -40,19 +43,21 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
         addToChangelog(itemWithoutAName.format("a new", pItem), error = true)
       } else {
         val itemName = pItem.name.get
-
         savedItemsByName.get(itemName) match {
           // Brand new item
           case None =>
-            val newId = savedItemsById.keys.max + 1
             addToChangelog(newItem.format(itemName))
-            result :+= Beer.fromParsedInfo(newId, isInStock = true, now, pItem)
-          // This item was already present, update info
-          case Some(item) =>
-            if (!item.isInStock)
-              addToChangelog(inStockAgain.format(itemName))
+            result :+= Beer.fromParsedInfo(newId, isInStock = true, now, now, pItem)
+            newId += 1
 
-            result :+= Beer.fromAnotherBeer(isInStock = true, now, item)
+          // This item was already present, update info
+          case Some(beer) =>
+            if (!beer.isInStock) {
+              addToChangelog(inStockAgain.format(itemName))
+              result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = true, now, beer)
+            } else {
+              result :+= Beer.fromAnotherBeer(isInStock = true, beer)
+            }
         }
       }
     }
@@ -63,14 +68,17 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
         addToChangelog(itemWithoutAName.format("a new", sItem), error = true)
       } else {
         val itemName = sItem.name.get
+        // Went out of stocks
         if (!newItemsNames.contains(itemName)) {
           addToChangelog(wentOutOfStock.format(itemName))
-          result :+ Beer.fromAnotherBeer(isInStock = false, now, sItem)
+          result :+ Beer.fromAnotherBeer(isInStock = false, sItem)
+        } else {
+          result :+ Beer.fromAnotherBeer(isInStock = true, sItem)
         }
       }
     }
 
-    logger.info(s"Updated items. Count: ${result.length}. Changes:\n${changeLog.mkString("\n")}")
+    logger.info(s"Updated items. Count: ${result.length}. Changes: ${changeLog.length}")
 
     (result, changeLog)
   }

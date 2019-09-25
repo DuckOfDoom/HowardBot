@@ -50,7 +50,8 @@ class CallbacksSpec extends FlatSpec with Matchers {
     val itemCallback = Callback.mkSingleBeerCallback(
       Beer(
         51,
-        true,
+        isInStock = true,
+        LocalDateTime.MIN,
         LocalDateTime.MIN,
         None,
         None,

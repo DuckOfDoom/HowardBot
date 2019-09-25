@@ -1,5 +1,7 @@
 package org.duckofdoom.howardbot.utils
 
+import java.io.FileNotFoundException
+
 import cats.syntax.option._
 import slogging.StrictLogging
 
@@ -21,10 +23,10 @@ object FileUtils extends StrictLogging {
       str.some
     }
     catch {
-      case e: Exception => {
+      case _: FileNotFoundException => None
+      case e: Exception => 
         logger.error(s"Failed to read file '$path'! Exception:\n${e.toString}")
         None
-      }
     }
   }
 
