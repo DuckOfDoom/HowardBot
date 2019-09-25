@@ -101,6 +101,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
   }
 
   val ratingRegex: Regex = "rating small r(\\d{3})".r
+  val cleanNameRegex: Regex = """\d+\.\s""".r
 
   private def parseBeer(id: Int, el: Element): Beer.ParsedInfo = {
     val picLink = (el >?> element(".beer-label") >?> attr("src")("img")).flatten
@@ -123,7 +124,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .map(v => (v, 5f))
 
     val name = (beerName >?> element("a") >> text).flatten
-      .map(_.dropWhile(!_.isLetter))
+      .map(s => cleanNameRegex.replaceAllIn(s, ""))
 
     val link  = (beerName >?> attr("href")("a")).flatten
     val style = (beerName >?> element(".beer-style") >> text).flatten
