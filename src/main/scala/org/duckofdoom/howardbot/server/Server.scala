@@ -3,15 +3,14 @@ package org.duckofdoom.howardbot.server
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{path, _}
 import akka.stream.ActorMaterializer
 import org.duckofdoom.howardbot.Config
 import slogging.StrictLogging
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class Server(implicit responseService: ServerResponseService)
-    extends StrictLogging {
+class Server(implicit responseService: ServerResponseService) extends StrictLogging {
 
   def run(implicit config: Option[Config]): Future[Unit] = {
 
@@ -45,6 +44,9 @@ class Server(implicit responseService: ServerResponseService)
               },
               path("json") {
                 respond(responseService.menuJson())
+              },
+              path("changelog") {
+                respond(responseService.menuChangelog())
               }
             )
           },
@@ -68,7 +70,7 @@ class Server(implicit responseService: ServerResponseService)
             path(IntNumber) { itemId =>
               respond(responseService.show(itemId))
             }
-          },
+          }
         )
       }
 

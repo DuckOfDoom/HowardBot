@@ -12,6 +12,7 @@ trait ServerResponseService {
   def home(): String
   def menu(): String
   def menuJson(): String
+  def menuChangelog(): String
   def getUsers(): String
   def getUser(userId: Int): String
   def putRandomUser(): String
@@ -68,9 +69,17 @@ class ServerResponseServiceImpl(
   }
 
   override def menuJson(): String = {
+    val path = ItemsProvider.savedMenuFilePath
     s"<pre>${FileUtils
-      .readFile(ItemsProvider.savedMenuFilePath)
-      .getOrElse(s"Can't read file '${ItemsProvider.savedMenuFilePath}'")}</pre>"
+      .readFile(path)
+      .getOrElse(s"Can't read file '$path'")}</pre>"
+  }
+
+  override def menuChangelog(): String =  {
+    val path = ItemsProvider.menuChangelogFilePath
+    s"<pre>${FileUtils
+      .readFile(path)
+      .getOrElse(s"Can't read file '$path'")}</pre>"
   }
 
   override def show(itemId: Int): String = {

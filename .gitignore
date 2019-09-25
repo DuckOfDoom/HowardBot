@@ -5,5 +5,6 @@ project/target/*
 .idea
 config.json
 menu.json
+menu_changelog.txt
 out/
 project/project/*

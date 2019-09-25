@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
+import org.duckofdoom.howardbot.bot.services.MergeMenuServiceImpl
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.services.HttpService
 import org.duckofdoom.howardbot.utils.FileUtils
@@ -15,11 +16,11 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
 
 object ItemsProvider {
-  val savedMenuFilePath = "menu.json"
+  val savedMenuFilePath     = "menu.json"
+  val menuChangelogFilePath = "menu_changelog.txt"
 }
 
 trait ItemsProvider {
-
 
   /**
     * Time since last refresh
@@ -74,7 +75,7 @@ trait ItemsProvider {
 abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def beers: List[Beer]                  = _beers
+  override def beers: List[Beer]                  = _beers.filter(b => b.isInStock)
   override def styles: List[Style]                = _styles
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
@@ -129,6 +130,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
   import io.circe.syntax._
   import io.circe.parser._
 
+  val mergeService = new MergeMenuServiceImpl
 
   logger.info(
     s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
@@ -170,17 +172,17 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
           var styleId = 0
 
-          val savedMenu  = loadSavedMenu()
-          val parsedMenu = new MenuParser(mainOutput, additionalPages).parse()
-          val mergedMenu = mergeMenus(savedMenu.getOrElse(Seq()), parsedMenu)
+          val savedMenu               = loadSavedMenu()
+          val parsedMenu              = new MenuParser(mainOutput, additionalPages).parse()
+          val (mergedMenu, changelog) = mergeService.merge(savedMenu.getOrElse(Seq()), parsedMenu)
 
-          saveMenu(mergedMenu)
+          saveMenuAndChangelog(mergedMenu, changelog)
 
           for (item <- mergedMenu) {
             // Items without breweries are food, we ignore them for now
             if (item.breweryInfo.name.isDefined) {
 
-              if (item.style.isDefined) {
+              if (item.style.isDefined && item.isInStock) {
 
                 val style = item.style.get
                 // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
@@ -222,14 +224,26 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
     }
   }
 
-  private def mergeMenus(oldMenu: Seq[Beer], newMenu: Seq[Beer.ParsedInfo]): Seq[Beer] = {
-    for ((info, index) <- newMenu.zipWithIndex)
-      yield Beer.fromParsedInfo(index, isInStock = true, LocalDateTime.now, info)
-  }
-
-  private def saveMenu(menu: Seq[Beer]): Unit = {
+  private def saveMenuAndChangelog(menu: Seq[Beer], changelog: Seq[String]): Unit = {
     val menuJson = menu.asJson.toString
     FileUtils.writeFile(ItemsProvider.savedMenuFilePath, menuJson)
+
+    val currentChangelogStr = {
+      if (changelog.nonEmpty)
+        LocalDateTime.now + ":\n" + changelog.mkString("\n") + "\n\n"
+      else 
+        ""
+    }
+    
+    val previousChangelog       = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
+    var mergedChangelog: String = ""
+    if (previousChangelog.isDefined) {
+      mergedChangelog = currentChangelogStr + previousChangelog
+    } else {
+      mergedChangelog = currentChangelogStr
+    }
+
+    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog)
   }
 
   private def loadSavedMenu(): Option[Seq[Beer]] = {
