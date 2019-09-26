@@ -6,15 +6,20 @@ import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.Beer
 import slogging.StrictLogging
 
-// TODO: TESTS
-trait MergeMenuService {}
-
-class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService with StrictLogging {
-
+object MenuMergeService {
   final val newItem          = "New item: %s"
   final val inStockAgain     = "Item is in stock again: %s"
   final val wentOutOfStock   = "Item went out of stock: %s"
   final val itemWithoutAName = "Error: encountered %s item without a name: %s"
+}
+
+trait MenuMergeService {
+  def merge(savedItems: Seq[Beer], newItems: Seq[Beer.ParsedInfo]): (Seq[Beer], Seq[String])
+}
+
+class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime.now)(implicit val config: Config)
+    extends MenuMergeService
+    with StrictLogging {
 
   /**
     * Merges a new and old menu, producing new menu with correct timestamps and 'in stock' flags.
@@ -22,7 +27,9 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
     */
   def merge(savedItems: Seq[Beer], newItems: Seq[Beer.ParsedInfo]): (Seq[Beer], Seq[String]) = {
 
-    val now              = LocalDateTime.now
+    import MenuMergeService.{inStockAgain, itemWithoutAName, newItem, wentOutOfStock}
+
+    val now              = timeProvider()
     val savedItemsById   = savedItems.map(i => i.id).zip(savedItems).toMap
     val savedItemsByName = savedItems.map(i => i.name.getOrElse("")).zip(savedItems).toMap
     val newItemsNames    = newItems.filter(_.name.isDefined).map(_.name.get).toSet
@@ -72,7 +79,7 @@ class MergeMenuServiceImpl(implicit val config: Config) extends MergeMenuService
         if (!newItemsNames.contains(itemName) && sItem.isInStock) {
           addToChangelog(wentOutOfStock.format(itemName))
           result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, sItem)
-        } 
+        }
       }
     }
 

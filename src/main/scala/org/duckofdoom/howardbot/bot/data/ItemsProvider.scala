@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import cats.syntax.option._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.services.MergeMenuServiceImpl
+import org.duckofdoom.howardbot.bot.services.MenuMergeServiceImpl
 import org.duckofdoom.howardbot.parser.MenuParser
 import org.duckofdoom.howardbot.services.HttpService
 import org.duckofdoom.howardbot.utils.{FileUtils, TimeUtils}
@@ -131,7 +131,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
   import io.circe.syntax._
   import io.circe.parser._
 
-  val mergeService = new MergeMenuServiceImpl
+  val mergeService = new MenuMergeServiceImpl
 
   logger.info(
     s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
