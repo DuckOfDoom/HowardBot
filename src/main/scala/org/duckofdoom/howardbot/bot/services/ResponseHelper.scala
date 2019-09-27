@@ -62,7 +62,7 @@ class ResponseHelperImpl(
   def mkEmptySeachResultsResponse(
       query: String
   ): String = {
-    s"Ничего не найдено по запросу '$query'. :("
+    s"Ничего не найдено по запросу '$query' :("
   }
 
   def mkBeerHtmlInfo(
