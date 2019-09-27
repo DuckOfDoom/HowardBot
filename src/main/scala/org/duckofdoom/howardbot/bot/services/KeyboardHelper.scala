@@ -77,7 +77,7 @@ class KeyboardHelperImpl extends KeyboardHelper {
       styles: Boolean,
       sorting: Boolean
   ): Seq[InlineKeyboardButton] = {
-    var buttonsList = mutable.MutableList[InlineKeyboardButton]()
+    var buttonsList = mutable.ListBuffer[InlineKeyboardButton]()
     if (menu) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Меню",

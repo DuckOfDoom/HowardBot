@@ -36,25 +36,25 @@ trait ItemsProvider {
   /**
     * Get all items known. Includes beers that are out of stock.
     */
-  def beers: List[Beer]
+  def beers: Seq[Beer]
 
   /**
     * Get all items available for customers.
     * Does not include beers that are out of stock, but includes beers on deck
     */
   // TODO: List to Seqs
-  def beersInStock: List[Beer]
+  def beersInStock: Seq[Beer]
 
   /**
     * Get all styles known. Includes styles for beers that are out of stock.
     */
-  def styles: List[Style]          
+  def styles: Seq[Style]
 
   /**
     * Get all styles available for customers.
     * Does not include styles for beers that are not in stock now.
     */
-  def stylesInStock: List[Style]
+  def stylesInStock: Seq[Style]
 
   /**
     * Gets id for a style
@@ -74,12 +74,12 @@ trait ItemsProvider {
   /**
     * Get items for specific style
     */
-  def findBeersByStyle(styleName: String): List[Beer]
+  def findBeersByStyle(styleName: String): Seq[Beer]
 
   /**
     * Get items for specific style by its id
     */
-  def findBeersByStyle(styleId: Int): List[Beer]
+  def findBeersByStyle(styleId: Int): Seq[Beer]
 }
 
 /**
@@ -88,27 +88,27 @@ trait ItemsProvider {
 abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def beers: List[Beer]                  = _beers
-  override def beersInStock: List[Beer]           = _beers.filter(b => b.isInStock)
-  override def styles: List[Style]          = _styles
-  override def stylesInStock: List[Style]          = _stylesInStock
+  override def beers: Seq[Beer]                   = _beers
+  override def beersInStock: Seq[Beer]            = _beers.filter(b => b.isInStock)
+  override def styles: Seq[Style]                 = _styles
+  override def stylesInStock: Seq[Style]          = _stylesInStock
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
   override def getStyle(id: Int): Option[Style] = _stylesMap.get(id)
 
-  protected var _lastRefreshTime: LocalDateTime           = LocalDateTime.MIN
-  protected var _beersMap: Map[Int, Beer]                 = Map()
-  protected var _beersByStyleMap: Map[String, List[Beer]] = Map()
-  protected var _stylesMap: Map[Int, Style]               = Map()
-  protected var _beers: List[Beer]                        = List()
-  protected var _styles: List[Style]                      = List() 
-  protected var _stylesInStock: List[Style]               = List()
+  protected var _lastRefreshTime: LocalDateTime          = LocalDateTime.MIN
+  protected var _beersMap: Map[Int, Beer]                = Map()
+  protected var _beersByStyleMap: Map[String, Seq[Beer]] = Map()
+  protected var _stylesMap: Map[Int, Style]              = Map()
+  protected var _beers: Seq[Beer]                        = List()
+  protected var _styles: Seq[Style]                      = List()
+  protected var _stylesInStock: Seq[Style]               = List()
 
   /**
     * Get items for specific style
     */
-  override def findBeersByStyle(style: String): List[Beer] = {
+  override def findBeersByStyle(style: String): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -118,12 +118,12 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
       style,
       _beersByStyleMap.keys
         .filter(_.toLowerCase.contains(style.toLowerCase))
-        .foldLeft(new mutable.MutableList[Beer])((list, style) => list ++= _beersByStyleMap(style))
+        .foldLeft(new mutable.ListBuffer[Beer])((list, style) => list ++ _beersByStyleMap(style))
         .toList
     )
   }
 
-  override def findBeersByStyle(styleId: Int): List[Beer] = {
+  override def findBeersByStyle(styleId: Int): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -182,10 +182,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
             return
           }
 
-          val beersMap: mutable.Map[Int, Beer]                                = mutable.Map()
-          val stylesMap: mutable.Map[Int, Style]                              = mutable.Map()
-          val beersByStyleMap: mutable.Map[String, mutable.MutableList[Beer]] = mutable.Map()
-          val stylesInStock: mutable.Set[String] = mutable.Set()
+          val beersMap: mutable.Map[Int, Beer]                               = mutable.Map()
+          val stylesMap: mutable.Map[Int, Style]                             = mutable.Map()
+          val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
+          val stylesInStock: mutable.Set[String]                             = mutable.Set()
 
           var styleId = 0
 
@@ -208,9 +208,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
                 else {
                   styleId += 1
                   stylesMap(styleId) = Style(styleId, style)
-                  beersByStyleMap(style) = mutable.MutableList[Beer](item)
+                  beersByStyleMap(style) = mutable.ListBuffer[Beer](item)
                 }
-                
+
                 if (item.isInStock)
                   stylesInStock.add(style)
 
@@ -220,7 +220,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
               _beersMap = beersMap.toMap
               _beers = _beersMap.values.toList
               _beersByStyleMap = beersByStyleMap.map {
-                case (style: String, list: mutable.MutableList[Beer]) => (style, list.toList)
+                case (style: String, list: mutable.ListBuffer[Beer]) => (style, list.toList)
               }.toMap
 
               _stylesMap = stylesMap.toMap

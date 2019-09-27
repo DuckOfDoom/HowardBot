@@ -73,7 +73,7 @@ class ResponseServiceImpl(
     val stylesWithCountsMap = stylesWithCounts.toMap
 
     responseHelper.mkPaginatedResponse(
-      stylesWithCounts.sortBy(_._2).reverse.map(_._1),
+      stylesWithCounts.toList.sortBy(_._2).reverse.map(_._1),
       page,
       Callback.Type.Styles,
       p => Callback.mkStylesCallbackData(p.some, newMessage = false)

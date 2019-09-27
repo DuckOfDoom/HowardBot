@@ -22,7 +22,7 @@ object PaginationUtils extends LazyLogging {
                                           )
   : Seq[InlineKeyboardButton] = {
 
-    var list       = new mutable.MutableList[InlineKeyboardButton]
+    var list       = new mutable.ListBuffer[InlineKeyboardButton]
     var totalPages = itemsCount / itemsPerPage
     if (itemsCount % itemsPerPage != 0)
       totalPages += 1
