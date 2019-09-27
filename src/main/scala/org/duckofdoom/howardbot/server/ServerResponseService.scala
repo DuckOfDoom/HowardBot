@@ -35,11 +35,11 @@ class ServerResponseServiceImpl(
     s"${statusInfoProvider.getStatusInfoHtml}\n" +
       frag(
         p(a(href := "/users")("Users")),
-        p(a(href := "/menu/instock")("Menu In Stock")),
-        p(a(href := "/menu/outofstock")("Menu Out Of Stoc")),
-        p(a(href := "/menu/full")("Menu Full")),
+        p(a(href := "/menu/instock")("Menu [In Stock]")),
+        p(a(href := "/menu/outofstock")("Menu [Out Of Stock]")),
+        p(a(href := "/menu/full")("Menu [Full]")),
 //        p(a(href := "/menu/raw")("Menu Raw")),
-        p(a(href := "/menu/changelog")("Menu Changelog"))
+        p(a(href := "/menu/changelog")("Menu [Changelog]"))
       ).render
   }
 
