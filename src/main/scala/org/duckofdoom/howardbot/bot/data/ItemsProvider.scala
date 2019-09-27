@@ -34,15 +34,27 @@ trait ItemsProvider {
   def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit]
 
   /**
-    * Get all items available
+    * Get all items known. Includes beers that are out of stock.
     */
-  // TODO: List to Seqs
   def beers: List[Beer]
 
   /**
-    * Get all styles available
+    * Get all items available for customers.
+    * Does not include beers that are out of stock, but includes beers on deck
     */
-  def styles: List[Style]
+  // TODO: List to Seqs
+  def beersInStock: List[Beer]
+
+  /**
+    * Get all styles known. Includes styles for beers that are out of stock.
+    */
+  def styles: List[Style]          
+
+  /**
+    * Get all styles available for customers.
+    * Does not include styles for beers that are not in stock now.
+    */
+  def stylesInStock: List[Style]
 
   /**
     * Gets id for a style
@@ -76,8 +88,10 @@ trait ItemsProvider {
 abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
-  override def beers: List[Beer]                  = _beers.filter(b => b.isInStock)
-  override def styles: List[Style]                = _styles
+  override def beers: List[Beer]                  = _beers
+  override def beersInStock: List[Beer]           = _beers.filter(b => b.isInStock)
+  override def styles: List[Style]          = _styles
+  override def stylesInStock: List[Style]          = _stylesInStock
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
@@ -88,7 +102,8 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   protected var _beersByStyleMap: Map[String, List[Beer]] = Map()
   protected var _stylesMap: Map[Int, Style]               = Map()
   protected var _beers: List[Beer]                        = List()
-  protected var _styles: List[Style]                      = List()
+  protected var _styles: List[Style]                      = List() 
+  protected var _stylesInStock: List[Style]               = List()
 
   /**
     * Get items for specific style
@@ -170,6 +185,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
           val beersMap: mutable.Map[Int, Beer]                                = mutable.Map()
           val stylesMap: mutable.Map[Int, Style]                              = mutable.Map()
           val beersByStyleMap: mutable.Map[String, mutable.MutableList[Beer]] = mutable.Map()
+          val stylesInStock: mutable.Set[String] = mutable.Set()
 
           var styleId = 0
 
@@ -183,7 +199,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
             // Items without breweries are food, we ignore them for now
             if (item.breweryInfo.name.isDefined) {
 
-              if (item.style.isDefined && item.isInStock) {
+              if (item.style.isDefined) {
 
                 val style = item.style.get
                 // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
@@ -194,6 +210,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
                   stylesMap(styleId) = Style(styleId, style)
                   beersByStyleMap(style) = mutable.MutableList[Beer](item)
                 }
+                
+                if (item.isInStock)
+                  stylesInStock.add(style)
 
                 beersMap(item.id) = item
               }
@@ -206,6 +225,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
               _stylesMap = stylesMap.toMap
               _styles = stylesMap.values.toList
+              _stylesInStock = stylesMap.values.filter(st => stylesInStock.contains(st.name)).toList
 
               _lastRefreshTime = LocalDateTime.now
             }
@@ -239,7 +259,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
     }
 
     val previousChangelog = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
-    val mergedChangelog = currentChangelogStr + previousChangelog.getOrElse("")
+    val mergedChangelog   = currentChangelogStr + previousChangelog.getOrElse("")
 
     FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog)
   }

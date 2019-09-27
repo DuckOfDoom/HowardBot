@@ -49,7 +49,7 @@ class ResponseServiceImpl(
       sortings: Seq[Sorting]
   ): (String, InlineKeyboardMarkup) = {
 
-    val beers = Sorting.sort(itemsProvider.beers, sortings).toList
+    val beers = Sorting.sort(itemsProvider.beersInStock, sortings).toList
 
     responseHelper.mkPaginatedResponse(
       beers,
@@ -65,8 +65,8 @@ class ResponseServiceImpl(
       page: Int
   ): (String, InlineKeyboardMarkup) = {
 
-    val stylesWithCounts = itemsProvider.styles
-      .zip(itemsProvider.styles.map { st =>
+    val stylesWithCounts = itemsProvider.stylesInStock
+      .zip(itemsProvider.stylesInStock.map { st =>
         itemsProvider.findBeersByStyle(st.id).length
       })
 
@@ -135,7 +135,7 @@ class ResponseServiceImpl(
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup) = {
     val searchResults = Sorting
-      .sort(itemsProvider.beers, sorting)
+      .sort(itemsProvider.beersInStock, sorting)
       .toList
       .withFilter(b => b.name.isDefined)
       .withFilter(b => b.name.get.toLowerCase.contains(query.toLowerCase))
@@ -160,7 +160,7 @@ class ResponseServiceImpl(
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup) = {
     val searchResults = Sorting
-      .sort(itemsProvider.beers, sorting)
+      .sort(itemsProvider.beersInStock, sorting)
       .toList
       .withFilter(b => b.style.isDefined)
       .withFilter(b => b.style.get.toLowerCase.contains(query.toLowerCase))

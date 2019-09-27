@@ -76,9 +76,14 @@ class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime
       } else {
         val itemName = sItem.name.get
         // Went out of stock
-        if (!newItemsNames.contains(itemName) && sItem.isInStock) {
-          addToChangelog(wentOutOfStock.format(itemName))
-          result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, sItem)
+        if (!newItemsNames.contains(itemName) ) {
+          if (sItem.isInStock) {
+            addToChangelog(wentOutOfStock.format(itemName))
+            result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, sItem)
+          }
+          else {
+            result :+= Beer.fromAnotherBeer(isInStock = false, sItem)
+          }
         }
       }
     }

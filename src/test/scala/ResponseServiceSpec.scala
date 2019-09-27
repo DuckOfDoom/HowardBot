@@ -35,7 +35,7 @@ class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory with B
   private def createItemsProvider(): ItemsProvider = {
     val m = mock[ItemsProvider]
 
-    m.beers _ expects () anyNumberOfTimes() onCall { () =>
+    m.beersInStock _ expects () anyNumberOfTimes() onCall { () =>
       List(
         Beer(1, isInStock = true, name = "beer1".some, style = "style1".some),
         Beer(2, isInStock = true, name = "beer2".some, style = "style1".some),

@@ -10,7 +10,7 @@ import scalatags.Text.all._
 /**
   * Provides info about running services
   */
-class StatusService(implicit bot: BotStarter, itemProvider: ItemsProvider) {
+class StatusService(implicit bot: BotStarter, itemsProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 
@@ -18,6 +18,16 @@ class StatusService(implicit bot: BotStarter, itemProvider: ItemsProvider) {
       case Some(r) => s"Last time I've been restarted because of this:\n$r"
       case None    => ""
     }
+    
+    val runningTimeFormatted = TimeUtils.formatDuration(bot.runningTime)
+    val lastRefreshTime = TimeUtils.formatDateTime(itemsProvider.lastRefreshTime)
+    val lastRefreshTimeAgo = TimeUtils.formatDuration(Duration.between(itemsProvider.lastRefreshTime, LocalDateTime.now))
+    val restartCount = bot.restartCount 
+
+    val beersCount = itemsProvider.beers.length
+    val beersInStockCount = itemsProvider.beersInStock.length
+    val stylesCount = itemsProvider.styles.length
+    val stylesInStockCount = itemsProvider.stylesInStock.length
 
     html(
       head(
@@ -25,11 +35,11 @@ class StatusService(implicit bot: BotStarter, itemProvider: ItemsProvider) {
       body(
         h1("Hey there!"),
         div(
-          p(s"I've been running for ${TimeUtils.formatDuration(bot.runningTime)}"),
-          p(s"Last menu refresh: ${TimeUtils.formatDateTime(itemProvider.lastRefreshTime)} (${TimeUtils.formatDuration(
-            Duration.between(itemProvider.lastRefreshTime, LocalDateTime.now))} ago)"),
-          p(s"I have ${itemProvider.beers.length} items in menu."),
-          p(s"I've been restarted ${bot.restartCount} times!"),
+          p(s"I've been running for $runningTimeFormatted"),
+          p(s"Last menu refresh: $lastRefreshTime ($lastRefreshTimeAgo ago)"),
+          p(s"I know about $beersCount beers. $beersInStockCount of them are in stock now."),
+          p(s"I know about $stylesCount different styles. $stylesInStockCount of them are in stock now."),
+          p(s"I've been restarted $restartCount times!"),
           p(restartReason)
         )
       )

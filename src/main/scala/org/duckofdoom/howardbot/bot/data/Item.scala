@@ -129,7 +129,9 @@ case class Beer private (
 
     val sb = new StringBuilder()
     sb.append(s"id = $id\n")
-    sb.append(s"dateAdded = ${TimeUtils.formatDateTime(dateAdded)}")
+    sb.append(s"isInStock = $isInStock\n")
+    sb.append(s"dateAdded = ${TimeUtils.formatDateTime(dateAdded)}\n")
+    sb.append(s"dateUpdated = ${TimeUtils.formatDateTime(dateUpdated)}\n")
     sb.append(toString("name", name))
     sb.append(toString("menuOrder", menuOrder))
     sb.append(toString("rating", rating))

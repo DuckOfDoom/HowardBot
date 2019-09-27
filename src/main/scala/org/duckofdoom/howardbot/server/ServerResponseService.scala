@@ -5,19 +5,21 @@ import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, StatusService}
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.utils.FileUtils
-import org.duckofdoom.howardbot.bot.data.ItemsProvider
+import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
 import scalatags.Text.all._
 
 trait ServerResponseService {
   def home(): String
-  def menu(): String
+  def menuInStock(): String
+  def menuOutOfStock(): String 
+  def menuFull(): String 
   def menuJson(): String
   def menuChangelog(): String
-  def getUsers(): String
+  def users(): String
   def getUser(userId: Int): String
   def putRandomUser(): String
   def show(itemId: Int): String
-  def parse(): String
+  def menuRaw(): String
 }
 
 class ServerResponseServiceImpl(
@@ -30,12 +32,30 @@ class ServerResponseServiceImpl(
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
 
   override def home(): String = {
-    statusInfoProvider.getStatusInfoHtml
+    s"${statusInfoProvider.getStatusInfoHtml}\n" +
+      frag(
+        p(a(href := "/users")("Users")),
+        p(a(href := "/menu/instock")("Menu In Stock")),
+        p(a(href := "/menu/outofstock")("Menu Out Of Stoc")),
+        p(a(href := "/menu/full")("Menu Full")),
+//        p(a(href := "/menu/raw")("Menu Raw")),
+        p(a(href := "/menu/changelog")("Menu Changelog"))
+      ).render
   }
 
-  override def menu(): String = {
-    val beers = itemDataProvider.beers
-
+  override def menuInStock(): String = {
+    mkMenuResponse(itemDataProvider.beersInStock)
+  }
+  
+  override def menuOutOfStock(): String = {
+    mkMenuResponse(itemDataProvider.beers.diff(itemDataProvider.beersInStock))
+  }
+  
+  override def menuFull(): String = {
+    mkMenuResponse(itemDataProvider.beers)
+  }
+  
+  private def mkMenuResponse(beers: Seq[Beer]): String = {
     frag(
       s"Всего пивасов: ${beers.length}",
       br(),
@@ -86,10 +106,10 @@ class ServerResponseServiceImpl(
     responseService.mkBeerResponse(itemId)._1
   }
 
-  override def parse(): String = {
+  override def menuRaw(): String = {
 
     val sb = new StringBuilder()
-    itemDataProvider.beers
+    itemDataProvider.beersInStock
       .sortBy(_.id)
       .foreach(i => {
         sb.append(
@@ -113,7 +133,7 @@ class ServerResponseServiceImpl(
       .toString
   }
 
-  override def getUsers(): String = {
+  override def users(): String = {
     "Users:<br>" +
       db.users.foldLeft("")((s, u) => {
         s + (u.toString + "<br>")

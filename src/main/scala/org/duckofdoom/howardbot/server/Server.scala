@@ -37,26 +37,30 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
           pathSingleSlash {
             respond(responseService.home())
           },
+          
           pathPrefix("menu") {
             concat(
-              pathEnd {
-                respond(responseService.menu())
+              path("instock") {
+                respond(responseService.menuInStock())
               },
-              path("json") {
-                respond(responseService.menuJson())
+              path("outofstock") {
+                respond(responseService.menuOutOfStock())
+              },
+              path("full") {
+                respond(responseService.menuFull())
+              },
+              path("raw") {
+                respond(responseService.menuRaw())
               },
               path("changelog") {
                 respond(responseService.menuChangelog())
               }
             )
           },
-          path("parse") {
-            respond(responseService.parse())
-          },
           pathPrefix("users") {
             concat(
               pathEnd {
-                respond(responseService.getUsers())
+                respond(responseService.users())
               },
               path("new") {
                 respond(responseService.putRandomUser())
@@ -77,14 +81,7 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
     val address = config.get.serverAddress
     val port    = config.get.serverPort
 
-    logger.info(
-      s"""Starting server at http://$address:$port
-            http://$address:$port/menu
-            http://$address:$port/menu/json
-            http://$address:$port/users
-            http://$address:$port/users/new
-        """
-    )
+    logger.info(s"Starting server at http://$address:$port")
 
     Http().bindAndHandle(route, address, port)
     Future.unit
