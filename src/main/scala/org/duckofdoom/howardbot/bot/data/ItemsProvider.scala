@@ -42,7 +42,6 @@ trait ItemsProvider {
     * Get all items available for customers.
     * Does not include beers that are out of stock, but includes beers on deck
     */
-  // TODO: List to Seqs
   def beersInStock: Seq[Beer]
 
   /**

@@ -95,7 +95,7 @@ class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime
   /**
     * Returns items that are considered new
     */
-  def getNewItems(items: List[Beer]): List[Beer] = {
+  def getNewItems(items: Seq[Beer]): Seq[Beer] = {
     items.filter(b => Duration.between(LocalDateTime.now, b.dateAdded).toHours < config.newItemsDurationInHours)
   }
 }

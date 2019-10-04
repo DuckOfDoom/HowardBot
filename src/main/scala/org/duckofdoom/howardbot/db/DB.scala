@@ -14,7 +14,7 @@ import slogging.StrictLogging
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 trait DB {
-  def users: List[User]
+  def users: Seq[User]
   def getUser(userId: Long): Option[User]
   def getUserByTelegramId(userId: Long): Option[User]
   def putUser(userId: Long,
@@ -76,7 +76,7 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
       .unsafeRunSync
   }
 
-  override def users: List[User] = {
+  override def users: Seq[User] = {
     val users = sql"select * from users"
       .query[User]
       .to[List]

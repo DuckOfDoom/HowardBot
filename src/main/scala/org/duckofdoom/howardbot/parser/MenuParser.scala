@@ -13,12 +13,12 @@ import slogging.StrictLogging
 import scala.util.Try
 import scala.util.matching.Regex
 
-class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extends StrictLogging {
+class MenuParser(scriptOutput: String, additionalMenuPages: Seq[String]) extends StrictLogging {
 
   private val parsedBeersByName = scala.collection.mutable.Map[String, Beer.ParsedInfo]()
   private val browser           = JsoupBrowser()
 
-  def parse(): List[Beer.ParsedInfo] = {
+  def parse(): Seq[Beer.ParsedInfo] = {
     parseScriptOutput(scriptOutput)
     logger.info(s"Parsed ${parsedBeersByName.count(_ => true)} items from main script output.")
     val parsedBeersCount = parsedBeersByName.count(_ => true)
@@ -55,7 +55,7 @@ class MenuParser(scriptOutput: String, additionalMenuPages: List[String]) extend
       .foreach(addParsedInfo)
   }
 
-  private def parseAdditionalPages(pages: List[String], startingId: Int): Unit = {
+  private def parseAdditionalPages(pages: Seq[String], startingId: Int): Unit = {
 
     logger.info(s"Parsing ${pages.length} additional pages...")
 

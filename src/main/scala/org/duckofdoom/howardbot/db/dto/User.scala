@@ -22,14 +22,13 @@ object UserState {
     val stylesPage: Int = c.downField("stylesPage").as[Int].getOrElse(1)
     val sortingDecoder : Decoder[Sorting] = Decoder.decodeInt.map(i => Sorting(i))
     
-    val sorting : List[Sorting] = c.downField("sorting").values
+    val sorting : Seq[Sorting] = c.downField("sorting").values
       .getOrElse(List())
       .map(v => sortingDecoder.decodeJson(v).right.get)
       .toList
     
     UserState(menuPage, stylesPage, sorting).asRight
   }
-  
 }
 
 case class User(id: Long,

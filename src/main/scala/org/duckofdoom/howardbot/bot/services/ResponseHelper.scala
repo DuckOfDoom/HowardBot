@@ -33,7 +33,7 @@ trait ResponseHelper {
   def mkStyleButtonInfo(style: Style, itemsCount: Int): HtmlFragment
 
   def mkPaginatedResponse[A <: Item, TPayload](
-      allItems: List[A],
+      allItems: Seq[A],
       page: Int,
       // Type of callback data to attach to buttons
       callbackType: Callback.Type.Value,
@@ -106,7 +106,7 @@ class ResponseHelperImpl(
   }
 
   def mkPaginatedResponse[A <: Item, TPayload](
-      allItems: List[A],
+      allItems: Seq[A],
       page: Int,
       // Type of callback data to attach to buttons
       callbackType: Callback.Type.Value,
