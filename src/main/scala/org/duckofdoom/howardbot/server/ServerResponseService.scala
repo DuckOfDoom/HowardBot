@@ -11,15 +11,14 @@ import scalatags.Text.all._
 trait ServerResponseService {
   def home(): String
   def menuInStock(): String
-  def menuOutOfStock(): String 
-  def menuFull(): String 
-  def menuJson(): String
+  def menuOutOfStock(): String
+  def menuFull(): String
   def menuChangelog(): String
+  def menuRaw(): String
   def users(): String
   def getUser(userId: Int): String
   def putRandomUser(): String
   def show(itemId: Int): String
-  def menuRaw(): String
 }
 
 class ServerResponseServiceImpl(
@@ -38,7 +37,7 @@ class ServerResponseServiceImpl(
         p(a(href := "/menu/instock")("Menu [In Stock]")),
         p(a(href := "/menu/outofstock")("Menu [Out Of Stock]")),
         p(a(href := "/menu/full")("Menu [Full]")),
-//        p(a(href := "/menu/raw")("Menu Raw")),
+        p(a(href := "/menu/raw")("Menu [Raw]")),
         p(a(href := "/menu/changelog")("Menu [Changelog]"))
       ).render
   }
@@ -46,15 +45,15 @@ class ServerResponseServiceImpl(
   override def menuInStock(): String = {
     mkMenuResponse(itemDataProvider.beersInStock)
   }
-  
+
   override def menuOutOfStock(): String = {
     mkMenuResponse(itemDataProvider.beers.diff(itemDataProvider.beersInStock))
   }
-  
+
   override def menuFull(): String = {
     mkMenuResponse(itemDataProvider.beers)
   }
-  
+
   private def mkMenuResponse(beers: Seq[Beer]): String = {
     frag(
       s"Всего пивасов: ${beers.length}",
@@ -88,18 +87,8 @@ class ServerResponseServiceImpl(
     ).render
   }
 
-  override def menuJson(): String = {
-    val path = ItemsProvider.savedMenuFilePath
-    s"<pre>${FileUtils
-      .readFile(path)
-      .getOrElse(s"Can't read file '$path'")}</pre>"
-  }
-
-  override def menuChangelog(): String =  {
-    val path = ItemsProvider.menuChangelogFilePath
-    s"<pre>${FileUtils
-      .readFile(path)
-      .getOrElse(s"Can't read file '$path'")}</pre>"
+  override def menuChangelog(): String = {
+    readFile(ItemsProvider.menuChangelogFilePath)
   }
 
   override def show(itemId: Int): String = {
@@ -107,20 +96,7 @@ class ServerResponseServiceImpl(
   }
 
   override def menuRaw(): String = {
-
-    val sb = new StringBuilder()
-    itemDataProvider.beersInStock
-      .sortBy(_.id)
-      .foreach(i => {
-        sb.append(
-          i.toString
-            .replace("\n", "<br>")
-            .replace("\t", "<nbsp>")
-        )
-        sb.append("<br><br>")
-      })
-
-    sb.toString
+    readFile(ItemsProvider.savedMenuFilePath)
   }
 
   override def putRandomUser(): String = {
@@ -144,4 +120,9 @@ class ServerResponseServiceImpl(
     db.getUser(userId).toString
   }
 
+  private def readFile(filePath: String): String = {
+    s"<pre>${FileUtils
+      .readFile(filePath)
+      .getOrElse(s"Can't read file '$filePath'")}</pre>"
+  }
 }
