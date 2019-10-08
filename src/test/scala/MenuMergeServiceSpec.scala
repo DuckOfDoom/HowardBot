@@ -12,13 +12,19 @@ class MenuMergeServiceSpec extends FlatSpec with Matchers with MockFactory {
   implicit val config: Config   = stub[Config]
   var now: LocalDateTime        = LocalDateTime.now
   val service: MenuMergeService = new MenuMergeServiceImpl(() => now)
+  
+  def mkLink(id: Int): Option[String] ={
+    val randomString = faker.Internet.domain_name
+    s"https://untappd.com/b/$randomString/$id".some
+  }
+
 
   "MenuMergeService" should "merge in new items correctly" in {
 
     val newBeers = Seq(
-      Beer.ParsedInfo(name = "beer1".some),
-      Beer.ParsedInfo(name = "beer2".some),
-      Beer.ParsedInfo(name = "beer3".some)
+      Beer.ParsedInfo(name = "beer1".some, link = mkLink(1)),
+      Beer.ParsedInfo(name = "beer2".some, link = mkLink(2)),
+      Beer.ParsedInfo(name = "beer3".some, link = mkLink(3))
     )
 
     val savedBeers   = Seq()
@@ -40,23 +46,23 @@ class MenuMergeServiceSpec extends FlatSpec with Matchers with MockFactory {
 
     val oldBeerAddTime    = LocalDateTime.now.minusDays(5)
     val oldBeerUpdateTime = LocalDateTime.now.minusDays(3)
-
+    
     val newBeers = Seq(
-      Beer.ParsedInfo(name = "beer1".some),
-      Beer.ParsedInfo(name = "beer2".some),
+      Beer.ParsedInfo(name = "beer1".some, link = mkLink(1)),
+      Beer.ParsedInfo(name = "beer2".some, link = mkLink(2)),
       // this is a new item
-      Beer.ParsedInfo(name = "beer4".some)
+      Beer.ParsedInfo(name = "beer4".some, link = mkLink(4))
     )
 
     val savedBeers = Seq(
       // this one doesnt change
-      Beer(1, isInStock = true, oldBeerAddTime, oldBeerUpdateTime, "beer1".some),
+      Beer(1, isInStock = true, oldBeerAddTime, oldBeerUpdateTime, "beer1".some, link = mkLink(1)),
       // this will be is in stock again
-      Beer(2, isInStock = false, oldBeerAddTime, oldBeerUpdateTime, "beer2".some),
+      Beer(2, isInStock = false, oldBeerAddTime, oldBeerUpdateTime, "beer2".some, link = mkLink(2)),
       // this one goes out of stock
-      Beer(3, isInStock = true, oldBeerAddTime, oldBeerUpdateTime, "beer3".some),
+      Beer(3, isInStock = true, oldBeerAddTime, oldBeerUpdateTime, "beer3".some, link = mkLink(3)),
       // this one was out of stock and should remain so
-      Beer(5, isInStock = false, oldBeerAddTime, oldBeerUpdateTime, "beer5".some)
+      Beer(5, isInStock = false, oldBeerAddTime, oldBeerUpdateTime, "beer5".some, link = mkLink(5))
     )
 
     val (items, log) = service.merge(savedBeers, newBeers)
