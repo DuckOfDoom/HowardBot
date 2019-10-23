@@ -113,8 +113,8 @@ class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime
 
                   result :+= Beer.fromAnotherBeerWithUpdatedInfo(isInStock = true, now, oldItem, newItem)
                 } else {
-                  // Nothing happened
-                  result :+= Beer.fromAnotherBeer(isInStock = true, oldItem)
+                  // Nothing happened, but we refresh data in case something like price changes.
+                  result :+= Beer.fromAnotherBeerWithUpdatedInfo(isInStock = true, oldItem.dateUpdated, oldItem, newItem)
                 }
               }
           }

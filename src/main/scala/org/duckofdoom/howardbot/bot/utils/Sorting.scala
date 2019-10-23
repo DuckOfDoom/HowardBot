@@ -48,6 +48,11 @@ object Sorting extends Enumeration {
 
     override def compare(x: Beer, y: Beer): Int = {
       var value = 0
+      
+      // Default sorting is by tap numbers
+      if (sortings.isEmpty) {
+        return compareOption(x.menuOrder, y.menuOrder, reversed = false)
+      }
 
       breakable {
         for (s <- sortings) {

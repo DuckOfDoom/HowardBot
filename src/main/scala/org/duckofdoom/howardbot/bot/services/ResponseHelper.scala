@@ -72,8 +72,7 @@ class ResponseHelperImpl(
   ): HtmlFragment = {
     frag(
       a(href := beer.link.getOrElse("link = ?"))("🍺 " + beer.name.getOrElse("name = ?")),
-      beer.rating.map { case (v1, _) => s" $v1" }.getOrElse(" N/A").toString,
-      "\n",
+      " Рейтинг: " + beer.rating.map { case (v1, _) => s"$v1" }.getOrElse(" N/A").toString + "\n",
       s"Стиль: ${beer.style
         .map(style => {
           if (withStyleLink)
@@ -85,14 +84,17 @@ class ResponseHelperImpl(
       "\n",
       s"Пивоварня: ${beer.breweryInfo.name.getOrElse("breweryInfo.name = ?")}",
       "\n",
-      beer.draftType match {
-        case Some(dr) =>
-          dr + " - " + beer.price
-            .map { case (c, price) => c + price }
-            .getOrElse("price = ?")
-        case None => "On Deck"
-      },
+      if (beer.isOnDeck)
+        "On Deck"
+      else
+        beer.draftType.getOrElse("draftType = ?") + " - " + beer.price
+          .map { case (c, price) => c + price }
+          .getOrElse("price = ?"),
       "\n",
+      beer.menuOrder match {
+        case Some(tapNumber) => "Кран №" + tapNumber + "\n"
+        case None => ""
+      },
       if (!verbose)
         s"Подробнее: ${Consts.showItemPrefix}${beer.id}"
       else
