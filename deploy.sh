@@ -23,6 +23,7 @@ ssh $ADDRESS << EOF
   pkill "java"
   mv bot.log logs/$(date +%Y_%m_%d_%H%M).log
   mv bot.jar builds/bot_$(date +%Y_%m_%d_%H%M).jar
+  cp menu.json menu_backups/menu_$(date +%Y_%m_%d_%H%M).json
   mv bot_new.jar bot.jar
   nohup java -jar bot.jar > bot.log 2>&1 & 
   sleep 3

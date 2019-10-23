@@ -40,8 +40,11 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
           
           pathPrefix("menu") {
             concat(
-              path("instock") {
-                respond(responseService.menuInStock())
+              path("available") {
+                respond(responseService.menuAvailable())
+              },
+              path("ondeck") {
+                respond(responseService.menuOnDeck())
               },
               path("outofstock") {
                 respond(responseService.menuOutOfStock())

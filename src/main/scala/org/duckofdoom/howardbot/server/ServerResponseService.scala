@@ -10,7 +10,8 @@ import scalatags.Text.all._
 
 trait ServerResponseService {
   def home(): String
-  def menuInStock(): String
+  def menuAvailable(): String
+  def menuOnDeck(): String
   def menuOutOfStock(): String
   def menuFull(): String
   def menuChangelog(): String
@@ -34,7 +35,8 @@ class ServerResponseServiceImpl(
     s"${statusInfoProvider.getStatusInfoHtml}\n" +
       frag(
         p(a(href := "/users")("Users")),
-        p(a(href := "/menu/instock")("Menu [In Stock]")),
+        p(a(href := "/menu/available")("Menu [Available]")),
+        p(a(href := "/menu/ondeck")("Menu [On Deck]")),
         p(a(href := "/menu/outofstock")("Menu [Out Of Stock]")),
         p(a(href := "/menu/full")("Menu [Full]")),
         p(a(href := "/menu/raw")("Menu [Raw]")),
@@ -42,12 +44,16 @@ class ServerResponseServiceImpl(
       ).render
   }
 
-  override def menuInStock(): String = {
+  override def menuAvailable(): String = {
     mkMenuResponse(itemDataProvider.availableBeers)
+  }
+  
+  override def menuOnDeck(): String = {
+    mkMenuResponse(itemDataProvider.beers.filter(_.isOnDeck))
   }
 
   override def menuOutOfStock(): String = {
-    mkMenuResponse(itemDataProvider.beers.diff(itemDataProvider.availableBeers))
+    mkMenuResponse(itemDataProvider.beers.filter(!_.isInStock))
   }
 
   override def menuFull(): String = {
