@@ -7,12 +7,17 @@ import org.duckofdoom.howardbot.bot.data.Beer
 import slogging.StrictLogging
 
 object MenuMergeService {
-  final val newItem          = "New item: %s"
-  final val inStockAgain     = "Item is in stock again: %s"
-  final val wentOutOfStock   = "Item went out of stock: %s"
-  final val itemWithoutAName = "Error: encountered %s item without a name: %s"
-  final val itemWithoutALink = "Error: encountered %s item without a link: %s"
-  final val itemWithInvalidLink = "Error: encountered %s item with an invalid link a name: %s"
+  final val newItemInStock  = "New item: %s"
+  final val newItemOnDeck   = "New item on deck: %s"
+  final val fromStockToDeck = "Item went from stock to deck: %s"
+  final val fromDeckToStock = "Item went from deck to stock: %s"
+  final val inStockAgain    = "Item is in stock again: %s"
+  final val onDeckAgain     = "Item is on deck again: %s"
+  final val outOfStock      = "Item went out of stock: %s"
+
+  final val itemWithoutAName    = "Error: encountered %s item without a name: %s"
+  final val itemWithoutALink    = "Error: encountered %s item without a link: %s"
+  final val itemWithInvalidLink = "Error: encountered %s item with an invalid link: %s"
 }
 
 trait MenuMergeService {
@@ -22,7 +27,7 @@ trait MenuMergeService {
 class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime.now)(implicit val config: Config)
     extends MenuMergeService
     with StrictLogging {
-  
+
   private val compareLinkRegex = """\/(\d+)$""".r
 
   /**
@@ -32,20 +37,21 @@ class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime
   def merge(savedItems: Seq[Beer], newItems: Seq[Beer.ParsedInfo]): (Seq[Beer], Seq[String]) = {
 
     import MenuMergeService._
-    
+
     def getItemEqualityId(link: Option[String]) = {
       link.flatMap(l => compareLinkRegex.findFirstMatchIn(l).map(r => r.group(1)))
     }
-    
-    val now              = timeProvider()
-    val savedItemsById   = savedItems.map(i => i.id).zip(savedItems).toMap
-    val savedItemsByLinkId = savedItems.map(i => getItemEqualityId(i.link))
+
+    val now            = timeProvider()
+    val savedItemsById = savedItems.map(i => i.id).zip(savedItems).toMap
+    val savedItemsByLinkId = savedItems
+      .map(i => getItemEqualityId(i.link))
       .zip(savedItems)
       .filter(_._1.isDefined)
       .map(t => (t._1.get, t._2))
       .toMap
-    
-    val newItemsLinkIds    = newItems.flatMap(i => getItemEqualityId(i.link)).toSet
+
+    val newItemsLinkIds = newItems.flatMap(i => getItemEqualityId(i.link)).toSet
 
     var newId = if (savedItemsById.nonEmpty) savedItemsById.keys.max + 1 else 1
 
@@ -58,59 +64,84 @@ class MenuMergeServiceImpl(val timeProvider: () => LocalDateTime = LocalDateTime
     }
 
     //  Check all parsed items if the were already present
-    for (nItem <- newItems) {
-      getItemEqualityId(nItem.link) match {
+    for (newItem <- newItems) {
+      getItemEqualityId(newItem.link) match {
         case None =>
-          addToChangelog(itemWithInvalidLink.format("a new", nItem), error = true)
+          addToChangelog(itemWithInvalidLink.format("a new", newItem), error = true)
         case Some(linkId) =>
           savedItemsByLinkId.get(linkId) match {
             // Brand new item
             case None =>
-              if (nItem.name.isEmpty) {
-                addToChangelog(itemWithoutAName.format("a new", nItem), error = true)
+              if (newItem.name.isEmpty) {
+                addToChangelog(itemWithoutAName.format("a new", newItem), error = true)
               }
 
-              addToChangelog(newItem.format(nItem.name.getOrElse("UNDEFINED")))
-              result :+= Beer.fromParsedInfo(newId, isInStock = true, now, now, nItem)
+              if (newItem.isOnDeck) {
+                addToChangelog(newItemOnDeck.format(newItem.name.getOrElse("UNDEFINED")))
+              } else {
+                addToChangelog(newItemInStock.format(newItem.name.getOrElse("UNDEFINED")))
+              }
+
+              result :+= Beer.fromParsedInfo(newId, isInStock = true, now, now, newItem)
               newId += 1
 
             // This item was already present, update info
-            case Some(beer) =>
-              if (nItem.name.isEmpty) {
-                addToChangelog(itemWithoutAName.format("a new", nItem), error = true)
+            case Some(oldItem) =>
+              if (newItem.name.isEmpty) {
+                addToChangelog(itemWithoutAName.format("a new", newItem), error = true)
               }
 
-              if (!beer.isInStock) {
-                addToChangelog(inStockAgain.format(nItem.name.getOrElse("UNDEFINED")))
-                result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = true, now, beer)
+              val changedOnDeckState = oldItem.isOnDeck != newItem.isOnDeck
+              
+              if (!oldItem.isInStock) {
+                // Wasn't in stock - now in stock
+                if (newItem.isOnDeck) {
+                  addToChangelog(onDeckAgain.format(newItem.name.getOrElse("UNDEFINED")))
+                } else {
+                  addToChangelog(inStockAgain.format(newItem.name.getOrElse("UNDEFINED")))
+                }
+
+                result :+= Beer.fromAnotherBeerWithUpdatedInfo(isInStock = true, now, oldItem, newItem)
               } else {
-                result :+= Beer.fromAnotherBeer(isInStock = true, beer)
+                if (changedOnDeckState) {
+                  // Was in stock, but went on/from deck
+                  if (newItem.isOnDeck) {
+                    addToChangelog(fromStockToDeck.format(newItem.name.getOrElse("UNDEFINED")))
+                  } else {
+                    addToChangelog(fromDeckToStock.format(newItem.name.getOrElse("UNDEFINED")))
+                  }
+
+                  result :+= Beer.fromAnotherBeerWithUpdatedInfo(isInStock = true, now, oldItem, newItem)
+                } else {
+                  // Nothing happened
+                  result :+= Beer.fromAnotherBeer(isInStock = true, oldItem)
+                }
               }
           }
       }
     }
 
     // Filter out all out-of-stock items
-    for (sItem <- savedItems) {
-        getItemEqualityId(sItem.link) match {
-          case None =>
-            addToChangelog(itemWithInvalidLink.format("saved", sItem), error = true)
-          case Some(linkId) =>
-            if (sItem.name.isEmpty){
-              addToChangelog(itemWithoutAName.format("saved", sItem))
+    for (savedItem <- savedItems) {
+      getItemEqualityId(savedItem.link) match {
+        case None =>
+          addToChangelog(itemWithInvalidLink.format("saved", savedItem), error = true)
+        case Some(linkId) =>
+          if (savedItem.name.isEmpty) {
+            addToChangelog(itemWithoutAName.format("saved", savedItem))
+          }
+
+          // Went out of stock
+          if (!newItemsLinkIds.contains(linkId)) {
+            if (savedItem.isInStock) {
+              addToChangelog(outOfStock.format(savedItem.name.getOrElse("UNDEFINED")))
+              result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, savedItem)
+            } else {
+              result :+= Beer.fromAnotherBeer(isInStock = false, savedItem)
             }
-            
-            // Went out of stock
-            if (!newItemsLinkIds.contains(linkId)) {
-              if (sItem.isInStock) {
-                addToChangelog(wentOutOfStock.format(sItem.name.getOrElse("UNDEFINED")))
-                result :+= Beer.fromAnotherBeerWithUpdatedTime(isInStock = false, now, sItem)
-              } else {
-                result :+= Beer.fromAnotherBeer(isInStock = false, sItem)
-              }
-            }
-        }
+          }
       }
+    }
 
     logger.info(s"Updated items. Count: ${result.length}. Changes: ${changeLog.length}")
 

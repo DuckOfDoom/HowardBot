@@ -52,9 +52,17 @@ object Beer {
       draftType: Option[String] = None,
       price: Option[(String, Float)] = None,
       description: Option[String] = None
-  )
+  ) {
+    def isOnDeck: Boolean = draftType.isEmpty
+  }
 
-  def fromParsedInfo(id: Int, isInStock: Boolean, dateAdded: LocalDateTime, dateUpdated: LocalDateTime, info: ParsedInfo): Beer = {
+  def fromParsedInfo(
+      id: Int,
+      isInStock: Boolean,
+      dateAdded: LocalDateTime,
+      dateUpdated: LocalDateTime,
+      info: ParsedInfo
+  ): Beer = {
     Beer(
       id,
       isInStock,
@@ -74,6 +82,33 @@ object Beer {
       info.description
     )
   }
+
+  def fromAnotherBeerWithUpdatedInfo(
+      isInStock: Boolean,
+      dateUpdated: LocalDateTime,
+      beer: Beer,
+      parsedInfo: ParsedInfo
+  ): Beer = {
+    Beer(
+      beer.id,
+      isInStock,
+      beer.dateAdded,
+      dateUpdated,
+      parsedInfo.name,
+      parsedInfo.menuOrder,
+      parsedInfo.rating,
+      parsedInfo.link,
+      parsedInfo.pictureLink,
+      parsedInfo.abv,
+      parsedInfo.ibu,
+      parsedInfo.breweryInfo,
+      parsedInfo.style,
+      parsedInfo.draftType,
+      parsedInfo.price,
+      parsedInfo.description
+    )
+  }
+
   def fromAnotherBeer(isInStock: Boolean, beer: Beer): Beer = {
     fromAnotherBeerWithUpdatedTime(isInStock, beer.dateUpdated, beer)
   }
@@ -118,6 +153,8 @@ case class Beer private (
     price: Option[(String, Float)] = None,
     description: Option[String] = None
 ) extends Item {
+
+  def isOnDeck: Boolean = draftType.isEmpty
 
   override val itemType: ItemType = ItemType.Beer
 
