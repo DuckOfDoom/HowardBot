@@ -43,11 +43,11 @@ class ServerResponseServiceImpl(
   }
 
   override def menuInStock(): String = {
-    mkMenuResponse(itemDataProvider.beersInStock)
+    mkMenuResponse(itemDataProvider.availableBeers)
   }
 
   override def menuOutOfStock(): String = {
-    mkMenuResponse(itemDataProvider.beers.diff(itemDataProvider.beersInStock))
+    mkMenuResponse(itemDataProvider.beers.diff(itemDataProvider.availableBeers))
   }
 
   override def menuFull(): String = {

@@ -40,9 +40,9 @@ trait ItemsProvider {
 
   /**
     * Get all items available for customers.
-    * Does not include beers that are out of stock, but includes beers on deck
+    * Includes only beers in stock and not on deck
     */
-  def beersInStock: Seq[Beer]
+  def availableBeers: Seq[Beer]
 
   /**
     * Get all styles known. Includes styles for beers that are out of stock.
@@ -51,9 +51,9 @@ trait ItemsProvider {
 
   /**
     * Get all styles available for customers.
-    * Does not include styles for beers that are not in stock now.
+    * Includes only styles of  beers in stock and not on deck
     */
-  def stylesInStock: Seq[Style]
+  def availableStyles: Seq[Style]
 
   /**
     * Gets id for a style
@@ -88,9 +88,9 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def beers: Seq[Beer]                   = _beers
-  override def beersInStock: Seq[Beer]            = _beers.filter(b => b.isInStock)
+  override def availableBeers: Seq[Beer]          = _beers.filter(b => b.isInStock && !b.isOnDeck)
   override def styles: Seq[Style]                 = _styles
-  override def stylesInStock: Seq[Style]          = _stylesInStock
+  override def availableStyles: Seq[Style]        = _availableStyles
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
@@ -102,7 +102,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   protected var _stylesMap: Map[Int, Style]              = Map()
   protected var _beers: Seq[Beer]                        = List()
   protected var _styles: Seq[Style]                      = List()
-  protected var _stylesInStock: Seq[Style]               = List()
+  protected var _availableStyles: Seq[Style]               = List()
 
   /**
     * Get items for specific style
@@ -184,7 +184,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
           val beersMap: mutable.Map[Int, Beer]                               = mutable.Map()
           val stylesMap: mutable.Map[Int, Style]                             = mutable.Map()
           val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
-          val stylesInStock: mutable.Set[String]                             = mutable.Set()
+          val availableStyles: mutable.Set[String]                             = mutable.Set()
 
           var styleId = 0
 
@@ -210,8 +210,8 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
                   beersByStyleMap(style) = mutable.ListBuffer[Beer](item)
                 }
 
-                if (item.isInStock)
-                  stylesInStock.add(style)
+                if (item.isInStock && !item.isOnDeck)
+                  availableStyles.add(style)
 
                 beersMap(item.id) = item
               }
@@ -224,7 +224,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
               _stylesMap = stylesMap.toMap
               _styles = stylesMap.values.toList
-              _stylesInStock = stylesMap.values.filter(st => stylesInStock.contains(st.name)).toList
+              _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
 
               _lastRefreshTime = LocalDateTime.now
             }

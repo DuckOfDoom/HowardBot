@@ -25,9 +25,9 @@ class StatusService(implicit bot: BotStarter, itemsProvider: ItemsProvider) {
     val restartCount = bot.restartCount 
 
     val beersCount = itemsProvider.beers.length
-    val beersInStockCount = itemsProvider.beersInStock.length
+    val beersInStockCount = itemsProvider.availableBeers.length
     val stylesCount = itemsProvider.styles.length
-    val stylesInStockCount = itemsProvider.stylesInStock.length
+    val stylesInStockCount = itemsProvider.availableStyles.length
 
     html(
       head(
