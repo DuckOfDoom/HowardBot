@@ -24,7 +24,7 @@ trait ServerResponseService {
   def menuRaw: String
   def show(itemId: Int): String
   def notificationsForm: String
-  def sendNotification(title:String, message:String): String
+  def sendNotification(title:String, message:String, liveNotification:Boolean): String
   def users: String
   def getUser(userId: Int): String
   def putRandomUser(): String
@@ -107,12 +107,15 @@ class ServerResponseServiceImpl(
         input(`type`:="text", name:="message"),
         br(),
         br(),
+        "Разослать НЕ ТЕСТОВУЮ нотификацию:",
+        input(`type`:="checkbox", name:="isLive"),
+        br(),
         input(`type`:="submit", value:="Разослать!")
       )
     ).render
   }
 
-  override def sendNotification(title:String, message: String): String = {
+  override def sendNotification(title:String, message: String, isLive:Boolean): String = {
     var msgs = Seq[String]()
     
     if (title.isBlank){
@@ -126,7 +129,7 @@ class ServerResponseServiceImpl(
     if (msgs.nonEmpty){
       msgs = "Не удалось разослать сообщение! И вот почему:" +: msgs
     } else {
-      val f = notificationsService.sendNotification(title, message)
+      val f = notificationsService.sendNotification(title, message, isLive)
       val rs = Await.result(f, Duration.Inf)
       msgs = rs
     }

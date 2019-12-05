@@ -84,8 +84,8 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
                 respond(responseService.notificationsForm)
               },
               path("send") {
-                parameters("title", "message") { (title, msg) =>
-                  respond(responseService.sendNotification(title, msg))
+                parameters("title", "message", "isLive".as[Boolean] ? false) { (title, msg, isLive) =>
+                  respond(responseService.sendNotification(title, msg, isLive))
                 }
               }
             )

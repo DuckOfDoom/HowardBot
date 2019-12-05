@@ -13,6 +13,7 @@
   "stylesPerPage": 5,
   "menuRefreshPeriod": 600,
   "newItemsDurationInHours" : 24,
+  "testNotificationsUserIds" : [265958901],
   "postgres": {
     "database": "DB",
     "user": "USER",
