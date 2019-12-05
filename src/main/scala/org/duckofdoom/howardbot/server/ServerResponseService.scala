@@ -6,32 +6,41 @@ import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, S
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.utils.FileUtils
 import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
+import org.duckofdoom.howardbot.services.NotificationsService
 import scalatags.Text.all._
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 trait ServerResponseService {
-  def home(): String
-  def menuAvailable(): String
-  def menuOnDeck(): String
-  def menuOutOfStock(): String
-  def menuFull(): String
-  def menuChangelog(): String
-  def menuRaw(): String
-  def users(): String
+  // TODO: Convert methods without parameters to properties
+  def home: String
+  def menuAvailable: String
+  def menuOnDeck: String
+  def menuOutOfStock: String
+  def menuFull: String
+  def menuChangelog: String
+  def menuRaw: String
+  def show(itemId: Int): String
+  def notificationsForm: String
+  def sendNotification(title:String, message:String): String
+  def users: String
   def getUser(userId: Int): String
   def putRandomUser(): String
-  def show(itemId: Int): String
 }
 
 class ServerResponseServiceImpl(
     implicit statusInfoProvider: StatusService,
     itemDataProvider: ItemsProvider,
     responseService: ResponseService,
+    notificationsService: NotificationsService,
     db: DB
 ) extends ServerResponseService {
 
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
 
-  override def home(): String = {
+  override def home: String = {
     s"${statusInfoProvider.getStatusInfoHtml}\n" +
       frag(
         p(a(href := "/users")("Users")),
@@ -40,24 +49,120 @@ class ServerResponseServiceImpl(
         p(a(href := "/menu/outofstock")("Menu [Out Of Stock]")),
         p(a(href := "/menu/full")("Menu [Full]")),
         p(a(href := "/menu/raw")("Menu [Raw]")),
-        p(a(href := "/menu/changelog")("Menu [Changelog]"))
+        p(a(href := "/menu/changelog")("Menu [Changelog]")),
+        br(),
+        p(a(href := "/notifications")("Notifications"))
       ).render
   }
 
-  override def menuAvailable(): String = {
+  override def menuAvailable: String = {
     mkMenuResponse(itemDataProvider.availableBeers)
   }
   
-  override def menuOnDeck(): String = {
+  override def menuOnDeck: String = {
     mkMenuResponse(itemDataProvider.beers.filter(_.isOnDeck))
   }
 
-  override def menuOutOfStock(): String = {
+  override def menuOutOfStock: String = {
     mkMenuResponse(itemDataProvider.beers.filter(!_.isInStock))
   }
 
-  override def menuFull(): String = {
+  override def menuFull: String = {
     mkMenuResponse(itemDataProvider.beers)
+  }
+  
+  override def menuRaw: String = {
+    readFile(ItemsProvider.savedMenuFilePath)
+  }
+  
+  override def menuChangelog: String = {
+    readFile(ItemsProvider.menuChangelogFilePath)
+  }
+
+  override def show(itemId: Int): String = {
+    responseService.mkBeerResponse(itemId)._1
+  }
+  
+  override def notificationsForm : String = { 
+    val instruction =
+      frag(
+        "Привет! Тут можно разослать сообщение всем пользователям бота, которые не отписались от рассылки!", br(),
+        s"Вам надо зайти на ", a(href:="https://telegra.ph", "https://telegra.ph"), " оформить там пост (можно с картинками и прочим),", br(),
+        "придумать заголовок и скопипастить ссылку в поля ниже."
+      )
+
+    frag(
+      form(
+        action:="/notifications/send",
+        method:="get",
+        instruction,
+        br(),
+        br(),
+        "Заголовок:",
+        br(),
+        input(`type`:="text", name:="title"),
+        br(),
+        "Ссылка на telegra.ph:",
+        br(),
+        input(`type`:="text", name:="message"),
+        br(),
+        br(),
+        input(`type`:="submit", value:="Разослать!")
+      )
+    ).render
+  }
+
+  override def sendNotification(title:String, message: String): String = {
+    var msgs = Seq[String]()
+    
+    if (title.isBlank){
+      msgs = msgs :+ "Заполните заголовок!" 
+    }
+    
+    if (!message.contains("telegra.ph")){
+      msgs = msgs :+ "Ссылка должна вести на https://telegra.ph!"
+    }
+    
+    if (msgs.nonEmpty){
+      msgs = "Не удалось разослать сообщение! И вот почему:" +: msgs
+    } else {
+      val f = notificationsService.sendNotification(title, message)
+      val rs = Await.result(f, Duration.Inf)
+      msgs = rs
+    }
+    
+    val frags = ListBuffer[Frag]()
+    for (m <- msgs.toList) {
+      frags.append(frag(m))
+      frags.append(br())
+    }
+
+    frag(
+      a("Послать еще!", href:= "/notifications"),
+      br(),
+      br(),
+      frags
+    ).render
+  }
+
+  override def putRandomUser(): String = {
+    db.putUser(
+      scala.util.Random.nextInt(Int.MaxValue),
+      faker.Name.first_name,
+      faker.Name.first_name.some,
+      faker.Name.last_name.some
+    ).toString
+  }
+
+  override def users: String = {
+    "Users:<br>" +
+      db.users.foldLeft("")((s, u) => {
+        s + (u.toString + "<br>")
+      })
+  }
+
+  override def getUser(userId: Int): String = {
+    db.getUser(userId).toString
   }
 
   private def mkMenuResponse(beers: Seq[Beer]): String = {
@@ -93,38 +198,6 @@ class ServerResponseServiceImpl(
     ).render
   }
 
-  override def menuChangelog(): String = {
-    readFile(ItemsProvider.menuChangelogFilePath)
-  }
-
-  override def show(itemId: Int): String = {
-    responseService.mkBeerResponse(itemId)._1
-  }
-
-  override def menuRaw(): String = {
-    readFile(ItemsProvider.savedMenuFilePath)
-  }
-
-  override def putRandomUser(): String = {
-    db.putUser(
-        scala.util.Random.nextInt(Int.MaxValue),
-        faker.Name.first_name,
-        faker.Name.first_name.some,
-        faker.Name.last_name.some
-      )
-      .toString
-  }
-
-  override def users(): String = {
-    "Users:<br>" +
-      db.users.foldLeft("")((s, u) => {
-        s + (u.toString + "<br>")
-      })
-  }
-
-  override def getUser(userId: Int): String = {
-    db.getUser(userId).toString
-  }
 
   private def readFile(filePath: String): String = {
     s"<pre>${FileUtils

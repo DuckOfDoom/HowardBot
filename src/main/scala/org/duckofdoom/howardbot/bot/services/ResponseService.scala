@@ -8,6 +8,8 @@ import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import slogging.StrictLogging
 
+import scalatags.Text.all._
+
 object ResponseFormat extends Enumeration {
   type ResponseFormat = Value
   val TextMessage, Buttons = Value
@@ -34,6 +36,8 @@ trait ResponseService {
       page: Int,
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup)
+  
+  def formatNotification(title:String, message: String) : String
 }
 
 class ResponseServiceImpl(
@@ -177,5 +181,9 @@ class ResponseServiceImpl(
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }
+  }
+
+  override def formatNotification(title: String, message: String): String = {
+    frag(b(title), "\n", message).render
   }
 }

@@ -9,7 +9,6 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
 import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService}
 import org.duckofdoom.howardbot.bot.utils.Callback
@@ -31,6 +30,21 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   type TelegramUser = com.bot4s.telegram.models.User
 
   override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
+
+  /*
+    Sends a message to a specified user
+   */
+  def sendNotification(userId: Int, title: String, message: String): Future[Unit] = {
+    logger.info(f"Sending message to user $userId: $title -  $message")
+
+    request(
+      SendMessage(
+        ChatId(userId),
+        responseService.formatNotification(title, message),
+        parseMode = ParseMode.HTML.some
+      )
+    ).void
+  }
 
   onCommand("start" | "menu") { implicit msg =>
     withUser(msg.chat) { u =>
@@ -64,7 +78,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
       var user = u
       val responseFuture = (query.data, query.message) match {
         case (Some(data), Some(msg)) =>
-          implicit val message: Message       = msg
+          implicit val message: Message = msg
 
           Callback.deserialize(data.getBytes) match {
             // Sent from "Menu" button
@@ -151,10 +165,10 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               )
 
               if (mSorting.isRight) {
-                
+
                 // Reset menu page because we're going to change sorting and it wont make any sense.
                 user = user.withMenuPage(1)
-                
+
                 val sorting = mSorting.right.get
                 if (sorting.isEmpty) {
                   user = user.withEmptySorting()
@@ -162,7 +176,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                   user = user.withAddedSorting(sorting.get)
                 }
               }
-              
+
               respond(
                 responseService.mkChangeSortingResponse(user.state.sorting),
                 newMessage = mSorting.isLeft
@@ -197,7 +211,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
     withUser(msg.chat) { user =>
       implicit val format: ResponseFormat.Value = ResponseFormat.TextMessage
-    
+
       val responseFuture = msg.text.get match {
         case Consts.showItemRegex(Int(id)) =>
           val (item, markup) = responseService.mkBeerResponse(id)
@@ -233,7 +247,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
           if (msg.text.get.startsWith("/")) {
             return super.receiveMessage(msg)
           }
-          
+
           respond(
             responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting),
             newMessage = true
@@ -255,10 +269,10 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
   }
 
   /**
-   * Allows to pull user that sent a message from DB when processing queries.
-   * 'action' should always return either a supplied User or modified User if we need to modify it.
-   * If returned user does not equal the provided one, said user is updated in database.
-   */
+    * Allows to pull user that sent a message from DB when processing queries.
+    * 'action' should always return either a supplied User or modified User if we need to modify it.
+    * If returned user does not equal the provided one, said user is updated in database.
+    */
   private def withUser(tgUser: TelegramUser)(action: User => (Future[Unit], User)): Future[Unit] = {
 
     if (tgUser.firstName.isEmpty) {

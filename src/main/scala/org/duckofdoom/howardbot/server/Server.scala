@@ -35,35 +35,35 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
       get {
         concat(
           pathSingleSlash {
-            respond(responseService.home())
+            respond(responseService.home)
           },
           
           pathPrefix("menu") {
             concat(
               path("available") {
-                respond(responseService.menuAvailable())
+                respond(responseService.menuAvailable)
               },
               path("ondeck") {
-                respond(responseService.menuOnDeck())
+                respond(responseService.menuOnDeck)
               },
               path("outofstock") {
-                respond(responseService.menuOutOfStock())
+                respond(responseService.menuOutOfStock)
               },
               path("full") {
-                respond(responseService.menuFull())
+                respond(responseService.menuFull)
               },
               path("raw") {
-                respond(responseService.menuRaw())
+                respond(responseService.menuRaw)
               },
               path("changelog") {
-                respond(responseService.menuChangelog())
+                respond(responseService.menuChangelog)
               }
             )
           },
           pathPrefix("users") {
             concat(
               pathEnd {
-                respond(responseService.users())
+                respond(responseService.users)
               },
               path("new") {
                 respond(responseService.putRandomUser())
@@ -77,6 +77,18 @@ class Server(implicit responseService: ServerResponseService) extends StrictLogg
             path(IntNumber) { itemId =>
               respond(responseService.show(itemId))
             }
+          },
+          pathPrefix ("notifications") {
+            concat(
+              pathEnd {
+                respond(responseService.notificationsForm)
+              },
+              path("send") {
+                parameters("title", "message") { (title, msg) =>
+                  respond(responseService.sendNotification(title, msg))
+                }
+              }
+            )
           }
         )
       }

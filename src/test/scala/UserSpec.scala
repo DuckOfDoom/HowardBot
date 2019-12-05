@@ -46,7 +46,7 @@ class UserSpec extends FlatSpec with Matchers {
 
   it should "be serialized and deserialized correctly" in {
 
-    val state        = UserState(5, 7, List(Sorting.byBrewery, Sorting.byPriceForMlDec))
+    val state        = UserState(5, 7, notificationsEnabled = true, List(Sorting.byBrewery, Sorting.byPriceForMlDec))
     val serialized   = state.asJson
 
     serialized.as[UserState] should be(Right(state))
@@ -56,11 +56,11 @@ class UserSpec extends FlatSpec with Matchers {
 
     val stateJson =
       """ {
-      "menuPage" : 5,
-      "stylesPage" : 7
+      "mp" : 5,
+      "sp" : 7
     }
   """
 
-    decode[UserState](stateJson) should be (Right(UserState(5, 7, List())))
+    decode[UserState](stateJson) should be(Right(UserState(5, 7, notificationsEnabled = true, List())))
   }
 }

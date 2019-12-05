@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot.bot.services
 
 import java.time.{Duration, LocalDateTime}
 
-import org.duckofdoom.howardbot.bot.BotStarter
+import org.duckofdoom.howardbot.bot.{Bot, BotStarter}
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.utils.TimeUtils
 import scalatags.Text.all._
@@ -10,7 +10,7 @@ import scalatags.Text.all._
 /**
   * Provides info about running services
   */
-class StatusService(implicit bot: BotStarter, itemsProvider: ItemsProvider) {
+class StatusService(implicit bot: Bot, itemsProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 
