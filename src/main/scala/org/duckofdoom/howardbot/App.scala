@@ -44,7 +44,12 @@ class App extends StrictLogging {
 
   Await.result(
     Future.sequence(
-      Seq(dataProvider.startRefreshLoop, server.run, bot.run)
+      Seq(
+        dataProvider.startRefreshLoop(
+          changelog => notificationsService.sendMenuUpdates(changelog)
+        ),
+        server.run,
+        bot.run)
     ),
     Duration.Inf
   )

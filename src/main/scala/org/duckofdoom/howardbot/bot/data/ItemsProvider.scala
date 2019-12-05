@@ -31,7 +31,7 @@ trait ItemsProvider {
   /**
     * Refresh the list of items available
     */
-  def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit]
+  def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit]
 
   /**
     * Get all items known. Includes beers that are out of stock.
@@ -151,9 +151,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
     s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
   )
 
-  override def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
+  override def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
 
-    def refreshSync(): Unit = {
+    def refreshSync(): Seq[String] = {
 
       logger.info("Refreshing items...")
 
@@ -178,18 +178,18 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
           if (mainOutput.isEmpty) {
             logger.error("Main output is empty. Skipping this refresh to no overwrite the menu.")
-            return
+            return Seq()
           }
 
-          val beersMap: mutable.Map[Int, Beer]                               = mutable.Map()
-          val stylesMap: mutable.Map[Int, Style]                             = mutable.Map()
+          val beersMap: mutable.Map[Int, Beer] = mutable.Map()
+          val stylesMap: mutable.Map[Int, Style] = mutable.Map()
           val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
-          val availableStyles: mutable.Set[String]                             = mutable.Set()
+          val availableStyles: mutable.Set[String] = mutable.Set()
 
           var styleId = 0
 
-          val savedMenu               = loadSavedMenu()
-          val parsedMenu              = new MenuParser(mainOutput, additionalPages).parse()
+          val savedMenu = loadSavedMenu()
+          val parsedMenu = new MenuParser(mainOutput, additionalPages).parse()
           val (mergedMenu, changelog) = mergeService.merge(savedMenu.getOrElse(Seq()), parsedMenu)
 
           saveMenuAndChangelog(mergedMenu, changelog)
@@ -229,16 +229,22 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
               _lastRefreshTime = LocalDateTime.now
             }
           }
+          
+        changelog
+          
         case Right(_) =>
           logger.error(s"Refresh failed! Got empty results!")
+          Seq()
         case Left(ex) =>
           logger.error(s"Refresh due to exception:$ex")
+          Seq()
       }
     }
 
     Future {
       while (true) {
-        refreshSync()
+        val changelog = refreshSync()
+        onChanged(changelog)
         Thread.sleep((config.menuRefreshPeriod * 1000).toInt)
       }
     }
@@ -275,7 +281,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
 class FakeBeersProvider extends ItemsProviderBase {
 
-  def startRefreshLoop()(implicit ec: ExecutionContext): Future[Unit] = {
+  def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
 
     def mkStyle() = {
       val wrds = faker.Lorem.words(3).map(_.capitalize)

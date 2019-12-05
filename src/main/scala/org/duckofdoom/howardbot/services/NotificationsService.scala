@@ -22,6 +22,8 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
       // do not send for non-test users for now
       !isLive && config.testNotificationsUserIds.contains(u.userId)
     }
+    
+    logger.info(f"Sending message: $title - $message to ${usersToSendMessages.length} users.")
 
     Future.sequence(
       usersToSendMessages.map { u =>
@@ -41,5 +43,34 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
         }
       }
     )
+  }
+  
+  /*
+    Sends notification to specified users about menu updates
+   */
+  def sendMenuUpdates(updates: Seq[String]): Unit = {
+    val usersToSendMessages = db.users.filter { u => config.menuUpdatesNotificationsUserIds.contains(u.userId) }
+    
+    logger.info(f"Sending menu updates to ${usersToSendMessages.length} users.")
+
+    Future.sequence(
+      usersToSendMessages.map { u => {
+        val strUser = f"${u.username} (${u.userId})"
+
+        //   TODO: Process errors where this is called?
+        bot.sendNotification(u.userId, "Обновление меню:", updates.mkString("\n")).transform {
+          case Success(_) =>
+            val msg = f"Successfully sent menu update notification to $strUser"
+            logger.info(msg)
+            Success(msg)
+          case Failure(ex) =>
+            val msg = f"Failed to send menu update notification to $strUser because of error: ${ex.getMessage}"
+            logger.error(msg)
+            Success(msg)
+        }
+      }
+      }
+    )
+
   }
 }

@@ -35,7 +35,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     Sends a message to a specified user
    */
   def sendNotification(userId: Int, title: String, message: String): Future[Unit] = {
-    logger.info(f"Sending message to user $userId: $title -  $message")
 
     request(
       SendMessage(

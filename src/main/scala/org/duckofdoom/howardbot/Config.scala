@@ -40,6 +40,7 @@ case class Config(
     stylesPerPage: Int,
     newItemsDurationInHours: Int,
     testNotificationsUserIds: List[Int],
+    menuUpdatesNotificationsUserIds: List[Int],
     postgres: PostgresConfig
 ) extends StrictLogging {
 
