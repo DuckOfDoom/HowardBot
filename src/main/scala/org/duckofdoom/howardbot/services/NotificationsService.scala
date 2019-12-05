@@ -49,6 +49,9 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
     Sends notification to specified users about menu updates
    */
   def sendMenuUpdates(updates: Seq[String]): Unit = {
+    if (updates.isEmpty)
+      return
+    
     val usersToSendMessages = db.users.filter { u => config.menuUpdatesNotificationsUserIds.contains(u.userId) }
     
     logger.info(f"Sending menu updates to ${usersToSendMessages.length} users.")
