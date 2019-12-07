@@ -8,34 +8,48 @@ import org.duckofdoom.howardbot.bot.utils.Sorting._
 import scala.collection.mutable
 
 trait KeyboardHelper {
-  def mkDefaultButtons(sorting: Boolean = true): InlineKeyboardMarkup
- 
+  def mkDefaultButtons(settings: Boolean = true): InlineKeyboardMarkup
+
   def mkPaginationButtons(
       paginationButtons: Seq[InlineKeyboardButton],
       menuButton: Boolean,
-      stylesButton: Boolean,
-      sortingButton: Boolean
+      stylesButton: Boolean
   ): InlineKeyboardMarkup
 
+  def mkSettingsButtons(notificationsEnabled: Boolean): InlineKeyboardMarkup
   def mkChangeSortingButtons(currentSorting: Seq[Sorting]): InlineKeyboardMarkup
 }
 
 class KeyboardHelperImpl extends KeyboardHelper {
 
-  def mkDefaultButtons(sorting: Boolean = true): InlineKeyboardMarkup = {
-    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, sorting = sorting)))
+  def mkDefaultButtons(settings: Boolean = true): InlineKeyboardMarkup = {
+    InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, settings = settings)))
   }
 
   def mkPaginationButtons(
       paginationButtons: Seq[InlineKeyboardButton],
       menuButton: Boolean,
-      stylesButton: Boolean,
-      sortingButton: Boolean
+      stylesButton: Boolean
   ): InlineKeyboardMarkup = {
     InlineKeyboardMarkup(
       Seq(
         paginationButtons,
-        mkAdditionalButtons(menuButton, stylesButton, sortingButton)
+        mkAdditionalButtons(menuButton, stylesButton, settings = true)
+      )
+    )
+  }
+
+  def mkSettingsButtons(notificationsEnabled: Boolean): InlineKeyboardMarkup = {
+    InlineKeyboardMarkup(
+      Seq(
+        Seq(
+          InlineKeyboardButton.callbackData("Изменить сортировку", Callback.mkChangeSortingCallback(Left(Unit))),
+          InlineKeyboardButton.callbackData(
+            s"${if (notificationsEnabled) "Выключить" else "Включить"} уведомления",
+            Callback.mkToggleNotificationsCallback()
+          )
+        ),
+        mkAdditionalButtons(menu = true, styles = true, settings = false)
       )
     )
   }
@@ -67,7 +81,7 @@ class KeyboardHelperImpl extends KeyboardHelper {
       )
     )
 
-    buttonsList :+= mkAdditionalButtons(menu = true, styles = true, sorting = false)
+    buttonsList :+= mkAdditionalButtons(menu = true, styles = true, settings = true)
 
     InlineKeyboardMarkup(buttonsList)
   }
@@ -75,7 +89,7 @@ class KeyboardHelperImpl extends KeyboardHelper {
   private def mkAdditionalButtons(
       menu: Boolean,
       styles: Boolean,
-      sorting: Boolean
+      settings: Boolean
   ): Seq[InlineKeyboardButton] = {
     var buttonsList = mutable.ListBuffer[InlineKeyboardButton]()
     if (menu) {
@@ -92,10 +106,10 @@ class KeyboardHelperImpl extends KeyboardHelper {
       )
     }
 
-    if (sorting) {
+    if (settings) {
       buttonsList += InlineKeyboardButton.callbackData(
-        "Сортировка",
-        Callback.mkChangeSortingCallback(Left(Unit))
+        "Настройки",
+        Callback.mkSettingsCallback()
       )
     }
 

@@ -157,12 +157,19 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
                 responseService.mkSearchBeerByNameResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
-
+              
+            case Some(Callback.Settings()) =>
+              logger.info(
+                s"Received 'ShowSettings' callback from user @${user.username}"
+              )
+              
+              respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
+              
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(
                 s"Received 'ChangeSorting' callback from user @${user.username}, sorting: $mSorting"
               )
-
+              
               if (mSorting.isRight) {
 
                 // Reset menu page because we're going to change sorting and it wont make any sense.
@@ -178,8 +185,20 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
 
               respond(
                 responseService.mkChangeSortingResponse(user.state.sorting),
-                newMessage = mSorting.isLeft
+                newMessage = false
               ).some
+              
+            case Some(Callback.ToggleNotifications()) =>
+              logger.info(
+                s"Received 'ToggleNotifications' callback from user @${user.username}"
+              )
+              
+              user = user.withNotificationsEnabled(!user.state.notificationsEnabled)
+              respond(
+                responseService.mkToggleNotificationsResponse(user.state.notificationsEnabled),
+                newMessage = false
+              ).some
+              
             case _ =>
               None
           }

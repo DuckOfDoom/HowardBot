@@ -61,4 +61,8 @@ case class User(id: Long, userId: Int, firstName: String, lastName: String, user
   def withEmptySorting(): User = {
     copy(state = state.copy(sorting = Seq()))
   }
+  
+  def withNotificationsEnabled(enabled: Boolean): User = {
+    copy(state = state.copy(notificationsEnabled = enabled))
+  }
 }

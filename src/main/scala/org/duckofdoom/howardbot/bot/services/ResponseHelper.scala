@@ -56,13 +56,13 @@ class ResponseHelperImpl(
       itemType: String,
       itemId: Int
   ): String = {
-    s"Позиции с ID '$itemId' и типом '$itemType' не существует. :("
+    s"Позиции с ID '$itemId' и типом '$itemType' не существует :("
   }
 
   def mkEmptySeachResultsResponse(
       query: String
   ): String = {
-    s"Ничего не найдено по запросу '$query' :("
+    s"По запросу '$query' ничего не найдено :("
   }
 
   def mkBeerHtmlInfo(
@@ -119,6 +119,10 @@ class ResponseHelperImpl(
   )(
       implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage
   ): (String, InlineKeyboardMarkup) = {
+    
+    if (allItems.isEmpty){
+      return ("Ничего не найдено :(", keyboardHelper.mkDefaultButtons())
+    }
 
     val itemsPerPage = callbackType match {
       case Callback.Type.Styles => config.stylesPerPage
@@ -135,14 +139,12 @@ class ResponseHelperImpl(
         PaginationUtils
           .mkButtonsForPaginatedQuery(p, itemsPerPage, allItems.length, mkCallbackData),
         callbackType != Callback.Type.Menu,
-        callbackType != Callback.Type.Styles,
         callbackType != Callback.Type.Styles
       )
 
     val selectedItems =
       allItems.slice((p - 1) * itemsPerPage, (p - 1) * itemsPerPage + itemsPerPage)
 
-    // Instead of rendering allItems into a message, render them as buttons
     var messageContents: String = "Пожалуйста:"
     var markup: InlineKeyboardMarkup = paginationMarkup
 

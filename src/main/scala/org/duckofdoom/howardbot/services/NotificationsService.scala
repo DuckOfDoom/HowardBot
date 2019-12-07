@@ -20,7 +20,8 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
     
     val usersToSendMessages = db.users.filter { u =>
       // do not send for non-test users for now
-      !isLive && config.testNotificationsUserIds.contains(u.userId)
+      !isLive && config.testNotificationsUserIds.contains(u.userId) || 
+      isLive && u.state.notificationsEnabled
     }
     
     logger.info(f"Sending message: $title - $message to ${usersToSendMessages.length} users.")

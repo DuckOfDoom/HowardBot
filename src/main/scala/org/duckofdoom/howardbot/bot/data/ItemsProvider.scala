@@ -73,12 +73,12 @@ trait ItemsProvider {
   /**
     * Get items for specific style
     */
-  def findBeersByStyle(styleName: String, includeOutOfStock:Boolean = false): Seq[Beer]
+  def findBeerByStyleName(styleName: String, includeOutOfStock:Boolean = false): Seq[Beer]
 
   /**
     * Get items for specific style by its id
     */
-  def findBeersByStyle(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer]
+  def findBeerByStyleId(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer]
 }
 
 /**
@@ -107,7 +107,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   /**
     * Get items for specific style
     */
-  override def findBeersByStyle(style: String, includeOutOfStock:Boolean = false): Seq[Beer] = {
+  override def findBeerByStyleName(style: String, includeOutOfStock:Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -123,7 +123,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
     )
   }
 
-  override def findBeersByStyle(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer] = {
+  override def findBeerByStyleId(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -239,7 +239,7 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
           logger.error(s"Refresh failed! Got empty results!")
           Seq()
         case Left(ex) =>
-          logger.error(s"Refresh due to exception:$ex")
+          logger.error(s"Refresh failed due to exception:$ex")
           Seq()
       }
     }

@@ -11,10 +11,19 @@ class CallbacksSpec extends FlatSpec with Matchers {
   
   "'Menu' callback" should "be serialized and deserialized correctly" in {
     // Menu
-    val menuCallback = Callback.mkMenuCallbackData(10.some, newMessage = false)
+    var menuCallback = Callback.mkMenuCallbackData(10.some, newMessage = true)
     Callback.deserialize(menuCallback.getBytes) match {
       case Some(Callback.Menu(page, newMessage)) =>
-        page.get should be(10)
+        page should be(Some(10))
+        newMessage should be(true)
+      case _ => fail(s"Failed to parse callback '$menuCallback'")
+    }
+    
+    // NONE was not serialized correctly!
+    menuCallback = Callback.mkMenuCallbackData(None, newMessage = false)
+    Callback.deserialize(menuCallback.getBytes) match {
+      case Some(Callback.Menu(page, newMessage)) =>
+        page should be (None)
         newMessage should be(false)
       case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
@@ -101,6 +110,15 @@ class CallbacksSpec extends FlatSpec with Matchers {
     }
   }
   
+  "'Settings' callback" should "be serialized and deserialized correctly" in {
+    // Search beers by style
+    val settingsCallback = Callback.mkSettingsCallback()
+    Callback.deserialize(settingsCallback.getBytes) match {
+      case Some(Callback.Settings()) => succeed
+      case _ => fail(s"Failed to parse callback '$settingsCallback'")
+    }
+  }
+  
   "'Change sorting' callback" should "be serialized and deserialized correctly" in {
     
     var changeSortingCallback = Callback.mkChangeSortingCallback(Sorting.byPriceForMlDec.some.asRight)
@@ -115,6 +133,15 @@ class CallbacksSpec extends FlatSpec with Matchers {
     Callback.deserialize(changeSortingCallback.getBytes) match {
       case Some(Callback.ChangeSorting(Left(_))) => succeed
       case _ => fail(s"Failed to parse callback '$changeSortingCallback'")
+    }
+  }
+  
+  "'ToggleNotifications' callback" should "be serialized and deserialized correctly" in {
+    // Search beers by style
+    val toggleNotificationsCallback = Callback.mkToggleNotificationsCallback()
+    Callback.deserialize(toggleNotificationsCallback.getBytes) match {
+      case Some(Callback.ToggleNotifications()) => succeed
+      case _ => fail(s"Failed to parse callback '$toggleNotificationsCallback'")
     }
   }
 }

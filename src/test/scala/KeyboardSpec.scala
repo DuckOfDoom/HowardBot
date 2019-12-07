@@ -1,10 +1,13 @@
+import java.nio.charset.StandardCharsets
+
 import com.bot4s.telegram.models.InlineKeyboardButton
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.services.{KeyboardHelper, KeyboardHelperImpl}
-import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, Styles}
+import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, SearchBeerByName, Settings, Styles}
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
+import cats.syntax.option._
 
 class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
 
@@ -14,25 +17,25 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
       implicit kb: Seq[Seq[InlineKeyboardButton]]
   ) = {
     Callback
-      .deserialize[T](kb(i)(j).callbackData.get.getBytes)
+      .deserialize[T](kb(i)(j).callbackData.get.getBytes(StandardCharsets.UTF_8))
       .get
       .asInstanceOf[T]
   }
-  
+
   private def getSortingId(cb: Option[Sorting]) = {
     cb match {
       case Some(sorting) => sorting.id
-      case _ => throw new IllegalArgumentException("Derp")
+      case _             => throw new IllegalArgumentException("Derp")
     }
   }
 
   "KeyboardHelper.mkDefaultButtons" should "have correct layout" in {
     implicit val kb: Seq[Seq[InlineKeyboardButton]] = helper.mkDefaultButtons().inlineKeyboard
     kb should have length 1
-    kb(0) should have length 3
-    getCallback[Menu](0, 0) should not be null
-    getCallback[Styles](0, 1) should not be null
-    getCallback[ChangeSorting](0, 2) should not be null
+    kb.head should have length 3
+    getCallback[Menu](0, 0) should be(Menu(None, newMessage = false))
+    getCallback[Styles](0, 1) should be(Styles(None, newMessage = false))
+    getCallback[Settings](0, 2) should be(Settings())
   }
 
   "KeyboardHelper.mkChangeSortingButtons" should "correctly generate keyboard for empty sorting" in {
@@ -62,9 +65,10 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
     kb(5) should have length 1
     getCallback[ChangeSorting](5, 0).sorting should be(Right(None))
 
-    kb(6) should have length 2
-    getCallback[Menu](6, 0) should not be null
-    getCallback[Styles](6, 1) should not be null
+    kb(6) should have length 3
+    getCallback[Menu](6, 0) should be(Menu(None, newMessage = false))
+    getCallback[Styles](6, 1) should be(Styles(None, newMessage = false))
+    getCallback[Settings](6, 2) should be(Settings())
   }
 
   it should "exclude already present sorting pairs" in {
@@ -89,8 +93,9 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
     kb(3) should have length 1
     getCallback[ChangeSorting](3, 0).sorting should be(Right(None))
 
-    kb(4) should have length 2
-    getCallback[Menu](4, 0) should not be null
-    getCallback[Styles](4, 1) should not be null
+    kb(4) should have length 3
+    getCallback[Menu](4, 0) should be(Menu(None, newMessage = false))
+    getCallback[Styles](4, 1) should be(Styles(None, newMessage = false))
+    getCallback[Settings](4, 2) should be(Settings())
   }
 }
