@@ -73,12 +73,12 @@ trait ItemsProvider {
   /**
     * Get items for specific style
     */
-  def findBeersByStyle(styleName: String): Seq[Beer]
+  def findBeersByStyle(styleName: String, includeOutOfStock:Boolean = false): Seq[Beer]
 
   /**
     * Get items for specific style by its id
     */
-  def findBeersByStyle(styleId: Int): Seq[Beer]
+  def findBeersByStyle(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer]
 }
 
 /**
@@ -107,7 +107,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   /**
     * Get items for specific style
     */
-  override def findBeersByStyle(style: String): Seq[Beer] = {
+  override def findBeersByStyle(style: String, includeOutOfStock:Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -118,11 +118,12 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
       _beersByStyleMap.keys
         .filter(_.toLowerCase.contains(style.toLowerCase))
         .foldLeft(new mutable.ListBuffer[Beer])((list, style) => list ++ _beersByStyleMap(style))
+        .filter(b => includeOutOfStock || (b.isInStock && !b.isOnDeck))
         .toList
     )
   }
 
-  override def findBeersByStyle(styleId: Int): Seq[Beer] = {
+  override def findBeersByStyle(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -133,7 +134,9 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
       items <- _beersByStyleMap.get(style.name)
     } yield items
 
-    mBeers.getOrElse(List())
+    mBeers
+      .map(_.filter(b => includeOutOfStock || (b.isInStock && !b.isOnDeck)))
+      .getOrElse(List())
   }
 }
 
