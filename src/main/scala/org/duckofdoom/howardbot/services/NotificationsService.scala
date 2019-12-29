@@ -29,7 +29,7 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
     Future.sequence(
       usersToSendMessages.map { u =>
         {
-          val strUser = f"${u.username} (${u.userId})"
+          val strUser = f"${u.firstName} (${u.userId} - ${u.username})"
           
           bot.sendNotification(u.userId, title, message).transform {
             case Success(_) =>
@@ -59,7 +59,7 @@ class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: Executi
 
     Future.sequence(
       usersToSendMessages.map { u => {
-        val strUser = f"${u.username} (${u.userId})"
+        val strUser = f"${u.firstName} (${u.userId} - ${u.username})"
 
         //   TODO: Process errors where this is called?
         bot.sendNotification(u.userId, "Обновление меню:", updates.mkString("\n")).transform {

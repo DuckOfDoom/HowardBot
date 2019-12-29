@@ -83,7 +83,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from "Menu" button
             case Some(Callback.Menu(page, newMessage)) =>
               logger.info(
-                s"Received 'Menu' callback from user @${user.username}, page: $page, newMessage: $newMessage"
+                s"Received 'Menu' callback from user @${user.firstName}, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
@@ -98,7 +98,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from "Styles" button
             case Some(Callback.Styles(page, newMessage)) =>
               logger.info(
-                s"Received 'Styles' callback from user @${user.username}, page: $page, newMessage: $newMessage"
+                s"Received 'Styles' callback from user @${user.firstName}, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
@@ -113,7 +113,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
               logger.info(
-                s"Received 'ItemsByStyle' callback from user @${user.username}, style: $style, page: $page"
+                s"Received 'ItemsByStyle' callback from user @${user.firstName}, style: $style, page: $page"
               )
 
               respond(
@@ -124,7 +124,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
             // Sent from clicking on a particular item button (either beer or style)
             case Some(Callback.SingleBeer(itemType, itemId)) =>
               logger.info(
-                s"Received 'Item' callback from user @${user.username}, itemType: $itemType, itemId: $itemId"
+                s"Received 'Item' callback from user @${user.firstName}, itemType: $itemType, itemId: $itemId"
               )
 
               itemType match {
@@ -141,7 +141,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               }
             case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByStyle' callback from user @${user.username}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByStyle' callback from user @${user.firstName}, query: '$searchQuery', page: $page"
               )
 
               respond(
@@ -150,7 +150,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               ).some
             case Some(Callback.SearchBeerByName(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByName' callback from user @${user.username}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByName' callback from user @${user.firstName}, query: '$searchQuery', page: $page"
               )
 
               respond(
@@ -160,14 +160,14 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               
             case Some(Callback.Settings()) =>
               logger.info(
-                s"Received 'ShowSettings' callback from user @${user.username}"
+                s"Received 'ShowSettings' callback from user @${user.firstName}"
               )
               
               respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
               
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(
-                s"Received 'ChangeSorting' callback from user @${user.username}, sorting: $mSorting"
+                s"Received 'ChangeSorting' callback from user @${user.firstName}, sorting: $mSorting"
               )
               
               if (mSorting.isRight) {
@@ -190,7 +190,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               
             case Some(Callback.ToggleNotifications()) =>
               logger.info(
-                s"Received 'ToggleNotifications' callback from user @${user.username}"
+                s"Received 'ToggleNotifications' callback from user @${user.firstName}"
               )
               
               user = user.withNotificationsEnabled(!user.state.notificationsEnabled)
