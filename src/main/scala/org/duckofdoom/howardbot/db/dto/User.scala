@@ -44,7 +44,7 @@ object UserState {
   }
 }
 
-case class User(id: Long, userId: Int, firstName: String, lastName: String, username: String, state: UserState) {
+case class User(id: Long, userId: Int, firstName: String, lastName: Option[String], username: Option[String], state: UserState) {
 
   def withMenuPage(page: Int): User = {
     copy(state = state.copy(menuPage = Math.max(1, page)))

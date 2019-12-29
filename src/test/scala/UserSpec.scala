@@ -8,7 +8,7 @@ import org.duckofdoom.howardbot.bot.utils.Sorting
 class UserSpec extends FlatSpec with Matchers {
   
   def createDefaultUser(userState: UserState): User ={
-    User(1,2, "John", "Doe", "@Gsom", userState)
+    User(1,2, "John", Some("Doe"), Some("@Gsom"), userState)
   }
 
   "UserState" should "have modifiable menu page" in {
