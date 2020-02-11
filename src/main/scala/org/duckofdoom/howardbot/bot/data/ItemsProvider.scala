@@ -12,6 +12,7 @@ import slogging.StrictLogging
 import org.duckofdoom.howardbot.utils.Extensions._
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
@@ -50,10 +51,21 @@ trait ItemsProvider {
   def styles: Seq[Style]
 
   /**
+    * Get all short styles known (without details)
+    */
+  def shortStyles: Seq[String]
+
+  /**
     * Get all styles available for customers.
-    * Includes only styles of  beers in stock and not on deck
+    * Includes only styles of beers in stock and not on deck
     */
   def availableStyles: Seq[Style]
+
+  /**
+    * Get all short styles available for customers.
+    * Includes only styles of beers in stock and not on deck
+    */
+  def availableShortStyles: Seq[String]
 
   /**
     * Gets id for a style
@@ -73,12 +85,12 @@ trait ItemsProvider {
   /**
     * Get items for specific style
     */
-  def findBeerByStyleName(styleName: String, includeOutOfStock:Boolean = false): Seq[Beer]
+  def findBeerByStyleName(styleName: String, includeOutOfStock: Boolean = false): Seq[Beer]
 
   /**
     * Get items for specific style by its id
     */
-  def findBeerByStyleId(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer]
+  def findBeerByStyleId(styleId: Int, includeOutOfStock: Boolean = false): Seq[Beer]
 }
 
 /**
@@ -90,24 +102,29 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   override def beers: Seq[Beer]                   = _beers
   override def availableBeers: Seq[Beer]          = _beers.filter(b => b.isInStock && !b.isOnDeck)
   override def styles: Seq[Style]                 = _styles
+  override def shortStyles: Seq[String]           = _shortStyles
   override def availableStyles: Seq[Style]        = _availableStyles
+  override def availableShortStyles: Seq[String]  = _availableShortStyles
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
   override def getStyle(id: Int): Option[Style] = _stylesMap.get(id)
 
-  protected var _lastRefreshTime: LocalDateTime          = LocalDateTime.MIN
-  protected var _beersMap: Map[Int, Beer]                = Map()
-  protected var _beersByStyleMap: Map[String, Seq[Beer]] = Map()
-  protected var _stylesMap: Map[Int, Style]              = Map()
-  protected var _beers: Seq[Beer]                        = List()
-  protected var _styles: Seq[Style]                      = List()
-  protected var _availableStyles: Seq[Style]               = List()
+  protected var _lastRefreshTime: LocalDateTime               = LocalDateTime.MIN
+  protected var _beersMap: Map[Int, Beer]                     = Map()
+  protected var _beersByStyleMap: Map[String, Seq[Beer]]      = Map()
+  protected var _beersByShortStyleMap: Map[String, Seq[Beer]] = Map()
+  protected var _stylesMap: Map[Int, Style]                   = Map()
+  protected var _beers: Seq[Beer]                             = List()
+  protected var _styles: Seq[Style]                           = List()
+  protected var _shortStyles: Seq[String]                     = List()
+  protected var _availableStyles: Seq[Style]                  = List()
+  protected var _availableShortStyles: Seq[String]            = List()
 
   /**
     * Get items for specific style
     */
-  override def findBeerByStyleName(style: String, includeOutOfStock:Boolean = false): Seq[Beer] = {
+  override def findBeerByStyleName(style: String, includeOutOfStock: Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -123,7 +140,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
     )
   }
 
-  override def findBeerByStyleId(styleId: Int, includeOutOfStock:Boolean = false): Seq[Beer] = {
+  override def findBeerByStyleId(styleId: Int, includeOutOfStock: Boolean = false): Seq[Beer] = {
     if (_beersByStyleMap.isEmpty) {
       logger.error("Styles map is empty!")
       return List()
@@ -184,27 +201,27 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
             return Seq()
           }
 
-          val beersMap: mutable.Map[Int, Beer] = mutable.Map()
-          val stylesMap: mutable.Map[Int, Style] = mutable.Map()
-          val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
-          val availableStyles: mutable.Set[String] = mutable.Set()
+          val beersMap: mutable.Map[Int, Beer]                                    = mutable.Map()
+          val stylesMap: mutable.Map[Int, Style]                                  = mutable.Map()
+          val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]]      = mutable.Map()
+          val beersByShortStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
+          val availableStyles: mutable.Set[String]                                = mutable.Set()
 
           var styleId = 0
 
-          val savedMenu = loadSavedMenu()
-          val parsedMenu = new MenuParser(mainOutput, additionalPages).parse()
+          val savedMenu               = loadSavedMenu()
+          val parsedMenu              = new MenuParser(mainOutput, additionalPages).parse()
           val (mergedMenu, changelog) = mergeService.merge(savedMenu.getOrElse(Seq()), parsedMenu)
 
           saveMenuAndChangelog(mergedMenu, changelog)
 
+          // TODO: Extract this and test!
           for (item <- mergedMenu) {
             // Items without breweries are food, we ignore them for now
             if (item.breweryInfo.name.isDefined) {
 
               if (item.style.isDefined) {
-
                 val style = item.style.get
-                // What if we can't cover all styles with regex? What if we'll have cyrillic styles?
                 if (beersByStyleMap.contains(style))
                   beersByStyleMap(style) += item
                 else {
@@ -218,23 +235,44 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
 
                 beersMap(item.id) = item
               }
-
-              _beersMap = beersMap.toMap
-              _beers = _beersMap.values.toList
-              _beersByStyleMap = beersByStyleMap.map {
-                case (style: String, list: mutable.ListBuffer[Beer]) => (style, list.toList)
-              }.toMap
-
-              _stylesMap = stylesMap.toMap
-              _styles = stylesMap.values.toList
-              _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
-
-              _lastRefreshTime = LocalDateTime.now
             }
           }
-          
-        changelog
-          
+
+          // Add beers for short styles
+          for ((style, beers) <- beersByStyleMap) {
+            val shortStyle = shortenStyle(style)
+            if (!beersByShortStyleMap.contains(shortStyle)) {
+              beersByShortStyleMap(shortStyle) = new ListBuffer[Beer]
+            }
+
+            for (b <- beers) {
+              beersByShortStyleMap(shortStyle) += b
+            }
+          }
+
+          _beersMap = beersMap.toMap
+          _beers = _beersMap.values.toList
+
+          // immutable to mutable
+          def mapToMap[String, V](m: mutable.Map[String, ListBuffer[V]]): Map[String, List[V]] = {
+            m.map { case (style: String, list: mutable.ListBuffer[V]) => (style, list.toList) }
+          }.toMap
+
+          _beersByStyleMap = mapToMap(beersByStyleMap)
+          _beersByShortStyleMap = mapToMap(beersByShortStyleMap)
+
+          _stylesMap = stylesMap.toMap
+          _styles = stylesMap.values.toList
+          _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
+          _availableShortStyles = _availableStyles.map(s => shortenStyle(s.name)).toSet.toList
+
+          _lastRefreshTime = LocalDateTime.now
+
+          logger.info(_availableShortStyles.toString())
+          logger.info(_availableStyles.toString())
+
+          changelog
+
         case Right(_) =>
           logger.error(s"Refresh failed! Got empty results!")
           Seq()
@@ -279,6 +317,10 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
         logger.info(s"Can't decode saved menu from '${ItemsProvider.savedMenuFilePath}'.")
         None
     }
+  }
+
+  private def shortenStyle(fullStyle: String): String = {
+    fullStyle.takeWhile(c => c != '-').strip()
   }
 }
 
