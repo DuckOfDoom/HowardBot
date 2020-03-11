@@ -135,7 +135,7 @@ object Beer {
   }
 }
 
-case class Beer private (
+case class Beer (
     id: Int,
     isInStock: Boolean,
     dateAdded: LocalDateTime = LocalDateTime.MIN,

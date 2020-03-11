@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot
 
 import java.util.concurrent.Executors
 
-import org.duckofdoom.howardbot.bot.data.{ItemsProvider, ParsedItemsProvider}
+import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider, ItemsProviderImpl}
 import org.duckofdoom.howardbot.bot.services._
 import org.duckofdoom.howardbot.bot.{Bot, BotStarter}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
@@ -26,30 +26,36 @@ class App extends StrictLogging {
   logger.info(
     s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}"
   )
+  
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
-  implicit val httpService: HttpService                     = new ScalajHttpService
-  implicit val dataProvider: ItemsProvider                  = new ParsedItemsProvider
-  implicit val db: DB                                       = new DoobieDB(config.postgres)
+  implicit val httpService: HttpService = new ScalajHttpService
+  implicit val db: DB                   = new DoobieDB(config.postgres)
+
+  implicit val itemsProvider: ItemsProvider           = new ItemsProviderImpl
+  implicit val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl
+
   implicit val kbHelper: KeyboardHelper                     = new KeyboardHelperImpl()
   implicit val responseHelper: ResponseHelper               = new ResponseHelperImpl()
   implicit val responseService: ResponseService             = new ResponseServiceImpl()
-  implicit val bot: Bot                                     = new BotStarter()
-  implicit val statusProvider: StatusService                = new StatusService()
-  implicit val notificationsService : NotificationsService  = new NotificationsService()
   implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
-  
-  val server                                                = new Server()
+
+  implicit val bot: Bot                                   = new BotStarter()
+  implicit val statusProvider: StatusService              = new StatusService()
+  implicit val notificationsService: NotificationsService = new NotificationsService()
+
+  val server = new Server()
 
   Await.result(
     Future.sequence(
       Seq(
-        dataProvider.startRefreshLoop(
+        menuRefreshService.startRefreshLoop(
           changelog => notificationsService.sendMenuUpdates(changelog)
         ),
         server.run,
-        bot.run)
+        bot.run
+      )
     ),
     Duration.Inf
   )

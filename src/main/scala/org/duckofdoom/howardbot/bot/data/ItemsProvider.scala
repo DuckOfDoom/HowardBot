@@ -3,19 +3,10 @@ package org.duckofdoom.howardbot.bot.data
 import java.time.LocalDateTime
 
 import cats.syntax.option._
-import org.duckofdoom.howardbot.Config
-import org.duckofdoom.howardbot.bot.services.MenuMergeServiceImpl
-import org.duckofdoom.howardbot.parser.MenuParser
-import org.duckofdoom.howardbot.services.HttpService
-import org.duckofdoom.howardbot.utils.{FileUtils, TimeUtils}
 import slogging.StrictLogging
-import org.duckofdoom.howardbot.utils.Extensions._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.Try
 
 object ItemsProvider {
   val savedMenuFilePath     = "menu.json"
@@ -25,14 +16,14 @@ object ItemsProvider {
 trait ItemsProvider {
 
   /**
+    * Fills items
+    */
+  def fillItems(beers: Seq[Beer]): Unit
+
+  /**
     * Time since last refresh
     */
   def lastRefreshTime: LocalDateTime
-
-  /**
-    * Refresh the list of items available
-    */
-  def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit]
 
   /**
     * Get all items known. Includes beers that are out of stock.
@@ -100,7 +91,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def beers: Seq[Beer]                   = _beers
-  override def availableBeers: Seq[Beer]          = _beers.filter(b => b.isInStock && !b.isOnDeck)
+  override def availableBeers: Seq[Beer]          = _availableBeers
   override def styles: Seq[Style]                 = _styles
   override def shortStyles: Seq[String]           = _shortStyles
   override def availableStyles: Seq[Style]        = _availableStyles
@@ -116,6 +107,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   protected var _beersByShortStyleMap: Map[String, Seq[Beer]] = Map()
   protected var _stylesMap: Map[Int, Style]                   = Map()
   protected var _beers: Seq[Beer]                             = List()
+  protected var _availableBeers: Seq[Beer]                    = List()
   protected var _styles: Seq[Style]                           = List()
   protected var _shortStyles: Seq[String]                     = List()
   protected var _availableStyles: Seq[Style]                  = List()
@@ -160,163 +152,78 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 /**
   * Items provider that can refresh itself via parsing html
   */
-class ParsedItemsProvider(implicit httpService: HttpService, config: Config) extends ItemsProviderBase {
+class ItemsProviderImpl() extends ItemsProviderBase {
 
-  import io.circe.syntax._
-  import io.circe.parser._
+  def fillItems(items: Seq[Beer]): Unit = {
 
-  val mergeService = new MenuMergeServiceImpl
+    val availableBeers: mutable.ListBuffer[Beer]                            = mutable.ListBuffer[Beer]()
+    val beersMap: mutable.Map[Int, Beer]                                    = mutable.Map()
+    val stylesMap: mutable.Map[Int, Style]                                  = mutable.Map()
+    val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]]      = mutable.Map()
+    val beersByShortStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
+    val availableStyles: mutable.Set[String]                                = mutable.Set()
 
-  logger.info(
-    s"${getClass.getName} created. Refresh period: ${config.menuRefreshPeriod} seconds. Timeout: ${config.httpRequestTimeout} seconds."
-  )
+    var styleId = 0
 
-  override def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
+    for (item <- items) {
+      // Items without breweries are food, we ignore them for now
+      if (item.breweryInfo.name.isDefined) {
 
-    def refreshSync(): Seq[String] = {
-
-      logger.info("Refreshing items...")
-
-      val resultsFuture = for {
-        mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
-        pages <- Future.sequence(
-                  (1 to config.additionalPagesCount)
-                    .map(
-                      p =>
-                        httpService.makeRequestAsync(
-                          config.getAdditionalResultPageUrl(p)
-                        )
-                    )
-                )
-      } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
-
-      val result = Try(Await.result(resultsFuture, config.httpRequestTimeout seconds)).toEither
-
-      result match {
-        case Right((Some(mainOutput), additionalPages)) =>
-          logger.info(s"Got main output and ${additionalPages.length} additional pages.")
-
-          if (mainOutput.isEmpty) {
-            logger.error("Main output is empty. Skipping this refresh to no overwrite the menu.")
-            return Seq()
+        if (item.style.isDefined) {
+          val style = item.style.get
+          if (beersByStyleMap.contains(style))
+            beersByStyleMap(style) += item
+          else {
+            styleId += 1
+            stylesMap(styleId) = Style(styleId, style)
+            beersByStyleMap(style) = mutable.ListBuffer[Beer](item)
           }
 
-          val beersMap: mutable.Map[Int, Beer]                                    = mutable.Map()
-          val stylesMap: mutable.Map[Int, Style]                                  = mutable.Map()
-          val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]]      = mutable.Map()
-          val beersByShortStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
-          val availableStyles: mutable.Set[String]                                = mutable.Set()
-
-          var styleId = 0
-
-          val savedMenu               = loadSavedMenu()
-          val parsedMenu              = new MenuParser(mainOutput, additionalPages).parse()
-          val (mergedMenu, changelog) = mergeService.merge(savedMenu.getOrElse(Seq()), parsedMenu)
-
-          saveMenuAndChangelog(mergedMenu, changelog)
-
-          // TODO: Extract this and test!
-          for (item <- mergedMenu) {
-            // Items without breweries are food, we ignore them for now
-            if (item.breweryInfo.name.isDefined) {
-
-              if (item.style.isDefined) {
-                val style = item.style.get
-                if (beersByStyleMap.contains(style))
-                  beersByStyleMap(style) += item
-                else {
-                  styleId += 1
-                  stylesMap(styleId) = Style(styleId, style)
-                  beersByStyleMap(style) = mutable.ListBuffer[Beer](item)
-                }
-
-                if (item.isInStock && !item.isOnDeck)
-                  availableStyles.add(style)
-
-                beersMap(item.id) = item
-              }
-            }
+          if (item.isInStock && !item.isOnDeck) {
+            availableBeers.append(item)
+            availableStyles.add(style)
           }
 
-          // Add beers for short styles
-          for ((style, beers) <- beersByStyleMap) {
-            val shortStyle = shortenStyle(style)
-            if (!beersByShortStyleMap.contains(shortStyle)) {
-              beersByShortStyleMap(shortStyle) = new ListBuffer[Beer]
-            }
-
-            for (b <- beers) {
-              beersByShortStyleMap(shortStyle) += b
-            }
-          }
-
-          _beersMap = beersMap.toMap
-          _beers = _beersMap.values.toList
-
-          // immutable to mutable
-          def mapToMap[String, V](m: mutable.Map[String, ListBuffer[V]]): Map[String, List[V]] = {
-            m.map { case (style: String, list: mutable.ListBuffer[V]) => (style, list.toList) }
-          }.toMap
-
-          _beersByStyleMap = mapToMap(beersByStyleMap)
-          _beersByShortStyleMap = mapToMap(beersByShortStyleMap)
-
-          _stylesMap = stylesMap.toMap
-          _styles = stylesMap.values.toList
-          _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
-          _availableShortStyles = _availableStyles.map(s => shortenStyle(s.name)).toSet.toList
-
-          _lastRefreshTime = LocalDateTime.now
-
-          logger.info(_availableShortStyles.toString())
-          logger.info(_availableStyles.toString())
-
-          changelog
-
-        case Right(_) =>
-          logger.error(s"Refresh failed! Got empty results!")
-          Seq()
-        case Left(ex) =>
-          logger.error(s"Refresh failed due to exception:$ex")
-          Seq()
+          beersMap(item.id) = item
+        }
       }
     }
 
-    Future {
-      while (true) {
-        val changelog = refreshSync()
-        onChanged(changelog)
-        Thread.sleep((config.menuRefreshPeriod * 1000).toInt)
+    // Add beers for short styles
+    for ((style, beers) <- beersByStyleMap) {
+      val shortStyle = shortenStyle(style)
+      if (!beersByShortStyleMap.contains(shortStyle)) {
+        beersByShortStyleMap(shortStyle) = new ListBuffer[Beer]
+      }
+
+      for (b <- beers) {
+        beersByShortStyleMap(shortStyle) += b
       }
     }
-  }
 
-  private def saveMenuAndChangelog(menu: Seq[Beer], changelog: Seq[String]): Unit = {
-    val menuJson = menu.asJson.toString
-    FileUtils.writeFile(ItemsProvider.savedMenuFilePath, menuJson)
+    _beersMap = beersMap.toMap
+    _beers = _beersMap.values.toList
 
-    val currentChangelogStr = {
-      if (changelog.nonEmpty)
-        s"""${TimeUtils.formatDateTime(LocalDateTime.now)}
-           |  ${changelog.length} change(s):
-           |${changelog.mkString("\n")}\n\n""".stripMargin.normalizeNewlines
-      else
-        ""
-    }
+    // immutable to mutable
+    def mapToMap[String, V](m: mutable.Map[String, ListBuffer[V]]): Map[String, List[V]] = {
+      m.map { case (style: String, list: mutable.ListBuffer[V]) => (style, list.toList) }
+    }.toMap
 
-    val previousChangelog = FileUtils.readFile(ItemsProvider.menuChangelogFilePath)
-    val mergedChangelog   = currentChangelogStr + previousChangelog.getOrElse("")
+    _beersByStyleMap = mapToMap(beersByStyleMap)
+    _beersByShortStyleMap = mapToMap(beersByShortStyleMap)
 
-    FileUtils.writeFile(ItemsProvider.menuChangelogFilePath, mergedChangelog)
-  }
+    _stylesMap = stylesMap.toMap
+    _styles = stylesMap.values.toList
+    _shortStyles = beersByShortStyleMap.keys.toList
+    
+    _availableBeers = availableBeers.toList
+    _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
+    _availableShortStyles = _availableStyles.map(s => shortenStyle(s.name)).toSet.toList
 
-  private def loadSavedMenu(): Option[Seq[Beer]] = {
-    FileUtils.readFile(ItemsProvider.savedMenuFilePath).map(decode[Seq[Beer]]) match {
-      case Some(Right(beers)) => beers.some
-      case _ =>
-        logger.info(s"Can't decode saved menu from '${ItemsProvider.savedMenuFilePath}'.")
-        None
-    }
+    _lastRefreshTime = LocalDateTime.now
+
+//    logger.info(_availableShortStyles.toString())
+//    logger.info(_availableStyles.toString())
   }
 
   private def shortenStyle(fullStyle: String): String = {
@@ -324,9 +231,9 @@ class ParsedItemsProvider(implicit httpService: HttpService, config: Config) ext
   }
 }
 
-class FakeBeersProvider extends ItemsProviderBase {
+class FakeItemsProvider extends ItemsProviderBase {
 
-  def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
+  override def fillItems(beers: Seq[Beer]): Unit = {
 
     def mkStyle() = {
       val wrds = faker.Lorem.words(3).map(_.capitalize)
@@ -364,7 +271,5 @@ class FakeBeersProvider extends ItemsProviderBase {
 
     _beers = _beersMap.values.toList
     _lastRefreshTime = LocalDateTime.now()
-    Future.successful()
   }
-
 }
