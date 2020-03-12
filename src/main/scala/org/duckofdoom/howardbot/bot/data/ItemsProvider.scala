@@ -221,9 +221,6 @@ class ItemsProviderImpl() extends ItemsProviderBase {
     _availableShortStyles = _availableStyles.map(s => shortenStyle(s.name)).toSet.toList
 
     _lastRefreshTime = LocalDateTime.now
-
-//    logger.info(_availableShortStyles.toString())
-//    logger.info(_availableStyles.toString())
   }
 
   private def shortenStyle(fullStyle: String): String = {
