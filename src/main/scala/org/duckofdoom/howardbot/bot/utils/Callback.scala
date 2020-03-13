@@ -66,7 +66,7 @@ object Callback extends Enumeration with StrictLogging {
     serializeCallback(Callback.ToggleNotifications())
   }
 
-  def mkSingleBeerCallback[A <: Item](item: A): Option[String] = {
+  def mkSingleItemCallback[A <: Item](item: A): Option[String] = {
     val itemType = item match {
       case _: Beer  => ItemType.Beer
       case _: Style => ItemType.Style

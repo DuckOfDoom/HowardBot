@@ -56,7 +56,7 @@ class CallbacksSpec extends FlatSpec with Matchers {
   "'Single Beer' callback" should "be serialized and deserialized correctly" in {
 
     // Item
-    val itemCallback = Callback.mkSingleBeerCallback(
+    val itemCallback = Callback.mkSingleItemCallback(
       Beer(
         51,
         isInStock = true,
