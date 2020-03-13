@@ -35,7 +35,6 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
     Sends a message to a specified user
    */
   def sendNotification(userId: Int, title: String, message: String): Future[Unit] = {
-
     request(
       SendMessage(
         ChatId(userId),
@@ -122,7 +121,7 @@ class HowardBot(val config: Config)(implicit responseService: ResponseService, d
               ).some
 
             // Sent from clicking on a particular item button (either beer or style)
-            case Some(Callback.SingleBeer(itemType, itemId)) =>
+            case Some(Callback.SingleItem(itemType, itemId)) =>
               logger.info(
                 s"Received 'Item' callback from user @${user.firstName}, itemType: $itemType, itemId: $itemId"
               )

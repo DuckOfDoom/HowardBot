@@ -29,7 +29,7 @@ object Callback extends Enumeration with StrictLogging {
   final case class Menu(page: Option[Int], newMessage: Boolean)   extends Callback
   final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
   final case class ItemsByStyle(styleId: Int, page: Int)          extends Callback
-  final case class SingleBeer(itemType: ItemType, itemId: Int)    extends Callback
+  final case class SingleItem(itemType: ItemType, itemId: Int)    extends Callback
   final case class SearchBeerByName(query: String, page: Int)     extends Callback
   final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
   final case class Settings()                                     extends Callback
@@ -75,7 +75,7 @@ object Callback extends Enumeration with StrictLogging {
         return None
     }
 
-    serializeCallback(Callback.SingleBeer(itemType, item.id)).some
+    serializeCallback(Callback.SingleItem(itemType, item.id)).some
   }
 
   def mkSearchBeerByNameCallback(query: String, page: Int): String = {
@@ -124,7 +124,7 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(3)
           stream.writeShort(styleId)
           stream.writeShort(page)
-        case SingleBeer(itemType, itemId) =>
+        case SingleItem(itemType, itemId) =>
           stream.writeShort(4)
           stream.writeShort(itemType.id)
           stream.writeShort(itemId)
@@ -179,7 +179,7 @@ object Callback extends Enumeration with StrictLogging {
         case 4 =>
           val itemType = ItemType(stream.readShort())
           val itemId   = stream.readShort()
-          SingleBeer(itemType, itemId)
+          SingleItem(itemType, itemId)
         case 5 =>
           val query = stream.readUTF()
           val page  = stream.readShort()
