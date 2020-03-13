@@ -10,7 +10,7 @@ import cats.syntax.option._
 import scalatags.Text.all._
 
 class ResponseServiceImpl(
-    implicit itemsProvider: ItemsProvider,
+    itemsProvider: ItemsProvider,
     responseHelper: ResponseHelper,
     keyboardHelper: KeyboardHelper,
     config: Config

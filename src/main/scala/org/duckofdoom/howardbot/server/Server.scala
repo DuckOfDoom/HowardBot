@@ -10,7 +10,7 @@ import slogging.StrictLogging
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class Server(implicit responseService: ServerResponseService) extends StrictLogging {
+class Server(responseService: ServerResponseService) extends StrictLogging {
 
   def run(implicit config: Option[Config]): Future[Unit] = {
 

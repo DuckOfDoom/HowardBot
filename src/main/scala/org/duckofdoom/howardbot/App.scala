@@ -26,26 +26,37 @@ class App extends StrictLogging {
   logger.info(
     s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}"
   )
-  
-  implicit val executionContext: ExecutionContext =
+
+  val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
-  implicit val httpService: HttpService = new ScalajHttpService
-  implicit val db: DB                   = new DoobieDB(config.postgres)
+  val httpService: HttpService = new ScalajHttpService
+  val db: DB                   = new DoobieDB(config.postgres)
 
-  implicit val itemsProvider: ItemsProvider           = new ItemsProviderImpl
-  implicit val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl
+  val itemsProvider: ItemsProvider           = new ItemsProviderImpl
+  val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl(itemsProvider, httpService, config)
+  val keyboardHelper: KeyboardHelper         = new KeyboardHelperImpl()
+  val responseHelper: ResponseHelper         = new ResponseHelperImpl(itemsProvider, keyboardHelper, config)
+  val responseService: ResponseService = new ResponseServiceImpl(
+    itemsProvider,
+    responseHelper,
+    keyboardHelper,
+    config
+  )
 
-  implicit val kbHelper: KeyboardHelper                     = new KeyboardHelperImpl()
-  implicit val responseHelper: ResponseHelper               = new ResponseHelperImpl()
-  implicit val responseService: ResponseService             = new ResponseServiceImpl()
-  implicit val serverResponseService: ServerResponseService = new ServerResponseServiceImpl()
+  val bot: Bot = new BotStarter(responseService)
 
-  implicit val bot: Bot                                   = new BotStarter()
-  implicit val statusProvider: StatusService              = new StatusService()
-  implicit val notificationsService: NotificationsService = new NotificationsService()
+  val notificationsService = new NotificationsService(config, db, bot)
 
-  val server = new Server()
+  val serverResponseService: ServerResponseService = new ServerResponseServiceImpl(
+    new StatusService(bot, itemsProvider),
+    itemsProvider,
+    responseService,
+    notificationsService,
+    db
+  )
+
+  val server = new Server(serverResponseService)
 
   Await.result(
     Future.sequence(

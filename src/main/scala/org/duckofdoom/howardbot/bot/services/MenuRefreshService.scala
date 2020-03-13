@@ -23,14 +23,15 @@ trait MenuRefreshService {
 }
 
 class MenuRefreshServiceImpl(
-    implicit itemsProvider: ItemsProvider,
+    itemsProvider: ItemsProvider,
     httpService: HttpService,
-    config: Config,
-    ec: ExecutionContext
+    config: Config
+)(
+    implicit ec: ExecutionContext
 ) extends MenuRefreshService
     with StrictLogging {
   
-  val mergeService = new MenuMergeServiceImpl()
+  val mergeService = new MenuMergeServiceImpl(config)
 
   override def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
 
@@ -67,9 +68,9 @@ class MenuRefreshServiceImpl(
           val (mergedMenu, changelog) = mergeService.merge(savedMenu.getOrElse(Seq()), parsedMenu)
 
           saveMenuAndChangelog(mergedMenu, changelog)
-          
+
           itemsProvider.fillItems(mergedMenu)
-          
+
           changelog
 
         case Right(_) =>

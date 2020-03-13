@@ -10,7 +10,7 @@ import scala.util.{Failure, Success}
 
 /* Service that is used to send notifications for users */
 
-class NotificationsService(implicit config:Config, db: DB, bot: Bot, ec: ExecutionContext) extends StrictLogging {
+class NotificationsService(config:Config, db: DB, bot: Bot)(implicit ec: ExecutionContext) extends StrictLogging {
 
   /*
    Sends notifications to users.

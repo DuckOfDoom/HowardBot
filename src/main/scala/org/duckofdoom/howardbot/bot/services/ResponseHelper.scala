@@ -47,9 +47,9 @@ trait ResponseHelper {
 }
 
 class ResponseHelperImpl(
-    implicit config: Config,
     itemsProvider: ItemsProvider,
-    keyboardHelper: KeyboardHelper
+    keyboardHelper: KeyboardHelper,
+    config: Config
 ) extends ResponseHelper {
 
   def mkItemNotFoundResponse(

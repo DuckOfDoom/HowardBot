@@ -24,7 +24,7 @@ trait Bot {
   Wrapper for a bot. 
   Provides an interface for other classes to use some of the bot functions, e.g. sending a message.
  */
-class BotStarter(implicit responseService: ResponseService) extends Bot 
+class BotStarter(responseService: ResponseService) extends Bot 
   with StrictLogging {
 
   override def runningTime: Duration         = Duration.between(startupTime, LocalDateTime.now())

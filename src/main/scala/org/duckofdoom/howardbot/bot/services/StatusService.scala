@@ -10,7 +10,7 @@ import scalatags.Text.all._
 /**
   * Provides info about running services
   */
-class StatusService(implicit bot: Bot, itemsProvider: ItemsProvider) {
+class StatusService(bot: Bot, itemsProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 

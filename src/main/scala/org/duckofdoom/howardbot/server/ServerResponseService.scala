@@ -24,14 +24,14 @@ trait ServerResponseService {
   def menuRaw: String
   def show(itemId: Int): String
   def notificationsForm: String
-  def sendNotification(title:String, message:String, liveNotification:Boolean): String
+  def sendNotification(title: String, message: String, liveNotification: Boolean): String
   def users: String
   def getUser(userId: Int): String
   def putRandomUser(): String
 }
 
 class ServerResponseServiceImpl(
-    implicit statusInfoProvider: StatusService,
+    statusService: StatusService,
     itemDataProvider: ItemsProvider,
     responseService: ResponseService,
     notificationsService: NotificationsService,
@@ -41,7 +41,7 @@ class ServerResponseServiceImpl(
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
 
   override def home: String = {
-    s"${statusInfoProvider.getStatusInfoHtml}\n" +
+    s"${statusService.getStatusInfoHtml}\n" +
       frag(
         p(a(href := "/users")("Users")),
         p(a(href := "/menu/available")("Menu [Available]")),
@@ -58,7 +58,7 @@ class ServerResponseServiceImpl(
   override def menuAvailable: String = {
     mkMenuResponse(itemDataProvider.availableBeers)
   }
-  
+
   override def menuOnDeck: String = {
     mkMenuResponse(itemDataProvider.beers.filter(_.isOnDeck))
   }
@@ -70,11 +70,11 @@ class ServerResponseServiceImpl(
   override def menuFull: String = {
     mkMenuResponse(itemDataProvider.beers)
   }
-  
+
   override def menuRaw: String = {
     readFile(ItemsProvider.savedMenuFilePath)
   }
-  
+
   override def menuChangelog: String = {
     readFile(ItemsProvider.menuChangelogFilePath)
   }
@@ -82,58 +82,62 @@ class ServerResponseServiceImpl(
   override def show(itemId: Int): String = {
     responseService.mkBeerResponse(itemId)._1
   }
-  
-  override def notificationsForm : String = { 
+
+  override def notificationsForm: String = {
     val instruction =
       frag(
-        "Привет! Тут можно разослать сообщение всем пользователям бота, которые не отписались от рассылки!", br(),
-        s"Вам надо зайти на ", a(href:="https://telegra.ph", "https://telegra.ph"), " оформить там пост (можно с картинками и прочим),", br(),
+        "Привет! Тут можно разослать сообщение всем пользователям бота, которые не отписались от рассылки!",
+        br(),
+        s"Вам надо зайти на ",
+        a(href := "https://telegra.ph", "https://telegra.ph"),
+        " оформить там пост (можно с картинками и прочим),",
+        br(),
         "придумать заголовок и скопипастить ссылку в поля ниже."
       )
 
     frag(
       form(
-        action:="/notifications/send",
-        method:="get",
+        action := "/notifications/send",
+        method := "get",
         instruction,
         br(),
         br(),
         "Заголовок:",
         br(),
-        input(`type`:="text", name:="title"),
+        input(`type` := "text", name := "title"),
         br(),
         "Ссылка на telegra.ph:",
         br(),
-        input(`type`:="text", name:="message"),
+        input(`type` := "text", name := "message"),
         br(),
         br(),
         "Разослать НЕ ТЕСТОВУЮ нотификацию:",
-        input(`type`:="checkbox", name:="isLive"),
+        input(`type` := "checkbox", name := "isLive"),
         br(),
-        input(`type`:="submit", value:="Разослать!")
+        input(`type` := "submit", value := "Разослать!")
       )
     ).render
   }
 
-  override def sendNotification(title:String, message: String, isLive:Boolean): String = {
+  override def sendNotification(title: String, message: String, isLive: Boolean): String = {
     var msgs = Seq[String]()
-    
-    if (title.isBlank){
-      msgs = msgs :+ "Заполните заголовок!" 
+
+    if (title.isBlank) {
+      msgs = msgs :+ "Заполните заголовок!"
     }
-    
-    if (!message.contains("telegra.ph")){
+
+    if (!message.contains("telegra.ph")) {
       msgs = msgs :+ "Ссылка должна вести на https://telegra.ph!"
     }
-    
-    if (msgs.nonEmpty){
+
+    if (msgs.nonEmpty) {
       msgs = "Не удалось разослать сообщение! И вот почему:" +: msgs
     } else {
-      val f = notificationsService.sendNotification(title, message, isLive)
+      val f  = notificationsService.sendNotification(title, message, isLive)
       val rs = Await.result(f, Duration.Inf)
       msgs = rs
     }
-    
+
     val frags = ListBuffer[Frag]()
     for (m <- msgs.toList) {
       frags.append(frag(m))
@@ -141,7 +145,7 @@ class ServerResponseServiceImpl(
     }
 
     frag(
-      a("Послать еще!", href:= "/notifications"),
+      a("Послать еще!", href := "/notifications"),
       br(),
       br(),
       frags
@@ -150,11 +154,12 @@ class ServerResponseServiceImpl(
 
   override def putRandomUser(): String = {
     db.putUser(
-      scala.util.Random.nextInt(Int.MaxValue),
-      faker.Name.first_name,
-      faker.Name.first_name.some,
-      faker.Name.last_name.some
-    ).toString
+        scala.util.Random.nextInt(Int.MaxValue),
+        faker.Name.first_name,
+        faker.Name.first_name.some,
+        faker.Name.last_name.some
+      )
+      .toString
   }
 
   override def users: String = {
@@ -200,7 +205,6 @@ class ServerResponseServiceImpl(
       }
     ).render
   }
-
 
   private def readFile(filePath: String): String = {
     s"<pre>${FileUtils
