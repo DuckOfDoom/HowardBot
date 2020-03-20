@@ -10,12 +10,11 @@ import org.duckofdoom.howardbot.services.HttpService
 import org.duckofdoom.howardbot.utils.{FileUtils, TimeUtils}
 import slogging.StrictLogging
 
-import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
 import cats.syntax.option._
 import org.duckofdoom.howardbot.utils.Extensions._
-
+import scala.concurrent.duration._
 import io.circe.syntax._
 
 trait MenuRefreshService {
@@ -23,15 +22,25 @@ trait MenuRefreshService {
 }
 
 class MenuRefreshServiceImpl(
+    refreshPeriod : Float,
+    mainMenuUrl: String,
+    additionalPagesCount : Int,
+    getAdditionalResultPageUrl: (Int => String),
+    httpRequestTimeout : Int,
     itemsProvider: ItemsProvider,
     httpService: HttpService,
-    config: Config
 )(
     implicit ec: ExecutionContext
 ) extends MenuRefreshService
     with StrictLogging {
   
-  val mergeService = new MenuMergeServiceImpl(config)
+  logger.info(
+    s"""Created: refreshPeriod:$refreshPeriod, mainMenuUrl:$mainMenuUrl, additionalPagesCount:$additionalPagesCount
+        httpRequestTimeout:$httpRequestTimeout
+        """
+  )
+  
+  val mergeService = new MenuMergeServiceImpl()
 
   override def startRefreshLoop(onChanged: Seq[String] => Unit)(implicit ec: ExecutionContext): Future[Unit] = {
 
@@ -40,19 +49,19 @@ class MenuRefreshServiceImpl(
       logger.info("Refreshing items...")
 
       val resultsFuture = for {
-        mainOutput <- httpService.makeRequestAsync(config.mainMenuUrl)
+        mainOutput <- httpService.makeRequestAsync(mainMenuUrl)
         pages <- Future.sequence(
-                  (1 to config.additionalPagesCount)
+                  (1 to additionalPagesCount)
                     .map(
                       p =>
                         httpService.makeRequestAsync(
-                          config.getAdditionalResultPageUrl(p)
+                          getAdditionalResultPageUrl(p)
                         )
                     )
                 )
       } yield (mainOutput, pages.filter(_.isDefined).map(_.get).toList)
 
-      val result = Try(Await.result(resultsFuture, config.httpRequestTimeout seconds)).toEither
+      val result = Try(Await.result(resultsFuture, httpRequestTimeout seconds)).toEither
 
       result match {
         case Right((Some(mainOutput), additionalPages)) =>
@@ -86,7 +95,7 @@ class MenuRefreshServiceImpl(
       while (true) {
         val changelog = refreshSync()
         onChanged(changelog)
-        Thread.sleep((config.menuRefreshPeriod * 1000).toInt)
+        Thread.sleep((refreshPeriod * 1000).toInt)
       }
     }
   }

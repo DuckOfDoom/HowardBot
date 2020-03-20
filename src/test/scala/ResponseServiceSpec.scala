@@ -16,7 +16,7 @@ class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory with B
     implicit val responseHelper: ResponseHelper = createResponseHelper()
     implicit val keyboardHelper: KeyboardHelper = createKeyboardHelper()
 
-    var service : ResponseService = new ResponseServiceImpl()
+    var service : ResponseService = new ResponseServiceImpl(itemsProvider, responseHelper, keyboardHelper)
   }
   
   val defaultKeyboard = InlineKeyboardMarkup(Seq())

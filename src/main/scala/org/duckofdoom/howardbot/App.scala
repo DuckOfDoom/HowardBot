@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot
 
 import java.util.concurrent.Executors
 
-import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider, ItemsProviderImpl}
+import org.duckofdoom.howardbot.bot.data.{ItemsProvider, ItemsProviderImpl}
 import org.duckofdoom.howardbot.bot.services._
 import org.duckofdoom.howardbot.bot.{Bot, BotStarter}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
@@ -30,23 +30,41 @@ class App extends StrictLogging {
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
-  val httpService: HttpService = new ScalajHttpService
-  val db: DB                   = new DoobieDB(config.postgres)
+  val httpService: HttpService       = new ScalajHttpService
+  val db: DB                         = new DoobieDB(config.postgres)
+  val keyboardHelper: KeyboardHelper = new KeyboardHelperImpl()
 
-  val itemsProvider: ItemsProvider           = new ItemsProviderImpl
-  val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl(itemsProvider, httpService, config)
-  val keyboardHelper: KeyboardHelper         = new KeyboardHelperImpl()
-  val responseHelper: ResponseHelper         = new ResponseHelperImpl(itemsProvider, keyboardHelper, config)
+  val itemsProvider: ItemsProvider = new ItemsProviderImpl
+  val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl(
+    config.menuRefreshPeriod,
+    config.mainMenuUrl,
+    config.additionalPagesCount,
+    page => config.getAdditionalResultPageUrl(page),
+    config.httpRequestTimeout,
+    itemsProvider,
+    httpService
+  )
+
+  val responseHelper: ResponseHelper = new ResponseHelperImpl(
+    config.stylesPerPage,
+    config.menuItemsPerPage,
+    itemsProvider,
+    keyboardHelper
+  )
   val responseService: ResponseService = new ResponseServiceImpl(
     itemsProvider,
     responseHelper,
-    keyboardHelper,
-    config
+    keyboardHelper
   )
 
   val bot: Bot = new BotStarter(responseService, db)
 
-  val notificationsService = new NotificationsService(config, db, bot)
+  val notificationsService = new NotificationsService(
+    config.testNotificationsUserIds.toSet,
+    config.menuUpdatesNotificationsUserIds.toSet,
+    db,
+    bot
+  )
 
   val serverResponseService: ServerResponseService = new ServerResponseServiceImpl(
     new StatusService(bot, itemsProvider),

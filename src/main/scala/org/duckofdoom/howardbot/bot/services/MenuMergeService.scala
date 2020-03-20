@@ -1,8 +1,7 @@
 package org.duckofdoom.howardbot.bot.services
 
-import java.time.{Duration, LocalDateTime}
+import java.time.{LocalDateTime}
 
-import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.Beer
 import slogging.StrictLogging
 
@@ -24,7 +23,7 @@ trait MenuMergeService {
   def merge(savedItems: Seq[Beer], newItems: Seq[Beer.ParsedInfo]): (Seq[Beer], Seq[String])
 }
 
-class MenuMergeServiceImpl(config: Config, timeProvider: () => LocalDateTime = LocalDateTime.now)
+class MenuMergeServiceImpl(timeProvider: () => LocalDateTime = LocalDateTime.now)
     extends MenuMergeService
     with StrictLogging {
 
@@ -146,12 +145,5 @@ class MenuMergeServiceImpl(config: Config, timeProvider: () => LocalDateTime = L
     logger.info(s"Updated items. Count: ${result.length}. Changes: ${changeLog.length}")
 
     (result, changeLog)
-  }
-
-  /**
-    * Returns items that are considered new
-    */
-  def getNewItems(items: Seq[Beer]): Seq[Beer] = {
-    items.filter(b => Duration.between(LocalDateTime.now, b.dateAdded).toHours < config.newItemsDurationInHours)
   }
 }

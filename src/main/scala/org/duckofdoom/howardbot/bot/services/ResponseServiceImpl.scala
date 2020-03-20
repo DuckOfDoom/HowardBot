@@ -1,7 +1,6 @@
 package org.duckofdoom.howardbot.bot.services
 
 import com.bot4s.telegram.models.InlineKeyboardMarkup
-import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
@@ -13,10 +12,11 @@ class ResponseServiceImpl(
     itemsProvider: ItemsProvider,
     responseHelper: ResponseHelper,
     keyboardHelper: KeyboardHelper,
-    config: Config
 ) extends ResponseService
     with StrictLogging {
-
+  
+  logger.info("Created")
+  
   override def mkMenuResponse(
       page: Int,
       sortings: Seq[Sorting]
