@@ -17,14 +17,14 @@ trait Bot {
   def restartReason: Option[String] 
   def restartCount: Int
 
-  def run(implicit loadConfig: () => Option[Config], db: DB): Future[Unit]
+  def run(implicit loadConfig: () => Option[Config]): Future[Unit]
 }
 
 /*
   Wrapper for a bot. 
   Provides an interface for other classes to use some of the bot functions, e.g. sending a message.
  */
-class BotStarter(responseService: ResponseService) extends Bot 
+class BotStarter(responseService: ResponseService, db: DB) extends Bot 
   with StrictLogging {
 
   override def runningTime: Duration         = Duration.between(startupTime, LocalDateTime.now())
@@ -44,7 +44,7 @@ class BotStarter(responseService: ResponseService) extends Bot
   private var lastRestartReason: Option[String] = None
   private var restarts: Int                     = 0
 
-  override def run(implicit loadConfig: () => Option[Config], db: DB): Future[Unit] = {
+  override def run(implicit loadConfig: () => Option[Config]): Future[Unit] = {
     try {
       loadConfig() match {
         case None =>
@@ -56,7 +56,7 @@ class BotStarter(responseService: ResponseService) extends Bot
           }
 
           logger.info("Running bot.")
-          val instance = new HowardBot(conf)
+          val instance = new HowardBot(conf, responseService, db)
           bot = instance.some
           startupTime = LocalDateTime.now()
           val eol = instance.run()
@@ -70,7 +70,7 @@ class BotStarter(responseService: ResponseService) extends Bot
         logger.error(message)
         lastRestartReason = message.some
         restarts += 1
-        run(loadConfig, db)
+        run(loadConfig)
     }
   }
 }

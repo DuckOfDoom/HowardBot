@@ -24,7 +24,7 @@ trait MenuMergeService {
   def merge(savedItems: Seq[Beer], newItems: Seq[Beer.ParsedInfo]): (Seq[Beer], Seq[String])
 }
 
-class MenuMergeServiceImpl(config: Config, val timeProvider: () => LocalDateTime = LocalDateTime.now)
+class MenuMergeServiceImpl(config: Config, timeProvider: () => LocalDateTime = LocalDateTime.now)
     extends MenuMergeService
     with StrictLogging {
 

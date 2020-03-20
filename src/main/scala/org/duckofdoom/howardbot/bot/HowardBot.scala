@@ -20,7 +20,7 @@ import slogging.StrictLogging
 
 import scala.concurrent.Future
 
-class HowardBot(val config: Config)(implicit responseService: ResponseService, db: DB)
+class HowardBot(val config: Config, responseService:ResponseService, db: DB)
     extends TelegramBot
     with StrictLogging
     with Polling

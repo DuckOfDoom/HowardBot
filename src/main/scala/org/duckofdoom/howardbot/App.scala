@@ -27,7 +27,7 @@ class App extends StrictLogging {
     s"Creating ExecutionContext with WorkStealingPool. Parallelism level = ${config.parallelismLevel}"
   )
 
-  val executionContext: ExecutionContext =
+  implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
   val httpService: HttpService = new ScalajHttpService
@@ -44,7 +44,7 @@ class App extends StrictLogging {
     config
   )
 
-  val bot: Bot = new BotStarter(responseService)
+  val bot: Bot = new BotStarter(responseService, db)
 
   val notificationsService = new NotificationsService(config, db, bot)
 

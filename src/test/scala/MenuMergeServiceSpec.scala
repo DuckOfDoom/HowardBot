@@ -11,7 +11,7 @@ class MenuMergeServiceSpec extends FlatSpec with Matchers with MockFactory {
 
   implicit val config: Config = stub[Config]
   var now: LocalDateTime = LocalDateTime.now
-  val service: MenuMergeService = new MenuMergeServiceImpl(() => now)
+  val service: MenuMergeService = new MenuMergeServiceImpl(config, () => now)
 
   def mkLink(id: Int): Option[String] = {
     val randomString = faker.Internet.domain_name
