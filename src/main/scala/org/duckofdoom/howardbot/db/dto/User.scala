@@ -65,4 +65,6 @@ case class User(id: Long, userId: Int, firstName: String, lastName: Option[Strin
   def withNotificationsEnabled(enabled: Boolean): User = {
     copy(state = state.copy(notificationsEnabled = enabled))
   }
+
+  override def toString: String = s"@${username.getOrElse(userId.toString + s" ($firstName)")}"
 }

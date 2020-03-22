@@ -93,7 +93,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
             // Sent from "Menu" button
             case Some(Callback.Menu(page, newMessage)) =>
               logger.info(
-                s"Received 'Menu' callback from user @${user.firstName}, page: $page, newMessage: $newMessage"
+                s"Received 'Menu' callback from user $user, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
@@ -108,7 +108,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
             // Sent from "Styles" button
             case Some(Callback.Styles(page, newMessage)) =>
               logger.info(
-                s"Received 'Styles' callback from user @${user.firstName}, page: $page, newMessage: $newMessage"
+                s"Received 'Styles' callback from user $user, page: $page, newMessage: $newMessage"
               )
 
               if (page.isDefined) {
@@ -123,7 +123,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
             // Sent from clicking on a particular style button
             case Some(Callback.ItemsByStyle(style, page)) =>
               logger.info(
-                s"Received 'ItemsByStyle' callback from user @${user.firstName}, style: $style, page: $page"
+                s"Received 'ItemsByStyle' callback from user $user, style: $style, page: $page"
               )
 
               respond(
@@ -134,7 +134,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
             // Sent from clicking on a particular item button (either beer or style)
             case Some(Callback.SingleItem(itemType, itemId)) =>
               logger.info(
-                s"Received 'Item' callback from user @${user.firstName}, itemType: $itemType, itemId: $itemId"
+                s"Received 'Item' callback from user $user, itemType: $itemType, itemId: $itemId"
               )
 
               itemType match {
@@ -151,7 +151,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
               }
             case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByStyle' callback from user @${user.firstName}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByStyle' callback from user $user, query: '$searchQuery', page: $page"
               )
 
               respond(
@@ -160,7 +160,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
               ).some
             case Some(Callback.SearchBeerByName(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByName' callback from user @${user.firstName}, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByName' callback from user $user, query: '$searchQuery', page: $page"
               )
 
               respond(
@@ -170,14 +170,14 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
 
             case Some(Callback.Settings()) =>
               logger.info(
-                s"Received 'ShowSettings' callback from user @${user.firstName}"
+                s"Received 'ShowSettings' callback from user $user"
               )
 
               respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
 
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(
-                s"Received 'ChangeSorting' callback from user @${user.firstName}, sorting: $mSorting"
+                s"Received 'ChangeSorting' callback from user $user, sorting: $mSorting"
               )
 
               if (mSorting.isRight) {
@@ -200,7 +200,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
 
             case Some(Callback.ToggleNotifications()) =>
               logger.info(
-                s"Received 'ToggleNotifications' callback from user @${user.firstName}"
+                s"Received 'ToggleNotifications' callback from user $user"
               )
 
               user = user.withNotificationsEnabled(!user.state.notificationsEnabled)
