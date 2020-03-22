@@ -19,7 +19,9 @@ class ScalajHttpService extends HttpService with StrictLogging{
   )(implicit executionContext: ExecutionContext): Future[Option[String]] = {
     Future {
       logger.info(s"Requesting $url...")
-      val response: HttpResponse[String] = Http(url).asString
+      val response: HttpResponse[String] = Http(url)
+        .option(HttpOptions.allowUnsafeSSL)
+        .asString
       response.code match {
         case 200 =>
           if (response.body.isEmpty)
