@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot.bot
 
-import java.time.Duration
+import java.time.{Duration, LocalDateTime}
 
 import cats.instances.future._
 import cats.syntax.functor._
@@ -22,18 +22,21 @@ import slogging.StrictLogging
 import scala.concurrent.Future
 
 trait Bot {
-  def sendNotification(userId:Int, title: String, message: String) : Future[Unit]
+  def sendNotification(userId: Int, title: String, message: String): Future[Unit]
   def runningTime: Duration
   def run(): Future[Unit]
 }
 
-class HowardBot(token:String, responseService:ResponseService, db: DB)
+class HowardBot(token: String, responseService: ResponseService, db: DB)
     extends TelegramBot
     with StrictLogging
     with Polling
     with Commands[Future]
     with Callbacks[Future]
     with Bot {
+
+  override def runningTime: Duration     = Duration.between(startupTime, LocalDateTime.now())
+  private val startupTime: LocalDateTime = LocalDateTime.now()
 
   type TelegramUser = com.bot4s.telegram.models.User
 
@@ -164,19 +167,19 @@ class HowardBot(token:String, responseService:ResponseService, db: DB)
                 responseService.mkSearchBeerByNameResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
-              
+
             case Some(Callback.Settings()) =>
               logger.info(
                 s"Received 'ShowSettings' callback from user @${user.firstName}"
               )
-              
+
               respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
-              
+
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(
                 s"Received 'ChangeSorting' callback from user @${user.firstName}, sorting: $mSorting"
               )
-              
+
               if (mSorting.isRight) {
 
                 // Reset menu page because we're going to change sorting and it wont make any sense.
@@ -194,18 +197,18 @@ class HowardBot(token:String, responseService:ResponseService, db: DB)
                 responseService.mkChangeSortingResponse(user.state.sorting),
                 newMessage = false
               ).some
-              
+
             case Some(Callback.ToggleNotifications()) =>
               logger.info(
                 s"Received 'ToggleNotifications' callback from user @${user.firstName}"
               )
-              
+
               user = user.withNotificationsEnabled(!user.state.notificationsEnabled)
               respond(
                 responseService.mkToggleNotificationsResponse(user.state.notificationsEnabled),
                 newMessage = false
               ).some
-              
+
             case _ =>
               None
           }

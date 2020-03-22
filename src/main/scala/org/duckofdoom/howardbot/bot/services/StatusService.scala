@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot.bot.services
 
 import java.time.{Duration, LocalDateTime}
 
-import org.duckofdoom.howardbot.bot.{Bot, BotStarter}
+import org.duckofdoom.howardbot.bot.Bot
 import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.utils.TimeUtils
 import scalatags.Text.all._
@@ -14,15 +14,9 @@ class StatusService(bot: Bot, itemsProvider: ItemsProvider) {
 
   def getStatusInfoHtml: String = {
 
-    val restartReason = bot.restartReason match {
-      case Some(r) => s"Last time I've been restarted because of this:\n$r"
-      case None    => ""
-    }
-    
     val runningTimeFormatted = TimeUtils.formatDuration(bot.runningTime)
     val lastRefreshTime = TimeUtils.formatDateTime(itemsProvider.lastRefreshTime)
     val lastRefreshTimeAgo = TimeUtils.formatDuration(Duration.between(itemsProvider.lastRefreshTime, LocalDateTime.now))
-    val restartCount = bot.restartCount 
 
     val beersCount = itemsProvider.beers.length
     val beersInStockCount = itemsProvider.availableBeers.length
@@ -39,8 +33,6 @@ class StatusService(bot: Bot, itemsProvider: ItemsProvider) {
           p(s"Last menu refresh: $lastRefreshTime ($lastRefreshTimeAgo ago)"),
           p(s"I know about $beersCount beers. $beersInStockCount of them are in stock now."),
           p(s"I know about $stylesCount different styles. $stylesInStockCount of them are in stock now."),
-          p(s"I've been restarted $restartCount times!"),
-          p(restartReason)
         )
       )
     ).render
