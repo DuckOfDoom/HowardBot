@@ -1,5 +1,7 @@
 package org.duckofdoom.howardbot.bot
 
+import java.time.Duration
+
 import cats.instances.future._
 import cats.syntax.functor._
 import cats.syntax.option._
@@ -8,7 +10,6 @@ import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
-import org.duckofdoom.howardbot.Config
 import org.duckofdoom.howardbot.bot.data.ItemType
 import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService}
 import org.duckofdoom.howardbot.bot.utils.Callback
@@ -20,16 +21,23 @@ import slogging.StrictLogging
 
 import scala.concurrent.Future
 
-class HowardBot(val config: Config, responseService:ResponseService, db: DB)
+trait Bot {
+  def sendNotification(userId:Int, title: String, message: String) : Future[Unit]
+  def runningTime: Duration
+  def run(): Future[Unit]
+}
+
+class HowardBot(token:String, responseService:ResponseService, db: DB)
     extends TelegramBot
     with StrictLogging
     with Polling
     with Commands[Future]
-    with Callbacks[Future] {
+    with Callbacks[Future]
+    with Bot {
 
   type TelegramUser = com.bot4s.telegram.models.User
 
-  override val client: RequestHandler[Future] = new CustomScalajHttpClient(config.token)
+  override val client: RequestHandler[Future] = new CustomScalajHttpClient(token)
 
   /*
     Sends a message to a specified user

@@ -11,14 +11,6 @@ import slogging.StrictLogging
 
 import scala.concurrent.{Await, Future}
 
-trait Bot {
-  def sendNotification(userId:Int, title: String, message: String) : Future[Unit]
-  def runningTime: Duration
-  def restartReason: Option[String] 
-  def restartCount: Int
-
-  def run(implicit loadConfig: () => Option[Config]): Future[Unit]
-}
 
 /*
   Wrapper for a bot. 
@@ -28,8 +20,6 @@ class BotStarter(responseService: ResponseService, db: DB) extends Bot
   with StrictLogging {
 
   override def runningTime: Duration         = Duration.between(startupTime, LocalDateTime.now())
-  override def restartReason: Option[String] = lastRestartReason
-  override def restartCount: Int             = restarts
 
   override def sendNotification(userId: Int, title: String, message: String): Future[Unit] = {
     if (bot.isEmpty) {
@@ -44,12 +34,8 @@ class BotStarter(responseService: ResponseService, db: DB) extends Bot
   private var lastRestartReason: Option[String] = None
   private var restarts: Int                     = 0
 
-  override def run(implicit loadConfig: () => Option[Config]): Future[Unit] = {
+  override def run(): Future[Unit] = {
     try {
-      loadConfig() match {
-        case None =>
-          Future.failed(new Exception("Invalid bot configuration!"))
-        case Some(conf) =>
           if (!conf.startBot) {
             logger.info("Skipping bot start.")
             return Future.successful()
@@ -70,7 +56,7 @@ class BotStarter(responseService: ResponseService, db: DB) extends Bot
         logger.error(message)
         lastRestartReason = message.some
         restarts += 1
-        run(loadConfig)
+        run()
     }
   }
 }

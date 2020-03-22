@@ -15,9 +15,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 class App extends StrictLogging {
 
-  implicit val configLoader: () => Option[Config] = () => Config.load
-  implicit val mConfig: Option[Config]            = configLoader()
-
+  implicit val mConfig: Option[Config] = Config.load
   if (mConfig.isEmpty)
     throw new InvalidConfigurationException("No valid config found!")
 
