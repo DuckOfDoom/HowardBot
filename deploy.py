@@ -105,7 +105,7 @@ def run(ssh, build_name):
     new_log_file = build_name.replace('.jar', '.log')
     cmd(f'cd {build_dir}; nohup java -jar {build_name} > {new_log_file} 2>&1 & echo $! > {pid_file};')
 
-    sleep(5)
+    time.sleep(5)
 
     cmd('tail -f {mkdir(new_log_file)}')
 
@@ -120,6 +120,6 @@ if __name__ == '__main__':
             run(ssh, build_name)
 
     except Exception as ex:
-        print('Exception occured: ' + ex)
+        print('Exception occured: ' + str(ex))
     finally:
         print('done')
