@@ -36,7 +36,7 @@ def scp_file(ssh, file_path, target_path):
 def build():
     print('-> Starting build with sbt assembly...')
 
-    subprocess.run("sbt assembly", shell=True, check=True)#, stdout=subprocess.DEVNULL)
+#    subprocess.run("sbt assembly", shell=True, check=True)#, stdout=subprocess.DEVNULL)
     return 'target/scala-2.12/HowardBot-assembly-0.1.jar'
 
 def deploy(ssh, jar_path):
@@ -107,7 +107,7 @@ def run(ssh, build_name):
 
     time.sleep(5)
 
-    cmd('tail -f {mkdir(new_log_file)}')
+    cmd(f'tail {mkdir(new_log_file)}')
 
 if __name__ == '__main__':
     try:
