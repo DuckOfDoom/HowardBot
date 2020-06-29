@@ -82,12 +82,12 @@ def run(ssh, build_name):
 
     last_log_name = cmd(f"cd {build_dir}; ls *.log -1tr 2>/dev/null | head -n 1")
 
-    pid_file = "bot.pid"
-    bot_pid = cmd(f"cat {mkdir(pid_file)}")
-
     cmd(f"mkdir -pv {backups_dir}/menu")
     cmd(f"mkdir -pv {backups_dir}/builds")
     cmd(f"mkdir -pv {backups_dir}/logs")
+
+    pid_file = "bot.pid"
+    bot_pid = cmd(f"cat {mkdir(pid_file)}")
 
     if (bot_pid):
         print(f"-> Kiling previous instance with pid {bot_pid}")
