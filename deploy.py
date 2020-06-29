@@ -36,7 +36,7 @@ def scp_file(ssh, file_path, target_path):
 def build():
     print('-> Starting build with sbt assembly...')
 
-    subprocess.run("sbt assembly", shell=True)#, stdout=subprocess.DEVNULL)
+    subprocess.run("sbt assembly", shell=True, check=True)#, stdout=subprocess.DEVNULL)
     return 'target/scala-2.12/HowardBot-assembly-0.1.jar'
 
 def deploy(ssh, jar_path):
@@ -122,4 +122,4 @@ if __name__ == '__main__':
     except Exception as ex:
         print('Exception occured: ' + str(ex))
     finally:
-        print('done')
+        print('Exiting')
