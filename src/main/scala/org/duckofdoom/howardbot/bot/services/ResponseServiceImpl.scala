@@ -11,12 +11,10 @@ import scalatags.Text.all._
 class ResponseServiceImpl(
     itemsProvider: ItemsProvider,
     responseHelper: ResponseHelper,
-    keyboardHelper: KeyboardHelper,
+    keyboardHelper: KeyboardHelper
 ) extends ResponseService
     with StrictLogging {
-  
-  logger.info("Created")
-  
+
   override def mkMenuResponse(
       page: Int,
       sortings: Seq[Sorting]
@@ -95,7 +93,7 @@ class ResponseServiceImpl(
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }
   }
-  
+
   override def mkBeerResponse(beer: Beer): (String, InlineKeyboardMarkup) = {
     (
       responseHelper.mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render,
@@ -114,25 +112,25 @@ class ResponseServiceImpl(
     }
   }
 
-  override def mkSearchBeerByNameResponse(
+  override def mkSearchBeerByNameOrBreweryResponse(
       query: String,
       page: Int,
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup) = {
-    val searchResults = Sorting
-      .sort(itemsProvider.availableBeers, sorting)
-      .toList
-      .withFilter(b => b.name.isDefined)
-      .withFilter(b => b.name.get.toLowerCase.contains(query.toLowerCase))
-      .map(identity)
+    val beers = itemsProvider.availableBeers
+      .withFilter(b => {
+        b.name.exists(n => n.toLowerCase.contains(query.toLowerCase())) ||
+          b.breweryInfo.name.exists(n => n.toLowerCase.contains(query.toLowerCase()))
+      })
+      .map(identity);
 
-    if (searchResults.isEmpty)
+    if (beers.isEmpty)
       return (responseHelper.mkEmptySeachResultsResponse(query), keyboardHelper.mkDefaultButtons())
 
     responseHelper.mkPaginatedResponse(
-      searchResults,
+      beers,
       page,
-      Callback.Type.SearchBeerByName,
+      Callback.Type.SearchBeerByNameOrBrewery,
       p => Callback.mkSearchBeerByNameCallback(query, p)
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)

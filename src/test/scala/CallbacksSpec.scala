@@ -92,7 +92,7 @@ class CallbacksSpec extends FlatSpec with Matchers {
     // Search beers by name
     val beersByNameCallback = Callback.mkSearchBeerByNameCallback("tehbeer", 5)
     Callback.deserialize(beersByNameCallback.getBytes) match {
-      case Some(Callback.SearchBeerByName(query, page)) =>
+      case Some(Callback.SearchBeerByNameOrBrewery(query, page)) =>
         query should be("tehbeer")
         page should be(5)
       case _ => fail(s"Failed to parse callback '$beersByNameCallback'")

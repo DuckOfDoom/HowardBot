@@ -158,13 +158,13 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
                 responseService.mkSearchBeerByStyleResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
-            case Some(Callback.SearchBeerByName(searchQuery, page)) =>
+            case Some(Callback.SearchBeerByNameOrBrewery(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByName' callback from user $user, query: '$searchQuery', page: $page"
+                s"Received 'SearchBeerByNameOrBrewery' callback from user $user, query: '$searchQuery', page: $page"
               )
 
               respond(
-                responseService.mkSearchBeerByNameResponse(searchQuery, page, user.state.sorting),
+                responseService.mkSearchBeerByNameOrBreweryResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
 
@@ -267,7 +267,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
           ).void
         case Consts.SearchBeerByNameQuery(query) =>
           respond(
-            responseService.mkSearchBeerByNameResponse(query, 1, user.state.sorting),
+            responseService.mkSearchBeerByNameOrBreweryResponse(query, 1, user.state.sorting),
             newMessage = true
           ).void
         // Treat simple text as beer-by-name search
@@ -277,7 +277,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
           }
 
           respond(
-            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting),
+            responseService.mkSearchBeerByNameOrBreweryResponse(msg.text.get, 1, user.state.sorting),
             newMessage = true
           ).void
       }

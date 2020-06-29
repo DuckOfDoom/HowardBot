@@ -61,7 +61,7 @@ trait ResponseService {
   /**
     * Search beers by name
     */
-  def mkSearchBeerByNameResponse(
+  def mkSearchBeerByNameOrBreweryResponse(
       query: String,
       page: Int,
       sorting: Seq[Sorting]

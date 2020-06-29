@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import com.bot4s.telegram.models.InlineKeyboardButton
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.services.{KeyboardHelper, KeyboardHelperImpl}
-import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, SearchBeerByName, Settings, Styles}
+import org.duckofdoom.howardbot.bot.utils.Callback.{ChangeSorting, Menu, SearchBeerByNameOrBrewery, Settings, Styles}
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
