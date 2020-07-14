@@ -90,26 +90,15 @@ class CallbacksSpec extends FlatSpec with Matchers {
   "'Search beer by name' callback" should "be serialized and deserialized correctly" in {
 
     // Search beers by name
-    val beersByNameCallback = Callback.mkSearchBeerByNameCallback("tehbeer", 5)
+    val beersByNameCallback = Callback.mkSearchCallback("tehbeer", 5)
     Callback.deserialize(beersByNameCallback.getBytes) match {
-      case Some(Callback.SearchBeerByNameOrBrewery(query, page)) =>
+      case Some(Callback.Search(query, page)) =>
         query should be("tehbeer")
         page should be(5)
       case _ => fail(s"Failed to parse callback '$beersByNameCallback'")
     }
   }
 
-  "'Search beer by style' callback" should "be serialized and deserialized correctly" in {
-    // Search beers by style
-    val beersByStyleCallback = Callback.mkSearchBeerByStyleCallback("tehStyle", 3)
-    Callback.deserialize(beersByStyleCallback.getBytes) match {
-      case Some(Callback.SearchBeerByStyle(query, page)) =>
-        query should be("tehStyle")
-        page should be(3)
-      case _ => fail(s"Failed to parse callback '$beersByStyleCallback'")
-    }
-  }
-  
   "'Settings' callback" should "be serialized and deserialized correctly" in {
     // Search beers by style
     val settingsCallback = Callback.mkSettingsCallback()

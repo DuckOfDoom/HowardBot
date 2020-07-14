@@ -23,14 +23,8 @@ class ResponseServiceSpec extends FlatSpec with Matchers with MockFactory with B
 
   "ResponseService" should "return correct response for empty search results" in {
     val service = fixture.service
-    service.mkSearchBeerByNameOrBreweryResponse("NON-EXISTENT BEER", 0, Seq()) should be (("NON-EXISTENT BEER is missing", defaultKeyboard))
-    service.mkSearchBeerByStyleResponse("NON-EXISTENT STYLE", 0, Seq()) should be (("NON-EXISTENT STYLE is missing", defaultKeyboard))
+    service.mkSearchResponse("NON-EXISTENT BEER", 0, Seq()) should be (("NON-EXISTENT BEER is missing", defaultKeyboard))
   }
-//  
-//  it should "return correct response for non-empty search results" in {
-//    val service = fixture.service
-//    service.mkSearchBeerByNameResponse("beer3", 0, Seq()) should be (("this is beer3 response", defaultKeyboard))
-//  }
 
   private def createItemsProvider(): ItemsProvider = {
     val m = mock[ItemsProvider]

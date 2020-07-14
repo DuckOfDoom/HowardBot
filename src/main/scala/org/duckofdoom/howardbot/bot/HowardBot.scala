@@ -149,22 +149,13 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
                     newMessage = true
                   ).some
               }
-            case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
-              logger.info(
-                s"Received 'SearchBeerByStyle' callback from user $user, query: '$searchQuery', page: $page"
-              )
-
-              respond(
-                responseService.mkSearchBeerByStyleResponse(searchQuery, page, user.state.sorting),
-                newMessage = false
-              ).some
-            case Some(Callback.SearchBeerByNameOrBrewery(searchQuery, page)) =>
+            case Some(Callback.Search(searchQuery, page)) =>
               logger.info(
                 s"Received 'SearchBeerByNameOrBrewery' callback from user $user, query: '$searchQuery', page: $page"
               )
 
               respond(
-                responseService.mkSearchBeerByNameOrBreweryResponse(searchQuery, page, user.state.sorting),
+                responseService.mkSearchResponse(searchQuery, page, user.state.sorting),
                 newMessage = false
               ).some
 
@@ -260,24 +251,13 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
             responseService.mkBeersByStyleResponse(styleId, 1, user.state.sorting),
             newMessage = true
           ).void
-        case Consts.SearchBeerByStyleQuery(query) =>
-          respond(
-            responseService.mkSearchBeerByStyleResponse(query, 1, user.state.sorting),
-            newMessage = true
-          ).void
-        case Consts.SearchBeerByNameQuery(query) =>
-          respond(
-            responseService.mkSearchBeerByNameOrBreweryResponse(query, 1, user.state.sorting),
-            newMessage = true
-          ).void
-        // Treat simple text as beer-by-name search
         case _ =>
           if (msg.text.get.startsWith("/")) {
             return super.receiveMessage(msg)
           }
-
+          
           respond(
-            responseService.mkSearchBeerByNameOrBreweryResponse(msg.text.get, 1, user.state.sorting),
+            responseService.mkSearchResponse(msg.text.get, 1, user.state.sorting),
             newMessage = true
           ).void
       }

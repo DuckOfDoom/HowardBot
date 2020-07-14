@@ -37,8 +37,8 @@ trait ResponseService {
   /**
     * Show changed notifications state
     */
-  def mkToggleNotificationsResponse(notificationsEnabled:Boolean): (String, InlineKeyboardMarkup)
-  
+  def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup)
+
   /**
     * Show a single beer by id
     */
@@ -61,21 +61,14 @@ trait ResponseService {
   /**
     * Search beers by name
     */
-  def mkSearchBeerByNameOrBreweryResponse(
+  def mkSearchResponse(
       query: String,
       page: Int,
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup)
 
   /**
-    * Search beers by style
+    * Formats a notification for user
     */
-  def mkSearchBeerByStyleResponse(
-      query: String,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
-
-  // TODO: Remove?
   def formatNotification(title: String, message: String): String
 }

@@ -19,8 +19,7 @@ object Callback extends Enumeration with StrictLogging {
     val Styles: Type.Value              = Value("Styles")
     val ItemsByStyle: Type.Value        = Value("ItemsByStyle")
     val SingleBeer: Type.Value          = Value("SingleBeer")
-    val SearchBeerByNameOrBrewery: Type.Value    = Value("SearchBeerByName")
-    val SearchBeerByStyle: Type.Value   = Value("SearchBeerByStyle")
+    val Search: Type.Value              = Value("Search")
     val Settings: Type.Value            = Value("Settings")
     val ChangeSorting: Type.Value       = Value("ChangeSorting")
     val ToggleNotifications: Type.Value = Value("ToggleNotifications")
@@ -30,8 +29,7 @@ object Callback extends Enumeration with StrictLogging {
   final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
   final case class ItemsByStyle(styleId: Int, page: Int)          extends Callback
   final case class SingleItem(itemType: ItemType, itemId: Int)    extends Callback
-  final case class SearchBeerByNameOrBrewery(query: String, page: Int)     extends Callback
-  final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
+  final case class Search(query: String, page: Int)     extends Callback
   final case class Settings()                                     extends Callback
 
   // TODO: Either[Unit, Option[Sorting]] is not a good type. Need to rewrite this using ADT.
@@ -78,12 +76,8 @@ object Callback extends Enumeration with StrictLogging {
     serializeCallback(Callback.SingleItem(itemType, item.id)).some
   }
 
-  def mkSearchBeerByNameCallback(query: String, page: Int): String = {
-    serializeCallback(Callback.SearchBeerByNameOrBrewery(query, page))
-  }
-
-  def mkSearchBeerByStyleCallback(query: String, page: Int): String = {
-    serializeCallback(Callback.SearchBeerByStyle(query, page))
+  def mkSearchCallback(query: String, page: Int): String = {
+    serializeCallback(Callback.Search(query, page))
   }
 
   private def serializeCallback(callbackData: Callback): String = {
@@ -128,26 +122,22 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(4)
           stream.writeShort(itemType.id)
           stream.writeShort(itemId)
-        case SearchBeerByNameOrBrewery(query, page) =>
+        case Search(query, page) =>
           stream.writeShort(5)
           stream.writeUTF(query)
           stream.writeShort(page)
-        case SearchBeerByStyle(query, page) =>
-          stream.writeShort(6)
-          stream.writeUTF(query)
-          stream.writeShort(page)
         case Settings() =>
-          stream.writeShort(7)
+          stream.writeShort(6)
         case ChangeSorting(eitherSortingOrNothing) =>
-          stream.writeShort(8)
+          stream.writeShort(7)
           stream.writeBoolean(eitherSortingOrNothing.isLeft)
-
+          
           if (eitherSortingOrNothing.isRight)
             stream.writeShort(
               eitherSortingOrNothing.right.get.map(_.id).getOrElse(ResetSortingValue)
             )
         case ToggleNotifications() =>
-          stream.writeShort(9)
+          stream.writeShort(8)
       }
 
       byteArrayStream.toByteArray
@@ -183,13 +173,9 @@ object Callback extends Enumeration with StrictLogging {
         case 5 =>
           val query = stream.readUTF()
           val page  = stream.readShort()
-          SearchBeerByNameOrBrewery(query, page)
-        case 6 =>
-          val query = stream.readUTF()
-          val page  = stream.readShort()
-          SearchBeerByStyle(query, page)
-        case 7 => Settings()
-        case 8 =>
+          Search(query, page)
+        case 6 => Settings()
+        case 7 =>
           val hasSorting = !stream.readBoolean()
           if (!hasSorting) {
             ChangeSorting(().asLeft)
@@ -197,7 +183,7 @@ object Callback extends Enumeration with StrictLogging {
             val sorting = stream.readShort()
             ChangeSorting(Sorting.all.find(s => s.id == sorting).asRight)
           }
-        case 9 => ToggleNotifications()
+        case 8 => ToggleNotifications()
       }
 
       result.some

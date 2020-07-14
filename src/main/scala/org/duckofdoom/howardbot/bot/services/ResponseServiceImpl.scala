@@ -112,7 +112,7 @@ class ResponseServiceImpl(
     }
   }
 
-  override def mkSearchBeerByNameOrBreweryResponse(
+  override def mkSearchResponse(
       query: String,
       page: Int,
       sorting: Seq[Sorting]
@@ -130,33 +130,8 @@ class ResponseServiceImpl(
     responseHelper.mkPaginatedResponse(
       beers,
       page,
-      Callback.Type.SearchBeerByNameOrBrewery,
-      p => Callback.mkSearchBeerByNameCallback(query, p)
-    ) { beer =>
-      responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
-    }
-  }
-
-  override def mkSearchBeerByStyleResponse(
-      query: String,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup) = {
-    val searchResults = Sorting
-      .sort(itemsProvider.availableBeers, sorting)
-      .toList
-      .withFilter(b => b.style.isDefined)
-      .withFilter(b => b.style.get.toLowerCase.contains(query.toLowerCase))
-      .map(identity)
-
-    if (searchResults.isEmpty)
-      return (responseHelper.mkEmptySeachResultsResponse(query), keyboardHelper.mkDefaultButtons())
-
-    responseHelper.mkPaginatedResponse(
-      searchResults,
-      page,
-      Callback.Type.SearchBeerByStyle,
-      p => Callback.mkSearchBeerByStyleCallback(query, p)
+      Callback.Type.Search,
+      p => Callback.mkSearchCallback(query, p)
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }
