@@ -29,19 +29,15 @@ class ItemsProviderSpec extends FlatSpec with Matchers {
   }
   
   it should "return correct number of styles" in {
-    provider.styles.length should be (5)
+    provider.styles.length should be (8)
   }
   
-  it should "return correct number of short styles" in {
-    provider.shortStyles.length should be (3)
-  }
-
   it should "return correct number of available styles" in {
-    provider.availableStyles.length should be (3)
+    provider.getAvailableStyles(false).length should be (3)
   }
 
   it should "return correct number of available short styles" in {
-    provider.availableShortStyles.length should be (2)
+    provider.getAvailableStyles(true).length should be (2)
   }
   
   it should "have correct ids for styles" in {
@@ -60,23 +56,21 @@ class ItemsProviderSpec extends FlatSpec with Matchers {
     
     provider.getBeer(999) shouldBe None
   }
-  
-  it should "find beers by style name" in {
 
-    val beers = provider.findBeerByStyleName("Dorp", includeOutOfStock = true)
-    val beersInStockOnly = provider.findBeerByStyleName("Dorp")
-    
-    beers.map(_.name.get) should contain allElementsOf Seq("beer1", "beer2", "beer3", "beer6", "beer7")
-    beersInStockOnly.map(_.name.get) should contain allElementsOf Seq("beer1", "beer2", "beer3")
-  }
-  
   it should "find beers by style id" in {
 
-    val beers = provider.findBeerByStyleId(3, includeOutOfStock = true)
-    val beersInStockOnly = provider.findBeerByStyleId(3)
-    
+    val beers = provider.findBeerByStyleId(5, includeOutOfStock = true)
     beers.map(_.name.get) should contain allElementsOf Seq("beer4", "beer5")
+    
+    val beersInStockOnly = provider.findBeerByStyleId(5)
     beersInStockOnly.map(_.name.get) should contain allElementsOf Seq("beer4")
+    
+    // Everything "Derp"
+    val shortStyleBeers = provider.findBeerByStyleId(4, includeOutOfStock = true)
+    shortStyleBeers.map(_.name.get) should contain allElementsOf Seq("beer4", "beer5", "beer6")
+
+    val shortStyleBeersInStockOnly = provider.findBeerByStyleId(4)
+    shortStyleBeersInStockOnly.map(_.name.get) should contain allElementsOf Seq("beer4")
   }
 
   private def generateItems() : Seq[Beer] = {
@@ -92,6 +86,8 @@ class ItemsProviderSpec extends FlatSpec with Matchers {
       new Beer(id = 6, isInStock = false, name = "beer6".some, style = "Derp - Dorp".some, breweryInfo = br, draftType = "100ml".some),
       
       new Beer(id = 7, isInStock = false, name = "beer7".some, style = "Slerp - Dorp".some, breweryInfo = br, draftType = "100ml".some),
+      
+      new Beer(id = 8, isInStock = false, name = "beer8".some, style = "Worp-dorp".some, breweryInfo = br, draftType = "100ml".some),
       
       // Not a beer since no brewery
       new Beer(id = 999, isInStock = true, name = "beer999".some, style = "Herp - Dorp - Schmorp".some, draftType = "100ml".some)

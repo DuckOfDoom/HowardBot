@@ -42,21 +42,10 @@ trait ItemsProvider {
   def styles: Seq[Style]
 
   /**
-    * Get all short styles known (without details)
-    */
-  def shortStyles: Seq[String]
-
-  /**
     * Get all styles available for customers.
     * Includes only styles of beers in stock and not on deck
     */
-  def availableStyles: Seq[Style]
-
-  /**
-    * Get all short styles available for customers.
-    * Includes only styles of beers in stock and not on deck
-    */
-  def availableShortStyles: Seq[String]
+  def getAvailableStyles(shortened: Boolean): Seq[Style]
 
   /**
     * Gets id for a style
@@ -74,11 +63,6 @@ trait ItemsProvider {
   def getBeer(itemId: Int): Option[Beer]
 
   /**
-    * Get items for specific style
-    */
-  def findBeerByStyleName(styleName: String, includeOutOfStock: Boolean = false): Seq[Beer]
-
-  /**
     * Get items for specific style by its id
     */
   def findBeerByStyleId(styleId: Int, includeOutOfStock: Boolean = false): Seq[Beer]
@@ -92,44 +76,24 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   override def lastRefreshTime: LocalDateTime     = _lastRefreshTime
   override def beers: Seq[Beer]                   = _beers
   override def availableBeers: Seq[Beer]          = _availableBeers
-  override def styles: Seq[Style]                 = _styles
-  override def shortStyles: Seq[String]           = _shortStyles
-  override def availableStyles: Seq[Style]        = _availableStyles
-  override def availableShortStyles: Seq[String]  = _availableShortStyles
+  override def styles: Seq[Style]                 = _stylesMap.values.toList
   override def getBeer(itemId: Int): Option[Beer] = _beersMap.get(itemId)
   override def getStyleId(styleName: String): Option[Int] =
     _stylesMap.find { case (_, st) => st.name == styleName }.map(_._1)
   override def getStyle(id: Int): Option[Style] = _stylesMap.get(id)
 
-  protected var _lastRefreshTime: LocalDateTime               = LocalDateTime.MIN
-  protected var _beersMap: Map[Int, Beer]                     = Map()
-  protected var _beersByStyleMap: Map[String, Seq[Beer]]      = Map()
-  protected var _beersByShortStyleMap: Map[String, Seq[Beer]] = Map()
-  protected var _stylesMap: Map[Int, Style]                   = Map()
-  protected var _beers: Seq[Beer]                             = List()
-  protected var _availableBeers: Seq[Beer]                    = List()
-  protected var _styles: Seq[Style]                           = List()
-  protected var _shortStyles: Seq[String]                     = List()
-  protected var _availableStyles: Seq[Style]                  = List()
-  protected var _availableShortStyles: Seq[String]            = List()
+  protected var _lastRefreshTime: LocalDateTime         = LocalDateTime.MIN
+  protected var _beersMap: Map[Int, Beer]               = Map()
+  protected var _beersByStyleMap: Map[Style, Seq[Beer]] = Map()
+  protected var _stylesMap: Map[Int, Style]             = Map()
+  protected var _beers: Seq[Beer]                       = List()
 
-  /**
-    * Get items for specific style
-    */
-  override def findBeerByStyleName(style: String, includeOutOfStock: Boolean = false): Seq[Beer] = {
-    if (_beersByStyleMap.isEmpty) {
-      logger.error("Styles map is empty!")
-      return List()
-    }
+  protected var _availableBeers: Seq[Beer]        = List()
+  protected var _availableStyles: Seq[Style]      = List()
+  protected var _availableShortStyles: Seq[Style] = List()
 
-    _beersByStyleMap.getOrElse(
-      style,
-      _beersByStyleMap.keys
-        .filter(_.toLowerCase.contains(style.toLowerCase))
-        .foldLeft(new mutable.ListBuffer[Beer])((list, style) => list ++ _beersByStyleMap(style))
-        .filter(b => includeOutOfStock || (b.isInStock && !b.isOnDeck))
-        .toList
-    )
+  override def getAvailableStyles(shortened: Boolean): Seq[Style] = {
+    if (shortened) _availableShortStyles else _availableStyles
   }
 
   override def findBeerByStyleId(styleId: Int, includeOutOfStock: Boolean = false): Seq[Beer] = {
@@ -140,7 +104,7 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
 
     val mBeers = for {
       style <- _stylesMap.get(styleId)
-      items <- _beersByStyleMap.get(style.name)
+      items <- _beersByStyleMap.get(style)
     } yield items
 
     mBeers
@@ -154,50 +118,58 @@ abstract class ItemsProviderBase extends ItemsProvider with StrictLogging {
   */
 class ItemsProviderImpl() extends ItemsProviderBase {
 
-  def fillItems(items: Seq[Beer]): Unit = {
+  def fillItems(beers: Seq[Beer]): Unit = {
 
-    val availableBeers: mutable.ListBuffer[Beer]                            = mutable.ListBuffer[Beer]()
-    val beersMap: mutable.Map[Int, Beer]                                    = mutable.Map()
-    val stylesMap: mutable.Map[Int, Style]                                  = mutable.Map()
-    val beersByStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]]      = mutable.Map()
-    val beersByShortStyleMap: mutable.Map[String, mutable.ListBuffer[Beer]] = mutable.Map()
-    val availableStyles: mutable.Set[String]                                = mutable.Set()
+    val availableBeers: mutable.ListBuffer[Beer]                      = mutable.ListBuffer[Beer]()
+    val beersMap: mutable.Map[Int, Beer]                              = mutable.Map()
+    val stylesMap: mutable.Map[Int, Style]                            = mutable.Map()
+    val beersByStyleMap: mutable.Map[Style, mutable.ListBuffer[Beer]] = mutable.Map()
+    val availableStyles: mutable.Set[Style]                           = mutable.Set()
+    val availableShortStyles: mutable.Set[Style]                      = mutable.Set()
 
-    var styleId = 0
+    var styleId = 1 // Style ids do not have to be persistent, they are not saved anywhere (for now...)
 
-    for (item <- items) {
-      // Items without breweries are food, we ignore them for now
-      if (item.breweryInfo.name.isDefined) {
-
-        if (item.style.isDefined) {
-          val style = item.style.get
-          if (beersByStyleMap.contains(style))
-            beersByStyleMap(style) += item
-          else {
-            styleId += 1
-            stylesMap(styleId) = Style(styleId, style)
-            beersByStyleMap(style) = mutable.ListBuffer[Beer](item)
-          }
-
-          if (item.isInStock && !item.isOnDeck) {
-            availableBeers.append(item)
-            availableStyles.add(style)
-          }
-
-          beersMap(item.id) = item
+    def addBeerWithStyle(beer: Beer, shortStyle: Boolean): Option[Style] = {
+      val styleName = beer.style.getOrElse("Unknown")
+      val name = if (shortStyle) {
+        val dashIdx = styleName.indexOf(" - ")
+        if (dashIdx >= 0)
+          styleName.substring(0, dashIdx)
+        else {
+          // Unshortable styles (without a dash) are considered full styles and should not be duplicated
+          return Option.empty[Style]
         }
+      } else
+        styleName
+
+      val presentStyle = beersByStyleMap.keys.find(st => st.name == name)
+      if (presentStyle.isDefined) {
+        beersByStyleMap(presentStyle.get) += beer
+        presentStyle
+      } else {
+        val newStyle = Style(styleId, name)
+        stylesMap(styleId) = newStyle
+        beersByStyleMap(newStyle) = mutable.ListBuffer[Beer](beer)
+        styleId += 1
+        newStyle.some
       }
     }
 
-    // Add beers for short styles
-    for ((style, beers) <- beersByStyleMap) {
-      val shortStyle = shortenStyle(style)
-      if (!beersByShortStyleMap.contains(shortStyle)) {
-        beersByShortStyleMap(shortStyle) = new ListBuffer[Beer]
-      }
+    for (beer <- beers) {
+      // Items without breweries are food, we ignore them for now
+      if (beer.breweryInfo.name.isDefined) {
+        if (beer.style.isDefined) {
+          val shortStyle = addBeerWithStyle(beer, shortStyle = true)
+          val style      = addBeerWithStyle(beer, shortStyle = false)
 
-      for (b <- beers) {
-        beersByShortStyleMap(shortStyle) += b
+          if (beer.isInStock && !beer.isOnDeck) {
+            availableBeers.append(beer)
+            style.map(st => availableStyles.add(st))
+            shortStyle.map(st => availableShortStyles.add(st))
+          }
+
+          beersMap(beer.id) = beer
+        }
       }
     }
 
@@ -205,26 +177,17 @@ class ItemsProviderImpl() extends ItemsProviderBase {
     _beers = _beersMap.values.toList
 
     // immutable to mutable
-    def mapToMap[String, V](m: mutable.Map[String, ListBuffer[V]]): Map[String, List[V]] = {
-      m.map { case (style: String, list: mutable.ListBuffer[V]) => (style, list.toList) }
+    def mapToMap[Style, V](m: mutable.Map[Style, ListBuffer[V]]): Map[Style, List[V]] = {
+      m.map { case (style: Style, list: mutable.ListBuffer[V]) => (style, list.toList) }
     }.toMap
 
     _beersByStyleMap = mapToMap(beersByStyleMap)
-    _beersByShortStyleMap = mapToMap(beersByShortStyleMap)
-
     _stylesMap = stylesMap.toMap
-    _styles = stylesMap.values.toList
-    _shortStyles = beersByShortStyleMap.keys.toList
-    
     _availableBeers = availableBeers.toList
-    _availableStyles = stylesMap.values.filter(st => availableStyles.contains(st.name)).toList
-    _availableShortStyles = _availableStyles.map(s => shortenStyle(s.name)).toSet.toList
+    _availableStyles = availableStyles.toList
+    _availableShortStyles = availableShortStyles.toList
 
     _lastRefreshTime = LocalDateTime.now
-  }
-
-  private def shortenStyle(fullStyle: String): String = {
-    fullStyle.takeWhile(c => c != '-').strip()
   }
 }
 

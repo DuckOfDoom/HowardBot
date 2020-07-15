@@ -36,13 +36,12 @@ class ResponseServiceImpl(
       page: Int
   ): (String, InlineKeyboardMarkup) = {
 
-    val stylesWithCounts = itemsProvider.availableStyles
-      .zip(itemsProvider.availableStyles.map { st =>
-        itemsProvider.findBeerByStyleId(st.id).length
-      })
-
+    val availableStyles = itemsProvider.getAvailableStyles(true)
+    val stylesWithCounts = availableStyles.zip(
+      availableStyles.map { st => itemsProvider.findBeerByStyleId(st.id).length }
+    )
+    
     val stylesWithCountsMap = stylesWithCounts.toMap
-
     responseHelper.mkPaginatedResponse(
       stylesWithCounts.toList.sortBy(_._2).reverse.map(_._1),
       page,

@@ -8,7 +8,5 @@ object Consts {
   
   val showItemRegex: Regex = (showItemPrefix + "(\\d+)").r
   val showItemsByStyleRegex: Regex = (showStylePrefix + "(\\d+)").r
-  
-  val zwj = "&#8205;"
 }
 

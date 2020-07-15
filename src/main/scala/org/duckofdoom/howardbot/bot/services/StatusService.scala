@@ -21,7 +21,7 @@ class StatusService(bot: Bot, itemsProvider: ItemsProvider) {
     val beersCount = itemsProvider.beers.length
     val beersInStockCount = itemsProvider.availableBeers.length
     val stylesCount = itemsProvider.styles.length
-    val stylesInStockCount = itemsProvider.availableStyles.length
+    val stylesInStockCount = itemsProvider.getAvailableStyles(false).length
 
     html(
       head(

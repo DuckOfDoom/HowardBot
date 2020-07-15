@@ -1,6 +1,7 @@
 package org.duckofdoom.howardbot.server
 
 import cats.syntax.option._
+import org.duckofdoom.howardbot.bot.Consts
 import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, StatusService}
 import org.duckofdoom.howardbot.db.DB
@@ -22,6 +23,7 @@ trait ServerResponseService {
   def menuFull: String
   def menuChangelog: String
   def menuRaw: String
+  def styles: String
   def show(itemId: Int): String
   def notificationsForm: String
   def sendNotification(title: String, message: String, liveNotification: Boolean): String
@@ -31,11 +33,11 @@ trait ServerResponseService {
 }
 
 class ServerResponseServiceImpl(
-    statusService: StatusService,
-    itemDataProvider: ItemsProvider,
-    responseService: ResponseService,
-    notificationsService: NotificationsService,
-    db: DB
+  statusService: StatusService,
+  itemsProvider: ItemsProvider,
+  responseService: ResponseService,
+  notificationsService: NotificationsService,
+  db: DB
 ) extends ServerResponseService {
 
   implicit val responseFormat: ResponseFormat = ResponseFormat.TextMessage
@@ -50,25 +52,26 @@ class ServerResponseServiceImpl(
         p(a(href := "/menu/full")("Menu [Full]")),
         p(a(href := "/menu/raw")("Menu [Raw]")),
         p(a(href := "/menu/changelog")("Menu [Changelog]")),
+        p(a(href := "/menu/styles")("Styles")),
         br(),
         p(a(href := "/notifications")("Notifications"))
       ).render
   }
 
   override def menuAvailable: String = {
-    mkMenuResponse(itemDataProvider.availableBeers)
+    mkMenuResponse(itemsProvider.availableBeers)
   }
 
   override def menuOnDeck: String = {
-    mkMenuResponse(itemDataProvider.beers.filter(_.isOnDeck))
+    mkMenuResponse(itemsProvider.beers.filter(_.isOnDeck))
   }
 
   override def menuOutOfStock: String = {
-    mkMenuResponse(itemDataProvider.beers.filter(!_.isInStock))
+    mkMenuResponse(itemsProvider.beers.filter(!_.isInStock))
   }
 
   override def menuFull: String = {
-    mkMenuResponse(itemDataProvider.beers)
+    mkMenuResponse(itemsProvider.beers)
   }
 
   override def menuRaw: String = {
@@ -77,6 +80,35 @@ class ServerResponseServiceImpl(
 
   override def menuChangelog: String = {
     readFile(ItemsProvider.menuChangelogFilePath)
+  }
+  
+  override def styles: String = {
+    val shortStyles = itemsProvider.getAvailableStyles(true).map(_.name)
+    val longStyles = itemsProvider.getAvailableStyles(false).map(_.name)
+
+    val frags = ListBuffer[Frag]()
+    val shownLongStyles = ListBuffer[String]()
+    
+    for (shortSt <- shortStyles){
+      frags.append(frag(shortSt + ":"))
+      frags.append(br())
+
+      for (longSt <- longStyles.filter(st => st.contains(shortSt + " - "))) {
+        frags.append(raw("\t" + longSt))
+        frags.append(br())
+        
+        shownLongStyles.append(longSt)
+      }
+      
+      frags.append(br())
+    }
+    
+    for (longSt <- longStyles.filter(st => !shownLongStyles.contains(st))) {
+      frags.append(frag(longSt))
+      frags.append(br())
+    }
+    
+    frag(frags).render
   }
 
   override def show(itemId: Int): String = {

@@ -57,6 +57,9 @@ class Server(responseService: ServerResponseService) extends StrictLogging {
               },
               path("changelog") {
                 respond(responseService.menuChangelog)
+              },
+              path("styles") {
+                respond(responseService.styles)
               }
             )
           },
