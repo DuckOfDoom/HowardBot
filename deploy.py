@@ -61,6 +61,7 @@ def run(ssh, build_name):
 
         output = (stdout.read()).decode("utf-8").strip("\n")
         if output: print(output)
+        print("\n")
         return output;
 
     def mkdir(f):
