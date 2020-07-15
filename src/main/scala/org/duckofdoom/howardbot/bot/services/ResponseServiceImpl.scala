@@ -6,7 +6,10 @@ import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import slogging.StrictLogging
 import cats.syntax.option._
+import doobie.util.query
 import scalatags.Text.all._
+
+import scala.collection.mutable.ListBuffer
 
 class ResponseServiceImpl(
     itemsProvider: ItemsProvider,
@@ -38,9 +41,11 @@ class ResponseServiceImpl(
 
     val availableStyles = itemsProvider.getAvailableStyles(true)
     val stylesWithCounts = availableStyles.zip(
-      availableStyles.map { st => itemsProvider.findBeerByStyleId(st.id).length }
+      availableStyles.map { st =>
+        itemsProvider.findBeerByStyleId(st.id).length
+      }
     )
-    
+
     val stylesWithCountsMap = stylesWithCounts.toMap
     responseHelper.mkPaginatedResponse(
       stylesWithCounts.toList.sortBy(_._2).reverse.map(_._1),
@@ -116,18 +121,27 @@ class ResponseServiceImpl(
       page: Int,
       sorting: Seq[Sorting]
   ): (String, InlineKeyboardMarkup) = {
-    val beers = itemsProvider.availableBeers
-      .withFilter(b => {
-        b.name.exists(n => n.toLowerCase.contains(query.toLowerCase())) ||
-          b.breweryInfo.name.exists(n => n.toLowerCase.contains(query.toLowerCase()))
-      })
-      .map(identity);
+    val beers = ListBuffer[Beer]()
+    beers.appendAll(itemsProvider.availableBeers)
 
-    if (beers.isEmpty)
+    def findAndRemove(filter: Beer => Boolean): Seq[Beer] = {
+      val results = beers.filter(b => filter(b))
+      results.foreach(b => beers -= b)
+      results
+    }
+
+    val q                = query.toLowerCase()
+    val resultsByName    = findAndRemove(b => b.name.exists(n => n.toLowerCase.contains(q)))
+    val resultsByBrewery = findAndRemove(b => b.breweryInfo.name.exists(n => n.toLowerCase.contains(q)))
+    val resultsByStyle   = findAndRemove(b => b.style.exists(n => n.toLowerCase.contains(q)))
+
+    val searchResults = resultsByName ++ resultsByBrewery ++ resultsByStyle
+
+    if (searchResults.isEmpty)
       return (responseHelper.mkEmptySeachResultsResponse(query), keyboardHelper.mkDefaultButtons())
 
     responseHelper.mkPaginatedResponse(
-      beers,
+      searchResults,
       page,
       Callback.Type.Search,
       p => Callback.mkSearchCallback(query, p)
