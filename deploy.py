@@ -70,7 +70,7 @@ def run(ssh, build_name):
     print("-> Checking running processes count...")
 
     processes_count = len(cmd("ps aux | grep java").splitlines()) - 1
-    if (processes_count > 1)
+    if (processes_count > 1):
         print(f"Expected a single running java process, but found {processes_count}!")
         exit()
 

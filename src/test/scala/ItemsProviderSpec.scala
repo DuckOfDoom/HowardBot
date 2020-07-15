@@ -29,7 +29,7 @@ class ItemsProviderSpec extends FlatSpec with Matchers {
   }
   
   it should "return correct number of styles" in {
-    provider.styles.length should be (8)
+    provider.styles.length should be (9)
   }
   
   it should "return correct number of available styles" in {
