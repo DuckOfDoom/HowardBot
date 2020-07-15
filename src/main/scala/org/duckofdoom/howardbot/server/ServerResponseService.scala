@@ -28,7 +28,7 @@ trait ServerResponseService {
   def notificationsForm: String
   def sendNotification(title: String, message: String, liveNotification: Boolean): String
   def users: String
-  def getUser(userId: Int): String
+  def getUser(id: Int): String
   def putRandomUser(): String
 }
 
@@ -201,8 +201,8 @@ class ServerResponseServiceImpl(
       })
   }
 
-  override def getUser(userId: Int): String = {
-    db.getUser(userId).toString
+  override def getUser(id: Int): String = {
+    db.getUser(id).toString
   }
 
   private def mkMenuResponse(beers: Seq[Beer]): String = {

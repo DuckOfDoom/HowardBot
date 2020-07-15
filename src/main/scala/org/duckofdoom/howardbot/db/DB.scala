@@ -109,7 +109,7 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
 
     val conn = for {
       _ <- sql"""
-            insert into users (userId, firstName, lastName, username) 
+            insert into users (userid, firstname, lastname, username) 
             values ($userId, $firstName, $lastName, $username)""".update.run
 
       id <- sql"select lastval()".query[Long].unique
@@ -120,13 +120,16 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
   }
 
   def updateUser(user: User): Unit = {
+
+    logger.info(s"Updating user: $user")
+    
     implicit val encoder: Encoder[UserState] = UserState.encoder
 
     sql"""UPDATE users  
     SET 
-      userId = ${user.userId},
-      firstName = ${user.firstName},
-      lastName = ${user.lastName},
+      userid = ${user.userId},
+      firstname = ${user.firstName},
+      lastname = ${user.lastName},
       username = ${user.username},
       state = ${user.state.asJson.toString}      
     WHERE id = ${user.id}""".update.run

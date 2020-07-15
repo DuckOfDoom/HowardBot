@@ -114,7 +114,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
               if (page.isDefined) {
                 user = user.withMenuPage(page.get)
               }
-
+              
               respond(
                 responseService.mkStylesResponse(user.state.menuPage),
                 newMessage
@@ -149,9 +149,11 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
                     newMessage = true
                   ).some
               }
+              
+            // Sent when clicking buttons on a search form
             case Some(Callback.Search(searchQuery, page)) =>
               logger.info(
-                s"Received 'SearchBeerByNameOrBrewery' callback from user $user, query: '$searchQuery', page: $page"
+                s"Received 'Search' callback from user $user, query: '$searchQuery', page: $page"
               )
 
               respond(
@@ -292,7 +294,8 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
     }
 
     val user = db.getUserByTelegramId(tgUser.id) match {
-      case Some(u) => u.some
+      case Some(u) =>
+        u.some
       case _ =>
         db.putUser(
           tgUser.id,
@@ -306,7 +309,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
       case Some(u) =>
         val (future, modifiedUser) = action(u)
         if (modifiedUser != u)
-          db.updateUser(modifiedUser)
+           db.updateUser(modifiedUser)
         future
       case _ =>
         Future.failed(
