@@ -23,7 +23,7 @@ def get_args():
     return vars(parser.parse_args())
 
 def connect():
-    key = paramiko.RSAKey.from_private_key_file(f"{os.environ["HOME"]}/.ssh/id_rsa")
+    key = paramiko.RSAKey.from_private_key_file(f"{os.environ['HOME']}/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname="142.93.170.84", username="root", pkey=key)
@@ -44,7 +44,7 @@ def deploy(ssh, jar_path):
     git_revision = subprocess.check_output("git rev-parse HEAD").decode("utf-8")[0:6]
     build_name = f"howardbot_{git_revision}_{date_time}.jar"
     target_path=f"~/{build_dir}/{build_name}"
-    print(f"-> Uploading "{jar_path}" to "{target_path}"")
+    print(f"-> Uploading '{jar_path}' to '{target_path}'")
     scp_file(ssh, jar_path, target_path)
     print(f"")
     print(f"-> Upload finished!")
@@ -107,7 +107,7 @@ def run(ssh, build_name):
 
     menu_backup_name = f"menu_{date_time}.json"
     print(f"-> Backing up menu.json to {backups_dir}/menu/{menu_backup_name}...")
-    cmd(f"cp -v {mkdir("menu.json")} {backups_dir}/menu/{menu_backup_name}")
+    cmd(f"cp -v {mkdir('menu.json')} {backups_dir}/menu/{menu_backup_name}")
 
     print(f"-> Running new instance {mkdir(build_name)}...")
     new_log_file = build_name.replace(".jar", ".log")
