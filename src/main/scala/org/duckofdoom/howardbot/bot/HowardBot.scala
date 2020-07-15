@@ -91,9 +91,9 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
 
           Callback.deserialize(data.getBytes) match {
             // Sent from "Menu" button
-            case Some(Callback.Menu(page, newMessage)) =>
+            case Some(Callback.Menu(page)) =>
               logger.info(
-                s"Received 'Menu' callback from user $user, page: $page, newMessage: $newMessage"
+                s"Received 'Menu' callback from user $user, page: $page"
               )
 
               if (page.isDefined) {
@@ -102,13 +102,13 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
 
               respond(
                 responseService.mkMenuResponse(user.state.menuPage, user.state.sorting),
-                newMessage
+                page.isEmpty
               ).some
 
             // Sent from "Styles" button
-            case Some(Callback.Styles(page, newMessage)) =>
+            case Some(Callback.Styles(page)) =>
               logger.info(
-                s"Received 'Styles' callback from user $user, page: $page, newMessage: $newMessage"
+                s"Received 'Styles' callback from user $user, page: $page"
               )
 
               if (page.isDefined) {
@@ -117,22 +117,22 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
               
               respond(
                 responseService.mkStylesResponse(user.state.menuPage),
-                newMessage
+                page.isEmpty
               ).some
 
             // Sent from clicking on a particular style button
-            case Some(Callback.ItemsByStyle(style, page)) =>
+            case Some(Callback.BeersByStyle(style, page)) =>
               logger.info(
                 s"Received 'ItemsByStyle' callback from user $user, style: $style, page: $page"
               )
 
               respond(
-                responseService.mkBeersByStyleResponse(style, page, user.state.sorting),
-                newMessage = false
+                responseService.mkBeersByStyleResponse(style, page.getOrElse(1), user.state.sorting),
+                newMessage = page.isEmpty
               ).some
 
             // Sent from clicking on a particular item button (either beer or style)
-            case Some(Callback.SingleItem(itemType, itemId)) =>
+            case Some(Callback.SingleBeer(itemType, itemId)) =>
               logger.info(
                 s"Received 'Item' callback from user $user, itemType: $itemType, itemId: $itemId"
               )
@@ -157,8 +157,8 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
               )
 
               respond(
-                responseService.mkSearchResponse(searchQuery, page, user.state.sorting),
-                newMessage = false
+                responseService.mkSearchResponse(searchQuery, page.getOrElse(1), user.state.sorting),
+                newMessage = page.isEmpty
               ).some
 
             case Some(Callback.Settings()) =>
@@ -166,7 +166,7 @@ class HowardBot(token: String, responseService: ResponseService, db: DB)
                 s"Received 'ShowSettings' callback from user $user"
               )
 
-              respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
+              respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = true).some
 
             case Some(Callback.ChangeSorting(mSorting)) =>
               logger.info(

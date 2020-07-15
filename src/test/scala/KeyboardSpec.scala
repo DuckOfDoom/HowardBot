@@ -33,8 +33,8 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
     implicit val kb: Seq[Seq[InlineKeyboardButton]] = helper.mkDefaultButtons().inlineKeyboard
     kb should have length 1
     kb.head should have length 3
-    getCallback[Menu](0, 0) should be(Menu(None, newMessage = false))
-    getCallback[Styles](0, 1) should be(Styles(None, newMessage = false))
+    getCallback[Menu](0, 0) should be(Menu(None))
+    getCallback[Styles](0, 1) should be(Styles(None))
     getCallback[Settings](0, 2) should be(Settings())
   }
 
@@ -66,8 +66,8 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
     getCallback[ChangeSorting](5, 0).sorting should be(Right(None))
 
     kb(6) should have length 3
-    getCallback[Menu](6, 0) should be(Menu(None, newMessage = false))
-    getCallback[Styles](6, 1) should be(Styles(None, newMessage = false))
+    getCallback[Menu](6, 0) should be(Menu(None))
+    getCallback[Styles](6, 1) should be(Styles(None))
     getCallback[Settings](6, 2) should be(Settings())
   }
 
@@ -94,8 +94,8 @@ class KeyboardSpec extends FlatSpec with Matchers with MockFactory {
     getCallback[ChangeSorting](3, 0).sorting should be(Right(None))
 
     kb(4) should have length 3
-    getCallback[Menu](4, 0) should be(Menu(None, newMessage = false))
-    getCallback[Styles](4, 1) should be(Styles(None, newMessage = false))
+    getCallback[Menu](4, 0) should be(Menu(None))
+    getCallback[Styles](4, 1) should be(Styles(None))
     getCallback[Settings](4, 2) should be(Settings())
   }
 }

@@ -95,14 +95,14 @@ class KeyboardHelperImpl extends KeyboardHelper {
     if (menu) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Меню",
-        Callback.mkMenuCallbackData(None, newMessage = false)
+        Callback.mkMenuCallbackData(None)
       )
     }
 
     if (styles) {
       buttonsList += InlineKeyboardButton.callbackData(
         "Стили",
-        Callback.mkStylesCallbackData(None, newMessage = false)
+        Callback.mkStylesCallbackData(None)
       )
     }
 

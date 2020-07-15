@@ -29,7 +29,7 @@ class ResponseServiceImpl(
       beers,
       page,
       Callback.Type.Menu,
-      p => Callback.mkMenuCallbackData(p.some, newMessage = false)
+      p => Callback.mkMenuCallbackData(p.some)
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }(ResponseFormat.TextMessage)
@@ -51,7 +51,7 @@ class ResponseServiceImpl(
       stylesWithCounts.toList.sortBy(_._2).reverse.map(_._1),
       page,
       Callback.Type.Styles,
-      p => Callback.mkStylesCallbackData(p.some, newMessage = false)
+      p => Callback.mkStylesCallbackData(p.some)
     ) { style =>
       val count = stylesWithCountsMap.getOrElse(style, 0)
       responseHelper.mkStyleButtonInfo(style, count)
@@ -92,7 +92,7 @@ class ResponseServiceImpl(
       items,
       page,
       Callback.Type.ItemsByStyle,
-      p => Callback.mkItemsByStyleCallbackData(styleId, p)
+      p => Callback.mkItemsByStyleCallbackData(styleId, p.some)
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }
@@ -144,7 +144,7 @@ class ResponseServiceImpl(
       searchResults,
       page,
       Callback.Type.Search,
-      p => Callback.mkSearchCallback(query, p)
+      p => Callback.mkSearchCallback(query, p.some)
     ) { beer =>
       responseHelper.mkBeerHtmlInfo(beer, verbose = false, withStyleLink = false)
     }
