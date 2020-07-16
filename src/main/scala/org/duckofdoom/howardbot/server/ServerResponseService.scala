@@ -1,12 +1,12 @@
 package org.duckofdoom.howardbot.server
 
 import cats.syntax.option._
-import org.duckofdoom.howardbot.bot.Consts
-import org.duckofdoom.howardbot.bot.services.ResponseFormat.ResponseFormat
-import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService, StatusService}
+import org.duckofdoom.howardbot.bot.services.{ItemsProvider, ResponseService, StatusService}
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.utils.FileUtils
-import org.duckofdoom.howardbot.bot.data.{Beer, ItemsProvider}
+import org.duckofdoom.howardbot.bot.data.Beer
+import org.duckofdoom.howardbot.bot.utils.ResponseFormat
+import org.duckofdoom.howardbot.bot.utils.ResponseFormat.ResponseFormat
 import org.duckofdoom.howardbot.services.NotificationsService
 import scalatags.Text.all._
 

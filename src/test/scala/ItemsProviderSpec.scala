@@ -1,8 +1,9 @@
 import java.time.LocalDateTime
 
-import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo, Item, ItemsProviderImpl, Style}
+import org.duckofdoom.howardbot.bot.data.{Beer, BreweryInfo, Item, Style}
 import org.scalatest.{FlatSpec, Matchers}
 import cats.syntax.option._
+import org.duckofdoom.howardbot.bot.services.ItemsProviderImpl
 
 class ItemsProviderSpec extends FlatSpec with Matchers {
   

@@ -1,26 +1,12 @@
 package org.duckofdoom.howardbot.bot.services
 
-import cats.syntax.option._
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import org.duckofdoom.howardbot.bot.utils.Callback
-import org.duckofdoom.howardbot.bot.utils.Sorting._
-
+import org.duckofdoom.howardbot.bot.utils.Sorting.{Sorting, byBrewery, byBreweryDec, byName, byNameDec, byPriceForMl, byPriceForMlDec, byRating, byRatingDec, byStyle, byStyleDec}
 import scala.collection.mutable
+import cats.syntax.option._
 
-trait KeyboardHelper {
-  def mkDefaultButtons(settings: Boolean = true): InlineKeyboardMarkup
-
-  def mkPaginationButtons(
-      paginationButtons: Seq[InlineKeyboardButton],
-      menuButton: Boolean,
-      stylesButton: Boolean
-  ): InlineKeyboardMarkup
-
-  def mkSettingsButtons(notificationsEnabled: Boolean): InlineKeyboardMarkup
-  def mkChangeSortingButtons(currentSorting: Seq[Sorting]): InlineKeyboardMarkup
-}
-
-class KeyboardHelperImpl extends KeyboardHelper {
+class KeyboardServiceImpl extends KeyboardService {
 
   def mkDefaultButtons(settings: Boolean = true): InlineKeyboardMarkup = {
     InlineKeyboardMarkup(Seq(mkAdditionalButtons(menu = true, styles = true, settings = settings)))

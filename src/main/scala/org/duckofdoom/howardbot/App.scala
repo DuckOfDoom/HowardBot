@@ -2,7 +2,6 @@ package org.duckofdoom.howardbot
 
 import java.util.concurrent.Executors
 
-import org.duckofdoom.howardbot.bot.data.{ItemsProvider, ItemsProviderImpl}
 import org.duckofdoom.howardbot.bot.services._
 import org.duckofdoom.howardbot.bot.{Bot, HowardBot}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
@@ -28,9 +27,9 @@ class App extends StrictLogging {
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newWorkStealingPool(config.parallelismLevel))
 
-  val httpService: HttpService       = new ScalajHttpService
-  val db: DB                         = new DoobieDB(config.postgres)
-  val keyboardHelper: KeyboardHelper = new KeyboardHelperImpl()
+  val httpService: HttpService        = new ScalajHttpService
+  val db: DB                          = new DoobieDB(config.postgres)
+  val keyboardHelper: KeyboardService = new KeyboardServiceImpl()
 
   val itemsProvider: ItemsProvider = new ItemsProviderImpl
   val menuRefreshService: MenuRefreshService = new MenuRefreshServiceImpl(
@@ -43,15 +42,10 @@ class App extends StrictLogging {
     httpService
   )
 
-  val responseHelper: ResponseHelper = new ResponseHelperImpl(
+  val responseService: ResponseService = new ResponseServiceImpl(
     config.stylesPerPage,
     config.menuItemsPerPage,
     itemsProvider,
-    keyboardHelper
-  )
-  val responseService: ResponseService = new ResponseServiceImpl(
-    itemsProvider,
-    responseHelper,
     keyboardHelper
   )
 

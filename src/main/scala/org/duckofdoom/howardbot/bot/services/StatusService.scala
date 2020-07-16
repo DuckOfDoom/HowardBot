@@ -3,7 +3,6 @@ package org.duckofdoom.howardbot.bot.services
 import java.time.{Duration, LocalDateTime}
 
 import org.duckofdoom.howardbot.bot.Bot
-import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.utils.TimeUtils
 import scalatags.Text.all._
 

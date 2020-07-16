@@ -4,11 +4,6 @@ import com.bot4s.telegram.models.InlineKeyboardMarkup
 import org.duckofdoom.howardbot.bot.data.Beer
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 
-object ResponseFormat extends Enumeration {
-  type ResponseFormat = Value
-  val TextMessage, Buttons = Value
-}
-
 /**
   * A service to create responses for user commands
   */

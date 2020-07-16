@@ -11,8 +11,8 @@ import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
 import com.bot4s.telegram.models._
 import org.duckofdoom.howardbot.bot.data.ItemType
-import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService}
-import org.duckofdoom.howardbot.bot.utils.Callback
+import org.duckofdoom.howardbot.bot.services.ResponseService
+import org.duckofdoom.howardbot.bot.utils.{Callback, ResponseFormat}
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 import org.duckofdoom.howardbot.utils.Extensions._
@@ -20,12 +20,6 @@ import org.duckofdoom.howardbot.utils.Extractors._
 import slogging.StrictLogging
 
 import scala.concurrent.Future
-
-trait Bot {
-  def sendNotification(userId: Int, title: String, message: String): Future[Unit]
-  def runningTime: Duration
-  def run(): Future[Unit]
-}
 
 class HowardBot(token: String, responseService: ResponseService, db: DB)
     extends TelegramBot
