@@ -3,7 +3,7 @@ package org.duckofdoom.howardbot
 import java.util.concurrent.Executors
 
 import org.duckofdoom.howardbot.bot.services._
-import org.duckofdoom.howardbot.bot.{Bot, HowardBot}
+import org.duckofdoom.howardbot.bot.{Bot, HowardBot, HowardBotTr}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
 import org.duckofdoom.howardbot.services.{HttpService, NotificationsService, ScalajHttpService}

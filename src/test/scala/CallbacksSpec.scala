@@ -89,7 +89,7 @@ class CallbacksSpec extends FlatSpec with Matchers {
     itemCallback should be some
 
     Callback.deserialize(itemCallback.get.getBytes) match {
-      case Some(Callback.SingleBeer(itemType, itemId)) =>
+      case Some(Callback.SingleItem(itemType, itemId)) =>
         itemType should be(data.ItemType.Beer)
         itemId should be(51)
       case _ => fail(s"Failed to parse callback '$itemCallback'")

@@ -1,12 +1,11 @@
 package org.duckofdoom.howardbot.db
 
 import cats.effect.{ContextShift, IO}
-import io.circe.parser.decode
-import io.circe.syntax._
 import doobie._
 import doobie.implicits._
 import doobie.util.log.{ExecFailure, ProcessingFailure}
-import io.circe.{Decoder, Encoder}
+import io.circe.Encoder
+import io.circe.syntax._
 import org.duckofdoom.howardbot._
 import org.duckofdoom.howardbot.db.dto._
 import slogging.StrictLogging
@@ -17,31 +16,16 @@ trait DB {
   def users: Seq[User]
   def getUser(userId: Long): Option[User]
   def getUserByTelegramId(userId: Long): Option[User]
-  def putUser(userId: Long,
-              firstName: String,
-              lastName: Option[String],
-              username: Option[String]): Option[User]
-  def updateUser(user: User): Unit
+  def putUser(userId: Long, firstName: String, lastName: Option[String], username: Option[String]): User
+  def updateUser(user: User): User
 }
 
 class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
+  
+  import DBDataUtils._
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val contextShift: ContextShift[IO]             = IO.contextShift(executionContext)
-
-  implicit val getUserState: Get[UserState] = Get[String].tmap(str => {
-
-    implicit val decoder: Decoder[UserState] = UserState.decoder
-
-    decode[UserState](str) match {
-      case Left(err) =>
-        logger.error(s"Failed to deserialize user state '$str'\n$err.\nReturning default state.")
-        UserState()
-      case Right(st) => st
-    }
-  })
-
-  implicit val putUserState: Put[UserState] = Put[String].tcontramap(_.asJson.toString)
 
   implicit val logHandler: LogHandler = LogHandler {
     case ExecFailure(str, args, _, ex) =>
@@ -74,6 +58,10 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
     )""".update.run
       .transact(transactor)
       .unsafeRunSync
+
+    sql"""ALTER TABLE users ADD COLUMN IF NOT EXISTS cart VARCHAR DEFAULT '{}'""".update.run
+      .transact(transactor)
+      .unsafeRunSync
   }
 
   override def users: Seq[User] = {
@@ -101,10 +89,7 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
       .unsafeRunSync()
   }
 
-  def putUser(userId: Long,
-              firstName: String,
-              lastName: Option[String],
-              username: Option[String]): Option[User] = {
+  def putUser(userId: Long, firstName: String, lastName: Option[String], username: Option[String]): User = {
     logger.info(s"Creating new user: $userId / $firstName / $lastName / $username")
 
     val conn = for {
@@ -113,16 +98,15 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
             values ($userId, $firstName, $lastName, $username)""".update.run
 
       id <- sql"select lastval()".query[Long].unique
-      p  <- selectUserQuery(id)
+      p  <- sql"select * from users where id=$id".query[User].unique
     } yield p
 
     conn.transact(transactor).unsafeRunSync()
   }
 
-  def updateUser(user: User): Unit = {
-
+  def updateUser(user: User): User = {
     logger.info(s"Updating user: $user")
-    
+
     implicit val encoder: Encoder[UserState] = UserState.encoder
 
     sql"""UPDATE users  
@@ -131,10 +115,12 @@ class DoobieDB(config: PostgresConfig) extends DB with StrictLogging {
       firstname = ${user.firstName},
       lastname = ${user.lastName},
       username = ${user.username},
-      state = ${user.state.asJson.toString}      
+      state = ${user.state.asJson.toString.replaceAll("[\n\r\\s]", "")}      
     WHERE id = ${user.id}""".update.run
       .transact(transactor)
       .unsafeRunSync()
+    
+    user
   }
 
   private def selectUserQuery(id: Long): ConnectionIO[Option[User]] = {

@@ -28,7 +28,7 @@ object Callback extends Enumeration with StrictLogging {
   final case class Menu(page: Option[Int])                       extends Callback
   final case class Styles(page: Option[Int])                     extends Callback
   final case class BeersByStyle(styleId: Int, page: Option[Int]) extends Callback
-  final case class SingleBeer(itemType: ItemType, itemId: Int)   extends Callback
+  final case class SingleItem(itemType: ItemType, itemId: Int)   extends Callback
   final case class Search(query: String, page: Option[Int])      extends Callback
   final case class Settings()                                    extends Callback
 
@@ -77,7 +77,7 @@ object Callback extends Enumeration with StrictLogging {
         return None
     }
 
-    serializeCallback(Callback.SingleBeer(itemType, item.id)).some
+    serializeCallback(Callback.SingleItem(itemType, item.id)).some
   }
 
   private def serializeCallback(callbackData: Callback): String = {
@@ -120,7 +120,7 @@ object Callback extends Enumeration with StrictLogging {
           stream.writeShort(4)
           stream.writeShort(styleId)
           writeOption(stream, page)
-        case SingleBeer(itemType, itemId) =>
+        case SingleItem(itemType, itemId) =>
           stream.writeShort(5)
           stream.writeShort(itemType.id)
           stream.writeShort(itemId)
@@ -169,7 +169,7 @@ object Callback extends Enumeration with StrictLogging {
         case 5 =>
           val itemType = ItemType(stream.readShort())
           val itemId   = stream.readShort()
-          SingleBeer(itemType, itemId)
+          SingleItem(itemType, itemId)
         case 6 => Settings()
         case 7 =>
           val hasSorting = !stream.readBoolean()

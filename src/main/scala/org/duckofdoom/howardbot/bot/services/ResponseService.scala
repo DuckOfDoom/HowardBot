@@ -1,6 +1,6 @@
 package org.duckofdoom.howardbot.bot.services
 
-import com.bot4s.telegram.models.InlineKeyboardMarkup
+import com.bot4s.telegram.models.ReplyMarkup
 import org.duckofdoom.howardbot.bot.data.Beer
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 
@@ -12,37 +12,37 @@ trait ResponseService {
   /**
     * Show whole menu
     */
-  def mkMenuResponse(page: Int, sorting: Seq[Sorting]): (String, InlineKeyboardMarkup)
+  def mkMenuResponse(page: Int, sorting: Seq[Sorting]): (String, ReplyMarkup)
 
   /**
     * Show available styles
     */
-  def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
+  def mkStylesResponse(page: Int): (String, ReplyMarkup)
 
   /**
     * Show change settings dialogue
     */
-  def mkSettingsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup)
+  def mkSettingsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup)
 
   /**
     * Show change sorting dialogue
     */
-  def mkChangeSortingResponse(selectedSorting: Seq[Sorting]): (String, InlineKeyboardMarkup)
+  def mkChangeSortingResponse(selectedSorting: Seq[Sorting]): (String, ReplyMarkup)
 
   /**
     * Show changed notifications state
     */
-  def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup)
+  def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup)
 
   /**
     * Show a single beer by id
     */
-  def mkBeerResponse(beerId: Int): (String, InlineKeyboardMarkup)
+  def mkBeerResponse(beerId: Int): (String, ReplyMarkup)
 
   /**
     * Show a single beer by id
     */
-  def mkBeerResponse(beer: Beer): (String, InlineKeyboardMarkup)
+  def mkBeerResponse(beer: Beer): (String, ReplyMarkup)
 
   /**
     * Show beers by style id
@@ -51,7 +51,7 @@ trait ResponseService {
       styleId: Int,
       page: Int,
       sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
+  ): (String, ReplyMarkup)
 
   /**
     * Search beers by name
@@ -60,7 +60,7 @@ trait ResponseService {
       query: String,
       page: Int,
       sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
+  ): (String, ReplyMarkup)
 
   /**
     * Formats a notification for user

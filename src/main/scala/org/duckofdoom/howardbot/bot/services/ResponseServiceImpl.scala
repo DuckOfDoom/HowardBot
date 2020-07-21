@@ -2,7 +2,7 @@ package org.duckofdoom.howardbot.bot.services
 
 import org.duckofdoom.howardbot.utils.Extensions._
 import cats.syntax.option._
-import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup}
+import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup}
 import org.duckofdoom.howardbot.bot.Consts
 import org.duckofdoom.howardbot.bot.data.{Beer, Item, Style}
 import org.duckofdoom.howardbot.bot.utils.ResponseFormat.ResponseFormat
@@ -30,7 +30,7 @@ class ResponseServiceImpl(
   override def mkMenuResponse(
       page: Int,
       sortings: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
 
     val beers = Sorting.sort(itemsProvider.availableBeers, sortings).toList
 
@@ -46,7 +46,7 @@ class ResponseServiceImpl(
 
   override def mkStylesResponse(
       page: Int
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
 
     val availableStyles = itemsProvider.getAvailableStyles(true)
     val stylesWithCounts = availableStyles.zip(
@@ -67,7 +67,7 @@ class ResponseServiceImpl(
     }(ResponseFormat.Buttons)
   }
 
-  override def mkSettingsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup) = {
+  override def mkSettingsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup) = {
     val message = "Настройки:"
     val buttons = keyboardHelper.mkSettingsButtons(notificationsEnabled)
     (message, buttons)
@@ -75,7 +75,7 @@ class ResponseServiceImpl(
 
   override def mkChangeSortingResponse(
       selectedSorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
     val message =
       s"""Текущая сортировка:\n${if (selectedSorting.isEmpty) "Нет"
       else selectedSorting.map(s => s"|${s.toHumanReadable}|").mkString("\n")}
@@ -85,7 +85,7 @@ class ResponseServiceImpl(
     (message, buttons)
   }
 
-  override def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup) = {
+  override def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup) = {
     val message = s"Уведомления ${if (notificationsEnabled) "включены" else "выключены"}"
     val buttons = keyboardHelper.mkSettingsButtons(notificationsEnabled)
     (message, buttons)
@@ -95,7 +95,7 @@ class ResponseServiceImpl(
       styleId: Int,
       page: Int,
       sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
     val items = Sorting.sort(itemsProvider.findBeerByStyleId(styleId), sorting).toList
     mkPaginatedResponse(
       items,
@@ -107,14 +107,14 @@ class ResponseServiceImpl(
     }
   }
 
-  override def mkBeerResponse(beer: Beer): (String, InlineKeyboardMarkup) = {
+  override def mkBeerResponse(beer: Beer): (String, ReplyMarkup) = {
     (
       mkBeerHtmlInfo(beer, verbose = true, withStyleLink = true).render,
       keyboardHelper.mkDefaultButtons()
     )
   }
 
-  override def mkBeerResponse(itemId: Int): (String, InlineKeyboardMarkup) = {
+  override def mkBeerResponse(itemId: Int): (String, ReplyMarkup) = {
     itemsProvider.getBeer(itemId) match {
       case Some(beer) => mkBeerResponse(beer)
       case None =>
@@ -129,7 +129,7 @@ class ResponseServiceImpl(
       query: String,
       page: Int,
       sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
     val beers = ListBuffer[Beer]()
     beers.appendAll(itemsProvider.availableBeers)
 
@@ -229,7 +229,7 @@ class ResponseServiceImpl(
       renderItem: A => HtmlFragment
   )(
       implicit responseFormat: ResponseFormat = ResponseFormat.TextMessage
-  ): (String, InlineKeyboardMarkup) = {
+  ): (String, ReplyMarkup) = {
 
     if (allItems.isEmpty) {
       return ("Ничего не найдено :(", keyboardHelper.mkDefaultButtons())
