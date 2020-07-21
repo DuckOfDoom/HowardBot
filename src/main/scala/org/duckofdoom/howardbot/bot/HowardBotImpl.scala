@@ -4,6 +4,7 @@ import com.bot4s.telegram.models.ReplyMarkup
 import org.duckofdoom.howardbot.bot.data.{Beer, ItemType}
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
 import org.duckofdoom.howardbot.bot.services.{ItemsProvider, ResponseService}
+import org.duckofdoom.howardbot.bot.utils.Sorting
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
@@ -18,7 +19,8 @@ class HowardBotImpl(responseService: ResponseService, itemsProvider: ItemsProvid
       .getOrElse(user)
       .state
 
-    responseService.mkMenuResponse(userState.menuPage, userState.sorting)
+    val beers = Sorting.sort(itemsProvider.availableBeers, userState.sorting).toList
+    responseService.mkMenuResponse(beers, userState.menuPage)
   }
 
   override def showStyles(page: Option[Int] = None)(implicit user: User): Response = {
@@ -28,22 +30,33 @@ class HowardBotImpl(responseService: ResponseService, itemsProvider: ItemsProvid
       .state
       .stylesPage
 
-    responseService.mkStylesResponse(stylesPage)
+    val availableStyles = itemsProvider.getAvailableStyles(true)
+    val stylesWithCounts = availableStyles.zip(
+      availableStyles.map { st =>
+        itemsProvider.findBeerByStyleId(st.id).length
+      }
+    )
+
+    val stylesWithCountsMap = stylesWithCounts.toMap
+    responseService.mkStylesResponse(stylesWithCountsMap, stylesPage)
   }
 
-  override def showBeersByStyle(style: Int, page: Option[Int])(implicit user: User): Response = {
-    responseService.mkBeersByStyleResponse(style, page.getOrElse(1), user.state.sorting)
+  override def showBeersByStyle(styleId: Int, page: Option[Int])(implicit user: User): Response = {
+    val beers = Sorting.sort(itemsProvider.findBeerByStyleId(styleId), user.state.sorting).toList
+    responseService.mkBeersByStyleResponse(styleId, beers, page.getOrElse(1))
   }
 
   override def showItem(itemType: ItemType, itemId: Int)(implicit user: User): Response = {
     itemType match {
       case ItemType.Beer  => responseService.mkBeerResponse(itemId)
-      case ItemType.Style => responseService.mkBeersByStyleResponse(itemId, 1, user.state.sorting)
+      case ItemType.Style => {
+        val beers = Sorting.sort(itemsProvider.findBeerByStyleId(itemId), user.state.sorting).toList
+        responseService.mkBeersByStyleResponse(itemId, beers, 1)
+      }
     }
   }
 
   override def search(query: String, page: Option[Int])(implicit user: User): (String, ReplyMarkup) = {
-
     val beers = ListBuffer[Beer]()
     beers.appendAll(itemsProvider.availableBeers)
 

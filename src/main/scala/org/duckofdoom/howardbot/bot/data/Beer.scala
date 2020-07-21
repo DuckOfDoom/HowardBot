@@ -111,13 +111,13 @@ object Beer {
   }
 }
 
-case class Beer (
+case class Beer(
     id: Int,
     isInStock: Boolean,
     dateAdded: LocalDateTime = LocalDateTime.MIN,
     dateUpdated: LocalDateTime = LocalDateTime.MIN,
     name: Option[String] = None,
-    menuOrder: Option[Int] = None, 
+    menuOrder: Option[Int] = None,
     rating: Option[(Float, Float)] = None,
     link: Option[String] = None,
     pictureLink: Option[String] = None,
@@ -130,7 +130,8 @@ case class Beer (
     description: Option[String] = None
 ) extends Item {
 
-  def isOnDeck: Boolean = draftType.isEmpty // TODO: Probably add a check for price here too. How can we sell without a price?
+  def isOnDeck: Boolean =
+    draftType.isEmpty // TODO: Probably add a check for price here too. How can we sell without a price?
 
   override val itemType: ItemType = ItemType.Beer
 

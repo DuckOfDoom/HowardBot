@@ -26,11 +26,9 @@ class ResponseServiceImpl(
   logger.info(s"Created: stylesPerPage:$stylesPerPage, menuItemsPerPage:$menuItemsPerPage")
 
   override def mkMenuResponse(
-      page: Int,
-      sortings: Seq[Sorting]
+      beers: Seq[Beer],
+      page: Int
   ): (String, ReplyMarkup) = {
-
-    val beers = Sorting.sort(itemsProvider.availableBeers, sortings).toList
 
     mkPaginatedResponse(
       beers,
@@ -42,25 +40,14 @@ class ResponseServiceImpl(
     }(ResponseFormat.TextMessage)
   }
 
-  override def mkStylesResponse(
-      page: Int
-  ): (String, ReplyMarkup) = {
-
-    val availableStyles = itemsProvider.getAvailableStyles(true)
-    val stylesWithCounts = availableStyles.zip(
-      availableStyles.map { st =>
-        itemsProvider.findBeerByStyleId(st.id).length
-      }
-    )
-
-    val stylesWithCountsMap = stylesWithCounts.toMap
+  override def mkStylesResponse(stylesWithCounts: Map[Style, Int], page: Int): (String, ReplyMarkup) = {
     mkPaginatedResponse(
       stylesWithCounts.toList.sortBy(_._2).reverse.map(_._1),
       page,
       Callback.Type.Styles,
       p => Callback.mkStylesCallbackData(p.some)
     ) { style =>
-      val count = stylesWithCountsMap.getOrElse(style, 0)
+      val count = stylesWithCounts.getOrElse(style, 0)
       mkStyleButtonInfo(style, count)
     }(ResponseFormat.Buttons)
   }
@@ -91,12 +78,12 @@ class ResponseServiceImpl(
 
   override def mkBeersByStyleResponse(
       styleId: Int,
+      beers: Seq[Beer],
       page: Int,
-      sorting: Seq[Sorting]
   ): (String, ReplyMarkup) = {
-    val items = Sorting.sort(itemsProvider.findBeerByStyleId(styleId), sorting).toList
+    
     mkPaginatedResponse(
-      items,
+      beers,
       page,
       Callback.Type.ItemsByStyle,
       p => Callback.mkItemsByStyleCallbackData(styleId, p.some)
@@ -128,7 +115,6 @@ class ResponseServiceImpl(
       searchResults: Seq[Beer],
       page: Int
   ): (String, ReplyMarkup) = {
-
     mkPaginatedResponse(
       searchResults,
       page,

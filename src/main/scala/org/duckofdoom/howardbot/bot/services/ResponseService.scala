@@ -1,7 +1,7 @@
 package org.duckofdoom.howardbot.bot.services
 
 import com.bot4s.telegram.models.ReplyMarkup
-import org.duckofdoom.howardbot.bot.data.Beer
+import org.duckofdoom.howardbot.bot.data.{Beer, Style}
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 
 /**
@@ -12,12 +12,22 @@ trait ResponseService {
   /**
     * Show whole menu
     */
-  def mkMenuResponse(page: Int, sorting: Seq[Sorting]): (String, ReplyMarkup)
+  def mkMenuResponse(beers: Seq[Beer], page: Int): (String, ReplyMarkup)
 
   /**
     * Show available styles
     */
-  def mkStylesResponse(page: Int): (String, ReplyMarkup)
+  def mkStylesResponse(stylesWithCounts: Map[Style, Int], page: Int): (String, ReplyMarkup)
+
+  /**
+    * Show beers by style id
+    */
+  def mkBeersByStyleResponse(styleId: Int, beers: Seq[Beer], page: Int): (String, ReplyMarkup)
+
+  /**
+    * Make response for search query
+    */
+  def mkSearchResponse(query: String, searchResults: Seq[Beer], page: Int): (String, ReplyMarkup)
 
   /**
     * Show change settings dialogue
@@ -45,24 +55,6 @@ trait ResponseService {
   def mkBeerResponse(beer: Beer): (String, ReplyMarkup)
 
   /**
-    * Show beers by style id
-    */
-  def mkBeersByStyleResponse(
-      styleId: Int,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, ReplyMarkup)
-
-  /**
-    * Make response for search query
-    */
-  def mkSearchResponse(
-      query: String,
-      searchResults: Seq[Beer],
-      page: Int
-  ): (String, ReplyMarkup)
-
-  /**
     * Make response when nothing is found
     */
   def mkEmptySearchResultsResponse(
@@ -73,4 +65,5 @@ trait ResponseService {
     * Formats a notification for user
     */
   def formatNotification(title: String, message: String): String
+
 }
