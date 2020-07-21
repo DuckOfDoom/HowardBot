@@ -3,7 +3,7 @@ package org.duckofdoom.howardbot
 import java.util.concurrent.Executors
 
 import org.duckofdoom.howardbot.bot.services._
-import org.duckofdoom.howardbot.bot.{Bot, HowardBot, HowardBotTr}
+import org.duckofdoom.howardbot.bot.{Bot, BotImpl, HowardBot, HowardBotImpl}
 import org.duckofdoom.howardbot.db.{DB, DoobieDB}
 import org.duckofdoom.howardbot.server.{Server, ServerResponseService, ServerResponseServiceImpl}
 import org.duckofdoom.howardbot.services.{HttpService, NotificationsService, ScalajHttpService}
@@ -49,7 +49,8 @@ class App extends StrictLogging {
     keyboardHelper
   )
 
-  val bot: Bot = new HowardBot(config.token, responseService, db)
+  val howardBot = new HowardBotImpl(responseService, itemsProvider, db)
+  val bot: Bot  = new BotImpl(config.token, responseService, db, howardBot)
 
   val notificationsService = new NotificationsService(
     config.testNotificationsUserIds.toSet,

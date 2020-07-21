@@ -1,29 +1,16 @@
 package org.duckofdoom.howardbot.bot
 
 import com.bot4s.telegram.models.ReplyMarkup
-import org.duckofdoom.howardbot.bot.data.ItemType
+import org.duckofdoom.howardbot.bot.data.{Beer, ItemType}
 import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
-import org.duckofdoom.howardbot.bot.services.ResponseService
+import org.duckofdoom.howardbot.bot.services.{ItemsProvider, ResponseService}
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.db.DB
 import org.duckofdoom.howardbot.db.dto.User
 
-trait HowardBotTr {
+import scala.collection.mutable.ListBuffer
 
-  type Response = (String, ReplyMarkup)
-
-  def showMenu(page: Option[Int] = None)(implicit user: User): Response
-
-  def showStyles(page: Option[Int] = None)(implicit user: User): Response
-  def showBeersByStyle(style: Int, page: Option[Int] = None)(implicit user: User): Response
-  def showItem(itemType: ItemType, itemId: Int)(implicit user: User): Response
-  def search(query: String, page: Option[Int])(implicit user: User): Response
-  def showSettings()(implicit user: User): Response
-  def changeSorting(mSorting: Either[Unit, Option[Sorting]])(implicit user: User): Response
-  def toggleNotifications()(implicit user: User): (String, ReplyMarkup)
-}
-
-class HowardBotTrImpl(responseService: ResponseService, db: DB) extends HowardBotTr {
+class HowardBotImpl(responseService: ResponseService, itemsProvider: ItemsProvider, db: DB) extends HowardBot {
 
   override def showMenu(page: Option[Int] = None)(implicit user: User): Response = {
     val userState = page
@@ -56,7 +43,27 @@ class HowardBotTrImpl(responseService: ResponseService, db: DB) extends HowardBo
   }
 
   override def search(query: String, page: Option[Int])(implicit user: User): (String, ReplyMarkup) = {
-    responseService.mkSearchResponse(query, page.getOrElse(1), user.state.sorting)
+
+    val beers = ListBuffer[Beer]()
+    beers.appendAll(itemsProvider.availableBeers)
+
+    def findAndRemove(filter: Beer => Boolean): Seq[Beer] = {
+      val results = beers.filter(b => filter(b))
+      results.foreach(b => beers -= b)
+      results
+    }
+
+    val q                = query.toLowerCase()
+    val resultsByName    = findAndRemove(b => b.name.exists(n => n.toLowerCase.contains(q)))
+    val resultsByBrewery = findAndRemove(b => b.breweryInfo.name.exists(n => n.toLowerCase.contains(q)))
+    val resultsByStyle   = findAndRemove(b => b.style.exists(n => n.toLowerCase.contains(q)))
+
+    val searchResults = resultsByName ++ resultsByBrewery ++ resultsByStyle
+
+    if (searchResults.nonEmpty)
+      responseService.mkSearchResponse(query, searchResults, page.getOrElse(1))
+    else
+      responseService.mkEmptySearchResultsResponse(query)
   }
 
   override def showSettings()(implicit user: User): (String, ReplyMarkup) = {
