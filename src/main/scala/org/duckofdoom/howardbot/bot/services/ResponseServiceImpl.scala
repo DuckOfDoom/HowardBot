@@ -13,8 +13,6 @@ import scalatags.Text.all.{a, frag, href, _}
 import scalatags.text.Builder
 import slogging.StrictLogging
 
-import scala.collection.mutable.ListBuffer
-
 class ResponseServiceImpl(
     stylesPerPage: Int,
     menuItemsPerPage: Int,
@@ -119,7 +117,7 @@ class ResponseServiceImpl(
       case Some(beer) => mkBeerResponse(beer)
       case None =>
         (
-          mkItemNotFoundResponse("Item", itemId),
+          mkBeerNotFoundResponse(itemId),
           keyboardHelper.mkDefaultButtons()
         )
     }
@@ -127,27 +125,9 @@ class ResponseServiceImpl(
 
   override def mkSearchResponse(
       query: String,
-      page: Int,
-      sorting: Seq[Sorting]
+      searchResults: Seq[Beer],
+      page: Int
   ): (String, ReplyMarkup) = {
-    val beers = ListBuffer[Beer]()
-    beers.appendAll(itemsProvider.availableBeers)
-
-    def findAndRemove(filter: Beer => Boolean): Seq[Beer] = {
-      val results = beers.filter(b => filter(b))
-      results.foreach(b => beers -= b)
-      results
-    }
-
-    val q                = query.toLowerCase()
-    val resultsByName    = findAndRemove(b => b.name.exists(n => n.toLowerCase.contains(q)))
-    val resultsByBrewery = findAndRemove(b => b.breweryInfo.name.exists(n => n.toLowerCase.contains(q)))
-    val resultsByStyle   = findAndRemove(b => b.style.exists(n => n.toLowerCase.contains(q)))
-
-    val searchResults = resultsByName ++ resultsByBrewery ++ resultsByStyle
-
-    if (searchResults.isEmpty)
-      return (mkEmptySearchResultsResponse(query), keyboardHelper.mkDefaultButtons())
 
     mkPaginatedResponse(
       searchResults,
@@ -159,21 +139,20 @@ class ResponseServiceImpl(
     }
   }
 
+  override def mkEmptySearchResultsResponse(
+      query: String
+  ): (String, InlineKeyboardMarkup) = {
+    (s"По запросу '$query' ничего не найдено :(", keyboardHelper.mkDefaultButtons())
+  }
+
   override def formatNotification(title: String, message: String): String = {
     frag(b(title), "\n", message).render
   }
 
-  private def mkItemNotFoundResponse(
-      itemType: String,
+  private def mkBeerNotFoundResponse(
       itemId: Int
   ): String = {
-    s"Позиции с ID '$itemId' и типом '$itemType' не существует :("
-  }
-
-  private def mkEmptySearchResultsResponse(
-      query: String
-  ): String = {
-    s"По запросу '$query' ничего не найдено :("
+    s"Пива с ID '$itemId' не существует :("
   }
 
   private def mkBeerHtmlInfo(

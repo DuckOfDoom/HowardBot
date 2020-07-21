@@ -54,12 +54,19 @@ trait ResponseService {
   ): (String, ReplyMarkup)
 
   /**
-    * Search beers by name
+    * Make response for search query
     */
   def mkSearchResponse(
       query: String,
-      page: Int,
-      sorting: Seq[Sorting]
+      searchResults: Seq[Beer],
+      page: Int
+  ): (String, ReplyMarkup)
+
+  /**
+    * Make response when nothing is found
+    */
+  def mkEmptySearchResultsResponse(
+      query: String
   ): (String, ReplyMarkup)
 
   /**
