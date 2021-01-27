@@ -19,20 +19,18 @@ object Callback extends Enumeration with StrictLogging {
     val Styles: Type.Value              = Value("Styles")
     val ItemsByStyle: Type.Value        = Value("ItemsByStyle")
     val SingleBeer: Type.Value          = Value("SingleBeer")
-    val SearchBeerByName: Type.Value    = Value("SearchBeerByName")
-    val SearchBeerByStyle: Type.Value   = Value("SearchBeerByStyle")
+    val Search: Type.Value              = Value("Search")
     val Settings: Type.Value            = Value("Settings")
     val ChangeSorting: Type.Value       = Value("ChangeSorting")
     val ToggleNotifications: Type.Value = Value("ToggleNotifications")
   }
 
-  final case class Menu(page: Option[Int], newMessage: Boolean)   extends Callback
-  final case class Styles(page: Option[Int], newMessage: Boolean) extends Callback
-  final case class ItemsByStyle(styleId: Int, page: Int)          extends Callback
-  final case class SingleItem(itemType: ItemType, itemId: Int)    extends Callback
-  final case class SearchBeerByName(query: String, page: Int)     extends Callback
-  final case class SearchBeerByStyle(query: String, page: Int)    extends Callback
-  final case class Settings()                                     extends Callback
+  final case class Menu(page: Option[Int])                       extends Callback
+  final case class Styles(page: Option[Int])                     extends Callback
+  final case class BeersByStyle(styleId: Int, page: Option[Int]) extends Callback
+  final case class SingleItem(itemType: ItemType, itemId: Int)   extends Callback
+  final case class Search(query: String, page: Option[Int])      extends Callback
+  final case class Settings()                                    extends Callback
 
   // TODO: Either[Unit, Option[Sorting]] is not a good type. Need to rewrite this using ADT.
   final case class ChangeSorting(sorting: Either[Unit, Option[Sorting]]) extends Callback
@@ -42,16 +40,20 @@ object Callback extends Enumeration with StrictLogging {
   private final val SerializeNoneValue = Array(126, 127).map(_.toByte)
   private final val ResetSortingValue  = -1
 
-  def mkMenuCallbackData(page: Option[Int], newMessage: Boolean): String = {
-    serializeCallback(Callback.Menu(page, newMessage))
+  def mkSearchCallback(query: String, page: Option[Int]): String = {
+    serializeCallback(Callback.Search(query, page))
   }
 
-  def mkStylesCallbackData(page: Option[Int], newMessage: Boolean): String = {
-    serializeCallback(Callback.Styles(page, newMessage))
+  def mkMenuCallbackData(page: Option[Int]): String = {
+    serializeCallback(Callback.Menu(page))
   }
 
-  def mkItemsByStyleCallbackData(styleId: Int, page: Int): String = {
-    serializeCallback(Callback.ItemsByStyle(styleId, page))
+  def mkStylesCallbackData(page: Option[Int]): String = {
+    serializeCallback(Callback.Styles(page))
+  }
+
+  def mkItemsByStyleCallbackData(styleId: Int, page: Option[Int]): String = {
+    serializeCallback(Callback.BeersByStyle(styleId, page))
   }
 
   def mkSettingsCallback(): String = {
@@ -76,14 +78,6 @@ object Callback extends Enumeration with StrictLogging {
     }
 
     serializeCallback(Callback.SingleItem(itemType, item.id)).some
-  }
-
-  def mkSearchBeerByNameCallback(query: String, page: Int): String = {
-    serializeCallback(Callback.SearchBeerByName(query, page))
-  }
-
-  def mkSearchBeerByStyleCallback(query: String, page: Int): String = {
-    serializeCallback(Callback.SearchBeerByStyle(query, page))
   }
 
   private def serializeCallback(callbackData: Callback): String = {
@@ -112,34 +106,28 @@ object Callback extends Enumeration with StrictLogging {
       val byteArrayStream = new ByteArrayOutputStream()
       val stream          = new DataOutputStream(byteArrayStream)
       c match {
-        case Menu(page, newMessage) =>
+        case Search(query, page) =>
           stream.writeShort(1)
+          stream.writeUTF(query)
           writeOption(stream, page)
-          stream.writeBoolean(newMessage)
-        case Styles(page, newMessage) =>
+        case Menu(page) =>
           stream.writeShort(2)
           writeOption(stream, page)
-          stream.writeBoolean(newMessage)
-        case ItemsByStyle(styleId, page) =>
+        case Styles(page) =>
           stream.writeShort(3)
-          stream.writeShort(styleId)
-          stream.writeShort(page)
-        case SingleItem(itemType, itemId) =>
+          writeOption(stream, page)
+        case BeersByStyle(styleId, page) =>
           stream.writeShort(4)
+          stream.writeShort(styleId)
+          writeOption(stream, page)
+        case SingleItem(itemType, itemId) =>
+          stream.writeShort(5)
           stream.writeShort(itemType.id)
           stream.writeShort(itemId)
-        case SearchBeerByName(query, page) =>
-          stream.writeShort(5)
-          stream.writeUTF(query)
-          stream.writeShort(page)
-        case SearchBeerByStyle(query, page) =>
-          stream.writeShort(6)
-          stream.writeUTF(query)
-          stream.writeShort(page)
         case Settings() =>
-          stream.writeShort(7)
+          stream.writeShort(6)
         case ChangeSorting(eitherSortingOrNothing) =>
-          stream.writeShort(8)
+          stream.writeShort(7)
           stream.writeBoolean(eitherSortingOrNothing.isLeft)
 
           if (eitherSortingOrNothing.isRight)
@@ -147,7 +135,7 @@ object Callback extends Enumeration with StrictLogging {
               eitherSortingOrNothing.right.get.map(_.id).getOrElse(ResetSortingValue)
             )
         case ToggleNotifications() =>
-          stream.writeShort(9)
+          stream.writeShort(8)
       }
 
       byteArrayStream.toByteArray
@@ -165,31 +153,25 @@ object Callback extends Enumeration with StrictLogging {
       val stream = new DataInputStream(new ByteArrayInputStream(bytes))
       val result = stream.readUnsignedShort() match {
         case 1 =>
-          val page       = shortToOption(stream.readShort())
-          val newMessage = stream.readBoolean()
-          Menu(page, newMessage)
+          val query = stream.readUTF()
+          val page  = shortToOption(stream.readShort())
+          Search(query, page)
         case 2 =>
-          val page       = shortToOption(stream.readShort())
-          val newMessage = stream.readBoolean()
-          Styles(page, newMessage)
+          val page = shortToOption(stream.readShort())
+          Menu(page)
         case 3 =>
-          val styleId = stream.readShort()
-          val page    = stream.readShort()
-          ItemsByStyle(styleId, page)
+          val page = shortToOption(stream.readShort())
+          Styles(page)
         case 4 =>
+          val styleId = stream.readShort()
+          val page    = shortToOption(stream.readShort())
+          BeersByStyle(styleId, page)
+        case 5 =>
           val itemType = ItemType(stream.readShort())
           val itemId   = stream.readShort()
           SingleItem(itemType, itemId)
-        case 5 =>
-          val query = stream.readUTF()
-          val page  = stream.readShort()
-          SearchBeerByName(query, page)
-        case 6 =>
-          val query = stream.readUTF()
-          val page  = stream.readShort()
-          SearchBeerByStyle(query, page)
-        case 7 => Settings()
-        case 8 =>
+        case 6 => Settings()
+        case 7 =>
           val hasSorting = !stream.readBoolean()
           if (!hasSorting) {
             ChangeSorting(().asLeft)
@@ -197,7 +179,7 @@ object Callback extends Enumeration with StrictLogging {
             val sorting = stream.readShort()
             ChangeSorting(Sorting.all.find(s => s.id == sorting).asRight)
           }
-        case 9 => ToggleNotifications()
+        case 8 => ToggleNotifications()
       }
 
       result.some

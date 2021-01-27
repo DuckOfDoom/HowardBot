@@ -1,425 +1,54 @@
 package org.duckofdoom.howardbot.bot
 
-import java.time.{Duration, LocalDateTime}
-
-import cats.instances.future._
-import cats.syntax.functor._
-import cats.syntax.option._
-import com.bot4s.telegram.api.RequestHandler
-import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
-import com.bot4s.telegram.future.{Polling, TelegramBot}
-import com.bot4s.telegram.methods.{EditMessageText, ParseMode, SendMessage}
-import com.bot4s.telegram.models._
-import org.duckofdoom.howardbot.bot.data.ItemType
-import org.duckofdoom.howardbot.bot.services.{ResponseFormat, ResponseService}
-import org.duckofdoom.howardbot.bot.utils.Callback
-import org.duckofdoom.howardbot.db.DB
+import com.bot4s.telegram.models.ReplyMarkup
+import org.duckofdoom.howardbot.bot.data.ItemType.ItemType
+import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
 import org.duckofdoom.howardbot.db.dto.User
-import org.duckofdoom.howardbot.utils.Extensions._
-import org.duckofdoom.howardbot.utils.Extractors._
-import slogging.StrictLogging
 
-import scala.concurrent.Future
+/**
+  * This class processes requests from users
+  */
+trait HowardBot {
 
-trait Bot {
-  def sendNotification(userId: Int, title: String, message: String): Future[Unit]
-  def runningTime: Duration
-  def run(): Future[Unit]
-}
-
-class HowardBot(token: String, responseService: ResponseService, db: DB)
-    extends TelegramBot
-    with StrictLogging
-    with Polling
-    with Commands[Future]
-    with Callbacks[Future]
-    with Bot {
-
-  override def runningTime: Duration     = Duration.between(startupTime, LocalDateTime.now())
-  private val startupTime: LocalDateTime = LocalDateTime.now()
-
-  type TelegramUser = com.bot4s.telegram.models.User
-
-  override val client: RequestHandler[Future] = new CustomScalajHttpClient(token)
-
-  /*
-    Sends a message to a specified user
-   */
-  def sendNotification(userId: Int, title: String, message: String): Future[Unit] = {
-    request(
-      SendMessage(
-        ChatId(userId),
-        responseService.formatNotification(title, message),
-        parseMode = ParseMode.HTML.some
-      )
-    ).void
-  }
-
-  onCommand("start" | "menu") { implicit msg =>
-    withUser(msg.chat) { u =>
-      val (items, markup) = responseService.mkMenuResponse(
-        u.state.menuPage,
-        u.state.sorting
-      )
-
-      (respond(items, markup.some)(msg), u)
-    }
-  }
-
-  onCommand("styles") { implicit msg =>
-    withUser(msg.chat) { u =>
-      val (items, markup) = responseService.mkStylesResponse(1)
-      (respond(items, markup.some)(msg), u)
-    }
-  }
-
-  onCommand("sort") { implicit msg =>
-    withUser(msg.chat) { u =>
-      val modifiedUser    = u.withEmptySorting()
-      val (items, markup) = responseService.mkChangeSortingResponse(u.state.sorting)
-      (respond(items, markup.some)(msg), modifiedUser)
-    }
-  }
-
-  // When users clicks any of the buttons
-  onCallbackQuery { implicit query =>
-    withUser(query.from) { u =>
-      var user = u
-      val responseFuture = (query.data, query.message) match {
-        case (Some(data), Some(msg)) =>
-          implicit val message: Message = msg
-
-          Callback.deserialize(data.getBytes) match {
-            // Sent from "Menu" button
-            case Some(Callback.Menu(page, newMessage)) =>
-              logger.info(
-                s"Received 'Menu' callback from user $user, page: $page, newMessage: $newMessage"
-              )
-
-              if (page.isDefined) {
-                user = user.withMenuPage(page.get)
-              }
-
-              respond(
-                responseService.mkMenuResponse(user.state.menuPage, user.state.sorting),
-                newMessage
-              ).some
-
-            // Sent from "Styles" button
-            case Some(Callback.Styles(page, newMessage)) =>
-              logger.info(
-                s"Received 'Styles' callback from user $user, page: $page, newMessage: $newMessage"
-              )
-
-              if (page.isDefined) {
-                user = user.withMenuPage(page.get)
-              }
-
-              respond(
-                responseService.mkStylesResponse(user.state.menuPage),
-                newMessage
-              ).some
-
-            // Sent from clicking on a particular style button
-            case Some(Callback.ItemsByStyle(style, page)) =>
-              logger.info(
-                s"Received 'ItemsByStyle' callback from user $user, style: $style, page: $page"
-              )
-
-              respond(
-                responseService.mkBeersByStyleResponse(style, page, user.state.sorting),
-                newMessage = false
-              ).some
-
-            // Sent from clicking on a particular item button (either beer or style)
-            case Some(Callback.SingleItem(itemType, itemId)) =>
-              logger.info(
-                s"Received 'Item' callback from user $user, itemType: $itemType, itemId: $itemId"
-              )
-
-              itemType match {
-                case ItemType.Beer =>
-                  respond(
-                    responseService.mkBeerResponse(itemId),
-                    newMessage = true
-                  ).some
-                case ItemType.Style =>
-                  respond(
-                    responseService.mkBeersByStyleResponse(itemId, 1, user.state.sorting),
-                    newMessage = true
-                  ).some
-              }
-            case Some(Callback.SearchBeerByStyle(searchQuery, page)) =>
-              logger.info(
-                s"Received 'SearchBeerByStyle' callback from user $user, query: '$searchQuery', page: $page"
-              )
-
-              respond(
-                responseService.mkSearchBeerByStyleResponse(searchQuery, page, user.state.sorting),
-                newMessage = false
-              ).some
-            case Some(Callback.SearchBeerByName(searchQuery, page)) =>
-              logger.info(
-                s"Received 'SearchBeerByName' callback from user $user, query: '$searchQuery', page: $page"
-              )
-
-              respond(
-                responseService.mkSearchBeerByNameResponse(searchQuery, page, user.state.sorting),
-                newMessage = false
-              ).some
-
-            case Some(Callback.Settings()) =>
-              logger.info(
-                s"Received 'ShowSettings' callback from user $user"
-              )
-
-              respond(responseService.mkSettingsResponse(u.state.notificationsEnabled), newMessage = false).some
-
-            case Some(Callback.ChangeSorting(mSorting)) =>
-              logger.info(
-                s"Received 'ChangeSorting' callback from user $user, sorting: $mSorting"
-              )
-
-              if (mSorting.isRight) {
-
-                // Reset menu page because we're going to change sorting and it wont make any sense.
-                user = user.withMenuPage(1)
-
-                val sorting = mSorting.right.get
-                if (sorting.isEmpty) {
-                  user = user.withEmptySorting()
-                } else {
-                  user = user.withAddedSorting(sorting.get)
-                }
-              }
-
-              respond(
-                responseService.mkChangeSortingResponse(user.state.sorting),
-                newMessage = false
-              ).some
-
-            case Some(Callback.ToggleNotifications()) =>
-              logger.info(
-                s"Received 'ToggleNotifications' callback from user $user"
-              )
-
-              user = user.withNotificationsEnabled(!user.state.notificationsEnabled)
-              respond(
-                responseService.mkToggleNotificationsResponse(user.state.notificationsEnabled),
-                newMessage = false
-              ).some
-
-            case _ =>
-              None
-          }
-        case _ => None
-      }
-
-      if (responseFuture.isEmpty)
-        logger.error(s"Failed to construct response for callback query: ${query.data}")
-
-      // Combine our response with ACK since we should always acknowledge callback query
-      val responseFutureWithAck: Future[Unit] = for {
-        ack    <- ackCallback()
-        answer <- responseFuture.getOrElse(Future.successful())
-      } yield (ack, answer)
-
-      (responseFutureWithAck, user)
-    }
-  }
-
-  override def receiveMessage(msg: Message): Future[Unit] = {
-
-    implicit val message: Message = msg
-
-    if (msg.text.isEmpty) {
-      logger.warn("Received empty text message.")
-      return super.receiveMessage(msg)
-    }
-
-    withUser(msg.chat) { user =>
-      implicit val format: ResponseFormat.Value = ResponseFormat.TextMessage
-
-      val responseFuture = msg.text.get match {
-        case Consts.showItemRegex(Int(id)) =>
-          val (item, markup) = responseService.mkBeerResponse(id)
-          request(
-            SendMessage(
-              ChatId(msg.source),
-              item,
-              ParseMode.HTML.some,
-              // Only this request should show links
-              false.some,
-              None,
-              None,
-              markup.some
-            )
-          ).void
-        case Consts.showItemsByStyleRegex(Int(styleId)) =>
-          respond(
-            responseService.mkBeersByStyleResponse(styleId, 1, user.state.sorting),
-            newMessage = true
-          ).void
-        case Consts.SearchBeerByStyleQuery(query) =>
-          respond(
-            responseService.mkSearchBeerByStyleResponse(query, 1, user.state.sorting),
-            newMessage = true
-          ).void
-        case Consts.SearchBeerByNameQuery(query) =>
-          respond(
-            responseService.mkSearchBeerByNameResponse(query, 1, user.state.sorting),
-            newMessage = true
-          ).void
-        // Treat simple text as beer-by-name search
-        case _ =>
-          if (msg.text.get.startsWith("/")) {
-            return super.receiveMessage(msg)
-          }
-
-          respond(
-            responseService.mkSearchBeerByNameResponse(msg.text.get, 1, user.state.sorting),
-            newMessage = true
-          ).void
-      }
-
-      (responseFuture, user)
-    }
-  }
-
-  override def receiveUpdate(u: Update, botUser: Option[TelegramUser]): Future[Unit] = {
-    try {
-      super.receiveUpdate(u, botUser)
-    } catch {
-      case ex: Throwable =>
-        logger.error(s"Caught exception when receiving update:\n${ex.toStringFull}")
-        Future.failed(ex)
-    }
-  }
+  type Response = (String, ReplyMarkup)
 
   /**
-    * Allows to pull user that sent a message from DB when processing queries.
-    * 'action' should always return either a supplied User or modified User if we need to modify it.
-    * If returned user does not equal the provided one, said user is updated in database.
+    * Show whole menu as a paginated response
     */
-  private def withUser(tgUser: TelegramUser)(action: User => (Future[Unit], User)): Future[Unit] = {
-
-    if (tgUser.firstName.isEmpty) {
-      return Future.failed(
-        new Exception(
-          "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."
-        )
-      )
-    }
-
-    val user = db.getUserByTelegramId(tgUser.id) match {
-      case Some(u) => u.some
-      case _ =>
-        db.putUser(
-          tgUser.id,
-          tgUser.firstName,
-          tgUser.lastName,
-          tgUser.username
-        )
-    }
-
-    user match {
-      case Some(u) =>
-        val (future, modifiedUser) = action(u)
-        if (modifiedUser != u)
-          db.updateUser(modifiedUser)
-        future
-      case _ =>
-        Future.failed(
-          new Exception(
-            s"Failed to process action! Could not create user for telegramUser: $tgUser"
-          )
-        )
-    }
-  }
+  def showMenu(page: Option[Int] = None)(implicit user: User): Response
 
   /**
-    * Allows to pull user that sent a message from DB when processing queries.
-    * 'action' should always return either a supplied User or modified User if we need to modify it.
-    * If returned user does not equal the provided one, said user is updated in database.
+    * Show styles list
     */
-  private def withUser(chat: Chat)(action: User => (Future[Unit], User)): Future[Unit] = {
-    if (chat.firstName.isEmpty) {
-      return Future.failed(
-        new Exception(
-          "chat.firstName is empty, meaning this is not 1 on 1 chat. Support for these is not implemented yet."
-        )
-      )
-    }
+  def showStyles(page: Option[Int] = None)(implicit user: User): Response
 
-    val user = db.getUserByTelegramId(chat.id) match {
-      case Some(u) => u.some
-      case _ =>
-        db.putUser(
-          chat.id,
-          chat.firstName.get,
-          chat.lastName,
-          chat.username
-        )
-    }
+  /**
+    * Show beers of specific style
+    */
+  def showBeersByStyle(style: Int, page: Option[Int] = None)(implicit user: User): Response
 
-    user match {
-      case Some(u) =>
-        val (future, modifiedUser) = action(u)
-        if (modifiedUser != u)
-          db.updateUser(modifiedUser)
-        future
-      case _ =>
-        Future.failed(
-          new Exception(s"Failed to process action! Could not create user for chat: $chat")
-        )
-    }
-  }
+  /**
+    * Show specific item (either beers by one style, or specific beer)
+    */
+  def showItem(itemType: ItemType, itemId: Int)(implicit user: User): Response
 
-  private def respond(text: String, markup: Option[ReplyMarkup] = None)(
-      implicit message: Message
-  ) = {
+  /**
+    * Search everything in order (first by beer name, then by brewery, then by style)
+    */
+  def search(query: String, page: Option[Int])(implicit user: User): Response
 
-    reply(
-      text,
-      ParseMode.HTML.some,
-      true.some,
-      None,
-      None,
-      markup
-    ).void
-  }
+  /**
+    * Show bot settings
+    */
+  def showSettings()(implicit user: User): Response
 
-  private def respond(response: (String, InlineKeyboardMarkup), newMessage: Boolean)(
-      implicit msg: Message
-  ) = {
+  /**
+    * Change sorting in settings
+    */
+  def changeSorting(mSorting: Either[Unit, Option[Sorting]])(implicit user: User): Response
 
-    val (items, buttons) = response
-
-    if (newMessage) {
-      request(
-        SendMessage(
-          ChatId(msg.source),
-          items,
-          ParseMode.HTML.some,
-          true.some,
-          None,
-          None,
-          buttons.some
-        )
-      )
-    } else {
-      request(
-        EditMessageText(
-          ChatId(msg.source).some,
-          msg.messageId.some,
-          None,
-          items,
-          ParseMode.HTML.some,
-          true.some,
-          buttons.some
-        )
-      )
-    }
-  }
-
+  /**
+    * Toggle bot notifications
+    */
+  def toggleNotifications()(implicit user: User): (String, ReplyMarkup)
 }

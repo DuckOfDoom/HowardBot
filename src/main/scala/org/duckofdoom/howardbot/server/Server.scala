@@ -57,6 +57,9 @@ class Server(responseService: ServerResponseService) extends StrictLogging {
               },
               path("changelog") {
                 respond(responseService.menuChangelog)
+              },
+              path("styles") {
+                respond(responseService.styles)
               }
             )
           },
@@ -68,8 +71,8 @@ class Server(responseService: ServerResponseService) extends StrictLogging {
               path("new") {
                 respond(responseService.putRandomUser())
               },
-              path(IntNumber) { userId =>
-                respond(responseService.getUser(userId))
+              path(IntNumber) { id =>
+                respond(responseService.getUser(id))
               }
             )
           },

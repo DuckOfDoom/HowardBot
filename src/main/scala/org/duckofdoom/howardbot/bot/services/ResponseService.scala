@@ -1,13 +1,8 @@
 package org.duckofdoom.howardbot.bot.services
 
-import com.bot4s.telegram.models.InlineKeyboardMarkup
-import org.duckofdoom.howardbot.bot.data.Beer
+import com.bot4s.telegram.models.ReplyMarkup
+import org.duckofdoom.howardbot.bot.data.{Beer, Style}
 import org.duckofdoom.howardbot.bot.utils.Sorting.Sorting
-
-object ResponseFormat extends Enumeration {
-  type ResponseFormat = Value
-  val TextMessage, Buttons = Value
-}
 
 /**
   * A service to create responses for user commands
@@ -17,65 +12,58 @@ trait ResponseService {
   /**
     * Show whole menu
     */
-  def mkMenuResponse(page: Int, sorting: Seq[Sorting]): (String, InlineKeyboardMarkup)
+  def mkMenuResponse(beers: Seq[Beer], page: Int): (String, ReplyMarkup)
 
   /**
     * Show available styles
     */
-  def mkStylesResponse(page: Int): (String, InlineKeyboardMarkup)
-
-  /**
-    * Show change settings dialogue
-    */
-  def mkSettingsResponse(notificationsEnabled: Boolean): (String, InlineKeyboardMarkup)
-
-  /**
-    * Show change sorting dialogue
-    */
-  def mkChangeSortingResponse(selectedSorting: Seq[Sorting]): (String, InlineKeyboardMarkup)
-
-  /**
-    * Show changed notifications state
-    */
-  def mkToggleNotificationsResponse(notificationsEnabled:Boolean): (String, InlineKeyboardMarkup)
-  
-  /**
-    * Show a single beer by id
-    */
-  def mkBeerResponse(beerId: Int): (String, InlineKeyboardMarkup)
-
-  /**
-    * Show a single beer by id
-    */
-  def mkBeerResponse(beer: Beer): (String, InlineKeyboardMarkup)
+  def mkStylesResponse(stylesWithCounts: Map[Style, Int], page: Int): (String, ReplyMarkup)
 
   /**
     * Show beers by style id
     */
-  def mkBeersByStyleResponse(
-      styleId: Int,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
+  def mkBeersByStyleResponse(styleId: Int, beers: Seq[Beer], page: Int): (String, ReplyMarkup)
 
   /**
-    * Search beers by name
+    * Make response for search query
     */
-  def mkSearchBeerByNameResponse(
-      query: String,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
+  def mkSearchResponse(query: String, searchResults: Seq[Beer], page: Int): (String, ReplyMarkup)
 
   /**
-    * Search beers by style
+    * Show change settings dialogue
     */
-  def mkSearchBeerByStyleResponse(
-      query: String,
-      page: Int,
-      sorting: Seq[Sorting]
-  ): (String, InlineKeyboardMarkup)
+  def mkSettingsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup)
 
-  // TODO: Remove?
+  /**
+    * Show change sorting dialogue
+    */
+  def mkChangeSortingResponse(selectedSorting: Seq[Sorting]): (String, ReplyMarkup)
+
+  /**
+    * Show changed notifications state
+    */
+  def mkToggleNotificationsResponse(notificationsEnabled: Boolean): (String, ReplyMarkup)
+
+  /**
+    * Show a single beer by id
+    */
+  def mkBeerResponse(beerId: Int): (String, ReplyMarkup)
+
+  /**
+    * Show a single beer by id
+    */
+  def mkBeerResponse(beer: Beer): (String, ReplyMarkup)
+
+  /**
+    * Make response when nothing is found
+    */
+  def mkEmptySearchResultsResponse(
+      query: String
+  ): (String, ReplyMarkup)
+
+  /**
+    * Formats a notification for user
+    */
   def formatNotification(title: String, message: String): String
+
 }

@@ -8,35 +8,44 @@ import org.duckofdoom.howardbot.bot.utils.{Callback, Sorting}
 import org.scalatest.{FlatSpec, Matchers}
 
 class CallbacksSpec extends FlatSpec with Matchers {
-  
+
+  "'Search' callback" should "be serialized and deserialized correctly" in {
+
+    // Search beers by name
+    val beersByNameCallback = Callback.mkSearchCallback("tehbeer", 5.some)
+    Callback.deserialize(beersByNameCallback.getBytes) match {
+      case Some(Callback.Search(query, page)) =>
+        query should be("tehbeer")
+        page should be(Some(5))
+      case _ => fail(s"Failed to parse callback '$beersByNameCallback'")
+    }
+  }
+
   "'Menu' callback" should "be serialized and deserialized correctly" in {
     // Menu
-    var menuCallback = Callback.mkMenuCallbackData(10.some, newMessage = true)
+    var menuCallback = Callback.mkMenuCallbackData(10.some)
     Callback.deserialize(menuCallback.getBytes) match {
-      case Some(Callback.Menu(page, newMessage)) =>
+      case Some(Callback.Menu(page)) =>
         page should be(Some(10))
-        newMessage should be(true)
       case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
     
     // NONE was not serialized correctly!
-    menuCallback = Callback.mkMenuCallbackData(None, newMessage = false)
+    menuCallback = Callback.mkMenuCallbackData(None)
     Callback.deserialize(menuCallback.getBytes) match {
-      case Some(Callback.Menu(page, newMessage)) =>
+      case Some(Callback.Menu(page)) =>
         page should be (None)
-        newMessage should be(false)
       case _ => fail(s"Failed to parse callback '$menuCallback'")
     }
   }
 
   "'Styles' callback" should "be serialized and deserialized correctly" in {
     // Styles
-    val stylesCallback = Callback.mkStylesCallbackData(8.some, newMessage = true)
+    val stylesCallback = Callback.mkStylesCallbackData(8.some)
     Callback.deserialize(stylesCallback.getBytes) match {
-      case Some(Callback.Menu(_, _)) => fail("This callback should only be parsed as Styles!")
-      case Some(Callback.Styles(page, newMessage)) =>
-        page.get should be(8)
-        newMessage should be(true)
+      case Some(Callback.Menu(_)) => fail("This callback should only be parsed as Styles!")
+      case Some(Callback.Styles(page)) =>
+        page should be(Some(8))
       case _ => fail(s"Failed to parse callback '$stylesCallback'")
     }
   }
@@ -44,11 +53,11 @@ class CallbacksSpec extends FlatSpec with Matchers {
   "'ItemsByStyle' callback" should "be serialized and deserialized correctly" in {
 
     // Items by style
-    val itemsByStyleCallback = Callback.mkItemsByStyleCallbackData(15, 19)
+    val itemsByStyleCallback = Callback.mkItemsByStyleCallbackData(15, 19.some)
     Callback.deserialize(itemsByStyleCallback.getBytes) match {
-      case Some(Callback.ItemsByStyle(styleId, page)) =>
+      case Some(Callback.BeersByStyle(styleId, page)) =>
         styleId should be(15)
-        page.toInt should be(19)
+        page should be(Some(19))
       case _ => fail(s"Failed to parse callback '$itemsByStyleCallback'")
     }
   }
@@ -87,29 +96,6 @@ class CallbacksSpec extends FlatSpec with Matchers {
     }
   }
 
-  "'Search beer by name' callback" should "be serialized and deserialized correctly" in {
-
-    // Search beers by name
-    val beersByNameCallback = Callback.mkSearchBeerByNameCallback("tehbeer", 5)
-    Callback.deserialize(beersByNameCallback.getBytes) match {
-      case Some(Callback.SearchBeerByName(query, page)) =>
-        query should be("tehbeer")
-        page should be(5)
-      case _ => fail(s"Failed to parse callback '$beersByNameCallback'")
-    }
-  }
-
-  "'Search beer by style' callback" should "be serialized and deserialized correctly" in {
-    // Search beers by style
-    val beersByStyleCallback = Callback.mkSearchBeerByStyleCallback("tehStyle", 3)
-    Callback.deserialize(beersByStyleCallback.getBytes) match {
-      case Some(Callback.SearchBeerByStyle(query, page)) =>
-        query should be("tehStyle")
-        page should be(3)
-      case _ => fail(s"Failed to parse callback '$beersByStyleCallback'")
-    }
-  }
-  
   "'Settings' callback" should "be serialized and deserialized correctly" in {
     // Search beers by style
     val settingsCallback = Callback.mkSettingsCallback()

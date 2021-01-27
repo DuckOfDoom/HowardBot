@@ -3,7 +3,6 @@ package org.duckofdoom.howardbot.bot.services
 import java.time.{Duration, LocalDateTime}
 
 import org.duckofdoom.howardbot.bot.Bot
-import org.duckofdoom.howardbot.bot.data.ItemsProvider
 import org.duckofdoom.howardbot.utils.TimeUtils
 import scalatags.Text.all._
 
@@ -21,7 +20,7 @@ class StatusService(bot: Bot, itemsProvider: ItemsProvider) {
     val beersCount = itemsProvider.beers.length
     val beersInStockCount = itemsProvider.availableBeers.length
     val stylesCount = itemsProvider.styles.length
-    val stylesInStockCount = itemsProvider.availableStyles.length
+    val stylesInStockCount = itemsProvider.getAvailableStyles(false).length
 
     html(
       head(
